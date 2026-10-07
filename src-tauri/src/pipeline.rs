@@ -1472,7 +1472,7 @@ impl PipelineHandle {
         // Start the platform audio backend before connecting STT. Both readiness
         // operations are then polled concurrently, so speech captured while a
         // network provider connects remains queued instead of being clipped.
-        let config = AudioConfig::default();
+        let config = AudioConfig::for_app_config(&config_data);
         let (mut handle, mut audio_rx) = match AudioCaptureHandle::start(config) {
             Ok(result) => result,
             Err(e) => {

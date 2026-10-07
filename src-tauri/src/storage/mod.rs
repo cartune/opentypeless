@@ -387,6 +387,9 @@ pub struct AppConfig {
     pub esc_cancel_enabled: bool,
     /// Apply correction rules as literal replacements on the final text.
     pub correction_rules_exact_apply: bool,
+    /// Run RNNoise on microphone input before STT (off by default until
+    /// verified on real hardware; see docs/m7-noise-notes.md).
+    pub noise_suppression_enabled: bool,
     /// User-editable BYOK price table used only for the cost estimate shown in
     /// the app. Empty means "use the built-in defaults" on the frontend.
     pub usage_pricing: Vec<UsagePrice>,
@@ -502,6 +505,7 @@ impl Default for AppConfig {
             ui_language: "en".to_string(),
             capsule_auto_hide: false,
             esc_cancel_enabled: true,
+            noise_suppression_enabled: false,
             usage_pricing: Vec::new(),
             correction_rules_exact_apply: true,
         }

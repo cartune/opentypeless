@@ -525,7 +525,9 @@
     "usagePerMtokOut": "$ / 百万输出",
     "usageResetPricing": "恢复默认",
     "usageAddModel": "添加模型",
-    "usageModelPlaceholder": "模型名称"
+    "usageModelPlaceholder": "模型名称",
+    "noiseSuppression": "背景降噪（RNNoise）",
+    "noiseSuppressionHint": "在发送语音识别前先滤掉稳定的背景噪音（风扇、空调、键盘底噪），音量指示也不会把噪音算成声音。完全在本机运行；如果识别常混入环境音，可以开启试试。"
   },
   "contextFamilies": {
     "email": "邮件",

@@ -55,6 +55,7 @@ type SafeScalarKey =
   | 'correction_rules_exact_apply'
   | 'stt_openai_model'
   | 'stt_upload_format'
+  | 'noise_suppression_enabled'
 
 export type BackupSettings = Partial<Pick<AppConfig, SafeScalarKey>> & {
   voice_routing_flags?: VoiceRoutingFlags
@@ -189,6 +190,7 @@ export function createBackupSettings(config: AppConfig): BackupSettings {
     correction_rules_exact_apply: config.correction_rules_exact_apply,
     stt_openai_model: config.stt_openai_model,
     stt_upload_format: config.stt_upload_format,
+    noise_suppression_enabled: config.noise_suppression_enabled,
   }
 
   if (Array.isArray(config.usage_pricing)) {
@@ -259,6 +261,7 @@ const SAFE_SCALAR_KEYS: readonly SafeScalarKey[] = [
   'correction_rules_exact_apply',
   'stt_openai_model',
   'stt_upload_format',
+  'noise_suppression_enabled',
 ]
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -280,6 +280,8 @@ export interface AppConfig {
   ui_language: string
   capsule_auto_hide: boolean
   esc_cancel_enabled: boolean
+  /** Run RNNoise on microphone input before speech recognition. */
+  noise_suppression_enabled: boolean
   /** User overrides for the BYOK price table; empty = built-in defaults. */
   usage_pricing: UsagePrice[]
   correction_rules_exact_apply: boolean
@@ -843,6 +845,7 @@ const defaultConfig: AppConfig = {
   ui_language: 'en',
   capsule_auto_hide: true,
   esc_cancel_enabled: true,
+  noise_suppression_enabled: false,
   usage_pricing: [],
   correction_rules_exact_apply: true,
 }

@@ -525,7 +525,9 @@
     "usagePerMtokOut": "$ / M output",
     "usageResetPricing": "Reset to defaults",
     "usageAddModel": "Add model",
-    "usageModelPlaceholder": "model name"
+    "usageModelPlaceholder": "model name",
+    "noiseSuppression": "Noise suppression (RNNoise)",
+    "noiseSuppressionHint": "Removes steady background noise (fans, air-con, keyboard hum) before the audio is sent to speech recognition, and keeps it out of the level meter. Runs on-device; try it if transcripts pick up room noise."
   },
   "contextFamilies": {
     "email": "Email",

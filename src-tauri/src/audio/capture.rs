@@ -69,6 +69,8 @@ pub struct AudioConfig {
     pub sample_rate: u32,
     pub channels: u16,
     pub chunk_duration_ms: u32,
+    /// Run RNNoise on the input before resampling to the target rate.
+    pub noise_suppression: bool,
 }
 
 impl Default for AudioConfig {
@@ -77,6 +79,17 @@ impl Default for AudioConfig {
             sample_rate: 16000,
             channels: 1,
             chunk_duration_ms: 20,
+            noise_suppression: false,
+        }
+    }
+}
+
+impl AudioConfig {
+    /// Default capture config with the user's noise-suppression preference applied.
+    pub fn for_app_config(config: &crate::storage::AppConfig) -> Self {
+        Self {
+            noise_suppression: config.noise_suppression_enabled,
+            ..Self::default()
         }
     }
 }
@@ -179,28 +192,6 @@ impl AudioCaptureHandle {
     }
 }
 
-/// Downsample audio from `from_rate` to `to_rate` (simple linear interpolation, mono).
-fn downsample(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
-    if from_rate == to_rate {
-        return samples.to_vec();
-    }
-    let ratio = from_rate as f64 / to_rate as f64;
-    let out_len = (samples.len() as f64 / ratio) as usize;
-    let mut out = Vec::with_capacity(out_len);
-    for i in 0..out_len {
-        let src_idx = i as f64 * ratio;
-        let idx = src_idx as usize;
-        let frac = src_idx - idx as f64;
-        let s = if idx + 1 < samples.len() {
-            samples[idx] as f64 * (1.0 - frac) + samples[idx + 1] as f64 * frac
-        } else {
-            samples[idx.min(samples.len() - 1)] as f64
-        };
-        out.push(s as f32);
-    }
-    out
-}
-
 /// Mix multi-channel audio down to mono by averaging channels.
 fn to_mono(samples: &[f32], channels: u16) -> Vec<f32> {
     if channels <= 1 {
@@ -222,15 +213,17 @@ where
 }
 
 struct InputProcessingContext {
-    device_sample_rate: u32,
     device_channels: u16,
-    target_rate: u32,
     target_channels: u16,
     samples_per_chunk: usize,
     sender: mpsc::Sender<Vec<u8>>,
     volume: Arc<Mutex<f32>>,
     buffer: Arc<Mutex<Vec<i16>>>,
     voiced_chunks: Arc<AtomicU32>,
+    /// Resampling (+ optional denoising) state; lives on the capture thread.
+    front_end: super::dsp::AudioFrontEnd,
+    /// Pre-allocated output scratch for one callback.
+    processed: Vec<f32>,
 }
 
 /// Map a linear RMS (0..1) to a 0..1 meter level on a dB scale between
@@ -274,11 +267,7 @@ fn normalized_rms(data: &[f32]) -> f32 {
     }
 }
 
-fn process_input_samples(data: &[f32], context: &InputProcessingContext) {
-    // Calculate RMS volume from raw data, reported on a dB scale
-    if let Ok(mut volume) = context.volume.lock() {
-        *volume = meter_level(normalized_rms(data));
-    }
+fn process_input_samples(data: &[f32], context: &mut InputProcessingContext) {
     if data.is_empty() {
         return;
     }
@@ -290,19 +279,25 @@ fn process_input_samples(data: &[f32], context: &InputProcessingContext) {
         data.to_vec()
     };
 
-    // Downsample to target rate if needed
-    let resampled = if context.device_sample_rate != context.target_rate {
-        downsample(&mono, context.device_sample_rate, context.target_rate)
-    } else {
-        mono
-    };
+    // Anti-aliased resample (and denoise when enabled) to the target rate.
+    context.processed.clear();
+    context.front_end.process(&mono, &mut context.processed);
+    if context.processed.is_empty() {
+        return;
+    }
+
+    // Meter and voiced gate both look at the processed signal, so with noise
+    // suppression on, steady fan noise no longer registers as "audio".
+    if let Ok(mut volume) = context.volume.lock() {
+        *volume = meter_level(normalized_rms(&context.processed));
+    }
 
     // Convert f32 to i16 PCM and buffer
     let mut buffer = context
         .buffer
         .lock()
         .unwrap_or_else(|error| error.into_inner());
-    for &sample in &resampled {
+    for &sample in &context.processed {
         if buffer.len() >= MAX_BUFFER_SAMPLES {
             break;
         }
@@ -327,7 +322,7 @@ fn process_input_samples(data: &[f32], context: &InputProcessingContext) {
 fn build_input_stream_for_sample<T>(
     device: &cpal::Device,
     stream_config: &cpal::StreamConfig,
-    context: InputProcessingContext,
+    mut context: InputProcessingContext,
 ) -> std::result::Result<cpal::Stream, cpal::BuildStreamError>
 where
     T: cpal::SizedSample,
@@ -337,7 +332,7 @@ where
         stream_config,
         move |data: &[T], _: &cpal::InputCallbackInfo| {
             let samples = samples_to_f32(data);
-            process_input_samples(&samples, &context);
+            process_input_samples(&samples, &mut context);
         },
         |error| {
             tracing::error!("Audio capture error: {}", error);
@@ -391,16 +386,23 @@ fn run_capture(
     let buffer: Arc<Mutex<Vec<i16>>> = Arc::new(Mutex::new(Vec::with_capacity(samples_per_chunk)));
 
     let processing_context = InputProcessingContext {
-        device_sample_rate,
         device_channels,
-        target_rate,
         target_channels,
         samples_per_chunk,
         sender,
         volume,
         buffer,
         voiced_chunks,
+        front_end: super::dsp::AudioFrontEnd::new(
+            device_sample_rate,
+            target_rate,
+            config.noise_suppression,
+        ),
+        processed: Vec::with_capacity(8192),
     };
+    if config.noise_suppression {
+        tracing::info!("Noise suppression (RNNoise) enabled for this capture");
+    }
 
     let stream = match device_sample_format {
         cpal::SampleFormat::F32 => {

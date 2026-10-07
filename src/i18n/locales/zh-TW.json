@@ -525,7 +525,9 @@
     "usagePerMtokOut": "$ / 百萬輸出",
     "usageResetPricing": "還原預設",
     "usageAddModel": "新增模型",
-    "usageModelPlaceholder": "模型名稱"
+    "usageModelPlaceholder": "模型名稱",
+    "noiseSuppression": "背景降噪（RNNoise）",
+    "noiseSuppressionHint": "在送出語音辨識前先濾掉穩定的背景噪音（風扇、冷氣、鍵盤底噪），音量指示也不會把噪音算成聲音。完全在本機執行；如果辨識常混進環境音，可以開啟試試。"
   },
   "contextFamilies": {
     "email": "郵件",

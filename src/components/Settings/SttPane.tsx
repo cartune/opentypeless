@@ -23,6 +23,7 @@ import {
   type SttProviderDiagnostics,
 } from '../../lib/tauri'
 import { FormField } from './shared/FormField'
+import { Toggle } from './shared/Toggle'
 import { CheckCircle2, XCircle, Loader2, Crown } from 'lucide-react'
 
 const RECORDING_LIMIT_PRESETS = [30, 60, 120, 300, 600, 1800, 3600]
@@ -690,6 +691,15 @@ export function SttPane() {
           </p>
         </FormField>
       )}
+
+      <div className="space-y-1">
+        <Toggle
+          checked={config.noise_suppression_enabled}
+          onChange={(checked) => updateConfig({ noise_suppression_enabled: checked })}
+          label={t('settings.noiseSuppression')}
+        />
+        <p className="text-[11px] text-text-tertiary">{t('settings.noiseSuppressionHint')}</p>
+      </div>
 
       <FormField label={t('settings.maxRecordingDuration')}>
         {recordingLimit ? (

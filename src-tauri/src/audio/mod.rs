@@ -1,4 +1,5 @@
 pub mod capture;
+pub mod dsp;
 
 pub use capture::{AudioCaptureHandle, AudioConfig, CaptureState};
 
