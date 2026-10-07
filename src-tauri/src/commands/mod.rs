@@ -1,6 +1,7 @@
 pub mod app_mappings;
 pub mod ask;
 pub mod backup;
+pub mod capsule;
 pub mod config;
 pub mod credentials;
 pub mod dictionary;

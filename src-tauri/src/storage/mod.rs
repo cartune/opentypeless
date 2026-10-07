@@ -387,6 +387,8 @@ pub struct AppConfig {
     pub esc_cancel_enabled: bool,
     /// Apply correction rules as literal replacements on the final text.
     pub correction_rules_exact_apply: bool,
+    /// Native Liquid Glass / vibrancy backdrop for the capsule (macOS).
+    pub capsule_glass_enabled: bool,
     /// Run RNNoise on microphone input before STT (off by default until
     /// verified on real hardware; see docs/m7-noise-notes.md).
     pub noise_suppression_enabled: bool,
@@ -506,6 +508,7 @@ impl Default for AppConfig {
             capsule_auto_hide: false,
             esc_cancel_enabled: true,
             noise_suppression_enabled: false,
+            capsule_glass_enabled: true,
             usage_pricing: Vec::new(),
             correction_rules_exact_apply: true,
         }

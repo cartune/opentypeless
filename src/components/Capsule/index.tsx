@@ -2,7 +2,7 @@ import { useRef, useCallback, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAppStore } from '../../stores/appStore'
 import { useRecording } from '../../hooks/useRecording'
-import { useCapsuleResize } from '../../hooks/useCapsuleResize'
+import { shouldApplyCapsuleGlass, useCapsuleResize } from '../../hooks/useCapsuleResize'
 import { stopAskFlow } from '../../lib/tauri'
 import { CapsuleIdle } from './CapsuleIdle'
 import { CapsulePreparing } from './CapsulePreparing'
@@ -53,6 +53,8 @@ export function Capsule() {
   const setContextMenuReady = useAppStore((s) => s.setContextMenuReady)
   const translationTargetMenuOpen = useAppStore((s) => s.translationTargetMenuOpen)
   const setTranslationTargetMenuOpen = useAppStore((s) => s.setTranslationTargetMenuOpen)
+  const capsuleExpanded = useAppStore((s) => s.capsuleExpanded)
+  const glassEnabled = useAppStore((s) => s.config.capsule_glass_enabled)
   const { stopRecording, isRecording } = useRecording()
 
   const dragStart = useRef<{ x: number; y: number } | null>(null)
@@ -63,6 +65,23 @@ export function Capsule() {
   const hasError = pipelineError !== null
   const capsuleState = getCapsuleState(pipelineState, hasError)
   const capsuleShellSize = getCapsuleShellSize(capsuleState)
+  const glass = shouldApplyCapsuleGlass({
+    glassEnabled,
+    contextMenuOpen,
+    translationTargetMenuOpen,
+    capsuleExpanded,
+  })
+  const shellTone = glass
+    ? capsuleState === 'error'
+      ? 'glass-capsule glass-capsule-error text-white'
+      : capsuleState === 'idle'
+        ? 'glass-capsule text-neutral-800 dark:text-white'
+        : 'glass-capsule glass-capsule-active text-white'
+    : capsuleState === 'error'
+      ? 'jelly-capsule-error'
+      : capsuleState === 'idle'
+        ? 'jelly-capsule text-neutral-700'
+        : 'jelly-capsule-active text-white'
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return
@@ -140,13 +159,8 @@ export function Capsule() {
       <motion.div
         layout
         transition={{ layout: { duration: 0.2, ease: [0.2, 0, 0, 1] } }}
-        className={`absolute left-3 rounded-full pointer-events-auto shrink-0 ${
-          capsuleState === 'error'
-            ? 'jelly-capsule-error'
-            : capsuleState === 'idle'
-              ? 'jelly-capsule text-neutral-700'
-              : 'jelly-capsule-active text-white'
-        }`}
+        className={`absolute ${glass ? 'left-0' : 'left-3'} rounded-full pointer-events-auto shrink-0 ${shellTone}`}
+        data-glass={glass ? 'true' : 'false'}
         style={capsuleShellSize}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}

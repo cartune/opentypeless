@@ -655,3 +655,53 @@ body,
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-secondary);
 }
+
+/* ---------------------------------------------------------------------------
+   Liquid Glass capsule (M6). The native NSGlassEffectView (or vibrancy on
+   older macOS) draws the blurred, refracting backdrop behind the webview; the
+   classes below only add a rim highlight and a readable tint on top of it.
+   Keep every background translucent so the glass shows through.
+   ------------------------------------------------------------------------- */
+.glass-capsule {
+  position: relative;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  border: none;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.06);
+}
+.glass-capsule::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.05) 45%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+}
+.glass-capsule-active {
+  background: rgba(18, 18, 22, 0.3);
+}
+.glass-capsule-error {
+  background: rgba(220, 38, 38, 0.55);
+}
+.dark .glass-capsule {
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+}
+.dark .glass-capsule-active {
+  background: rgba(0, 0, 0, 0.24);
+}
+.dark .glass-capsule-error {
+  background: rgba(185, 28, 28, 0.6);
+}

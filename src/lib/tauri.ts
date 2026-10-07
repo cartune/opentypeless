@@ -528,6 +528,13 @@ export interface UsageSummary {
   byDay: UsageByDay[]
 }
 
+export type CapsuleGlassMode = 'liquid_glass' | 'vibrancy' | 'none'
+
+/** Apply or clear the native glass backdrop on the capsule window (macOS only; no-op elsewhere). */
+export async function setCapsuleGlass(enabled: boolean, radius = 18): Promise<CapsuleGlassMode> {
+  return invoke('set_capsule_glass', { enabled, radius })
+}
+
 /** `since` is an ISO date prefix such as "2026-10-01" compared against history `created_at`. */
 export async function getUsageSummary(since: string): Promise<UsageSummary> {
   return invoke('get_usage_summary', { since })

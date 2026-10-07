@@ -2,14 +2,28 @@ import { createElement } from 'react'
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  CAPSULE_GLASS_RADIUS,
+  CAPSULE_WINDOW_PADDING,
   getCapsuleBottomCenterPosition,
   getCapsuleFocusable,
+  getCapsuleLeftAnchoredX,
   getCapsuleRecoveryPosition,
   getCapsuleVisibility,
+  getCapsuleWindowPadding,
   isCapsuleVisibleOnAnyMonitor,
+  shouldApplyCapsuleGlass,
   useCapsuleResize,
 } from '../useCapsuleResize'
 import { useAppStore } from '../../stores/appStore'
+
+const tauriMocks = vi.hoisted(() => ({
+  setCapsuleGlass: vi.fn(),
+}))
+
+vi.mock('../../lib/tauri', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/tauri')>()),
+  setCapsuleGlass: tauriMocks.setCapsuleGlass,
+}))
 
 const windowApiMocks = vi.hoisted(() => ({
   getCurrentWindow: vi.fn(),
@@ -295,6 +309,35 @@ function HookHarness() {
   return null
 }
 
+describe('capsule glass geometry', () => {
+  it('applies glass only while the window is pill-sized', () => {
+    const base = {
+      glassEnabled: true,
+      contextMenuOpen: false,
+      translationTargetMenuOpen: false,
+      capsuleExpanded: false,
+    }
+    expect(shouldApplyCapsuleGlass(base)).toBe(true)
+    expect(shouldApplyCapsuleGlass({ ...base, contextMenuOpen: true })).toBe(false)
+    expect(shouldApplyCapsuleGlass({ ...base, translationTargetMenuOpen: true })).toBe(false)
+    expect(shouldApplyCapsuleGlass({ ...base, capsuleExpanded: true })).toBe(false)
+    expect(shouldApplyCapsuleGlass({ ...base, glassEnabled: false })).toBe(false)
+  })
+
+  it('drops the transparent window padding when glass is on', () => {
+    expect(getCapsuleWindowPadding(true)).toBe(0)
+    expect(getCapsuleWindowPadding(false)).toBe(CAPSULE_WINDOW_PADDING)
+    expect(CAPSULE_GLASS_RADIUS).toBe(18)
+  })
+
+  it('keeps the pill left edge fixed when the padding changes', () => {
+    expect(getCapsuleLeftAnchoredX(100, 0, 24, 1)).toBe(88)
+    expect(getCapsuleLeftAnchoredX(88, 24, 0, 1)).toBe(100)
+    expect(getCapsuleLeftAnchoredX(88, 24, 0, 2)).toBe(112)
+    expect(getCapsuleLeftAnchoredX(50, 24, 24, 1)).toBe(50)
+  })
+})
+
 describe('useCapsuleResize async updates', () => {
   const monitor = {
     position: { x: 0, y: 0 },
@@ -311,9 +354,10 @@ describe('useCapsuleResize async updates', () => {
       contextMenuOpen: false,
       contextMenuReady: false,
       translationTargetMenuOpen: false,
-      config: { ...state.config, capsule_auto_hide: true },
+      config: { ...state.config, capsule_auto_hide: true, capsule_glass_enabled: false },
     }))
 
+    tauriMocks.setCapsuleGlass.mockReset().mockResolvedValue('liquid_glass')
     windowApiMocks.getCurrentWindow.mockReset().mockReturnValue({
       setFocusable: windowApiMocks.setFocusable,
       setSize: windowApiMocks.setSize,
@@ -404,5 +448,64 @@ describe('useCapsuleResize async updates', () => {
     await waitFor(() => {
       expect(windowApiMocks.setPosition).toHaveBeenCalledWith(expect.objectContaining({ y: 100 }))
     })
+    expect(tauriMocks.setCapsuleGlass).not.toHaveBeenCalled()
+  })
+
+  it('applies glass only while pill-sized and clears it before the window grows', async () => {
+    useAppStore.setState((state) => ({
+      config: { ...state.config, capsule_glass_enabled: true },
+    }))
+    render(createElement(HookHarness))
+
+    await waitFor(() => {
+      expect(windowApiMocks.hide).toHaveBeenCalledTimes(1)
+    })
+    // First mount: the window is exactly the idle pill and the glass is on.
+    expect(windowApiMocks.setSize.mock.calls.map(([size]) => [size.width, size.height])).toEqual([
+      [36, 36],
+    ])
+    expect(tauriMocks.setCapsuleGlass).toHaveBeenCalledWith(true, CAPSULE_GLASS_RADIUS)
+
+    tauriMocks.setCapsuleGlass.mockClear()
+    windowApiMocks.setSize.mockClear()
+    windowApiMocks.setPosition.mockClear()
+    windowApiMocks.outerPosition.mockResolvedValue({ x: 100, y: 100 })
+    windowApiMocks.outerSize.mockResolvedValue({ width: 36, height: 36 })
+
+    act(() => {
+      useAppStore.setState({ contextMenuOpen: true })
+    })
+
+    await waitFor(() => {
+      expect(windowApiMocks.setPosition).toHaveBeenCalledTimes(1)
+    })
+    // Glass is cleared before the window grows for the menu, and the window
+    // shifts left by half the padding so the pill's left edge does not move.
+    expect(tauriMocks.setCapsuleGlass).toHaveBeenCalledWith(false, CAPSULE_GLASS_RADIUS)
+    expect(tauriMocks.setCapsuleGlass.mock.invocationCallOrder[0]).toBeLessThan(
+      windowApiMocks.setSize.mock.invocationCallOrder[0],
+    )
+    expect(windowApiMocks.setSize.mock.calls[0][0]).toMatchObject({ width: 244, height: 244 })
+    expect(windowApiMocks.setPosition).toHaveBeenCalledWith(expect.objectContaining({ x: 88 }))
+
+    tauriMocks.setCapsuleGlass.mockClear()
+    windowApiMocks.setSize.mockClear()
+    windowApiMocks.setPosition.mockClear()
+    windowApiMocks.outerPosition.mockResolvedValue({ x: 88, y: 100 })
+    windowApiMocks.outerSize.mockResolvedValue({ width: 244, height: 244 })
+
+    act(() => {
+      useAppStore.setState({ contextMenuOpen: false, contextMenuReady: false })
+    })
+
+    await waitFor(() => {
+      expect(tauriMocks.setCapsuleGlass).toHaveBeenCalledWith(true, CAPSULE_GLASS_RADIUS)
+    })
+    // Back to the pill: resize first, then re-apply the glass.
+    expect(windowApiMocks.setSize.mock.invocationCallOrder[0]).toBeLessThan(
+      tauriMocks.setCapsuleGlass.mock.invocationCallOrder[0],
+    )
+    expect(windowApiMocks.setSize.mock.calls[0][0]).toMatchObject({ width: 36, height: 36 })
+    expect(windowApiMocks.setPosition).toHaveBeenCalledWith(expect.objectContaining({ x: 100 }))
   })
 })

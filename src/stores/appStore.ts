@@ -280,6 +280,8 @@ export interface AppConfig {
   ui_language: string
   capsule_auto_hide: boolean
   esc_cancel_enabled: boolean
+  /** Native Liquid Glass / vibrancy backdrop behind the capsule (macOS). */
+  capsule_glass_enabled: boolean
   /** Run RNNoise on microphone input before speech recognition. */
   noise_suppression_enabled: boolean
   /** User overrides for the BYOK price table; empty = built-in defaults. */
@@ -846,6 +848,7 @@ const defaultConfig: AppConfig = {
   capsule_auto_hide: true,
   esc_cancel_enabled: true,
   noise_suppression_enabled: false,
+  capsule_glass_enabled: true,
   usage_pricing: [],
   correction_rules_exact_apply: true,
 }

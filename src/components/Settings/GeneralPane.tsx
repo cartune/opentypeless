@@ -276,6 +276,18 @@ export function GeneralPane() {
               onChange={(checked) => updateConfig({ capsule_auto_hide: checked })}
               label={t('settings.hideCapsuleWhenIdle')}
             />
+            {isMac && (
+              <>
+                <Toggle
+                  checked={config.capsule_glass_enabled}
+                  onChange={(checked) => updateConfig({ capsule_glass_enabled: checked })}
+                  label={t('settings.capsuleGlass')}
+                />
+                <p className="text-[11px] text-text-tertiary -mt-1">
+                  {t('settings.capsuleGlassHint')}
+                </p>
+              </>
+            )}
             <Toggle
               checked={config.esc_cancel_enabled}
               onChange={(checked) => updateConfig({ esc_cancel_enabled: checked })}

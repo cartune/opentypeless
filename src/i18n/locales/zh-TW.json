@@ -527,7 +527,9 @@
     "usageAddModel": "新增模型",
     "usageModelPlaceholder": "模型名稱",
     "noiseSuppression": "背景降噪（RNNoise）",
-    "noiseSuppressionHint": "在送出語音辨識前先濾掉穩定的背景噪音（風扇、冷氣、鍵盤底噪），音量指示也不會把噪音算成聲音。完全在本機執行；如果辨識常混進環境音，可以開啟試試。"
+    "noiseSuppressionHint": "在送出語音辨識前先濾掉穩定的背景噪音（風扇、冷氣、鍵盤底噪），音量指示也不會把噪音算成聲音。完全在本機執行；如果辨識常混進環境音，可以開啟試試。",
+    "capsuleGlass": "Liquid Glass 膠囊",
+    "capsuleGlassHint": "膠囊改用系統原生的半透明玻璃背景（macOS 26 的 Liquid Glass；舊版 macOS 用模糊效果）。關閉可回到原本的實色膠囊。"
   },
   "contextFamilies": {
     "email": "郵件",

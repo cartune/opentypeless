@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useAppStore, type PipelineState } from '../stores/appStore'
+import { setCapsuleGlass } from '../lib/tauri'
 
 interface CapsuleSize {
   width: number
@@ -36,6 +37,49 @@ export interface CapsuleMonitorGeometry extends CapsuleMonitorBounds, CapsulePla
 export interface CapsuleWindowRect extends PhysicalPoint, PhysicalDimensions {}
 
 const CAPSULE_BOTTOM_MARGIN = 80
+/** Transparent margin around the pill so CSS shadows and menus have room. */
+export const CAPSULE_WINDOW_PADDING = 24
+/** All pill states are 36px tall, so the native glass corner radius is fixed. */
+export const CAPSULE_GLASS_RADIUS = 18
+
+export interface CapsuleGlassInput {
+  glassEnabled: boolean
+  contextMenuOpen: boolean
+  translationTargetMenuOpen?: boolean
+  capsuleExpanded: boolean
+}
+
+/**
+ * The native glass backdrop covers the whole window, so it is only applied
+ * while the window is exactly pill-sized. Menus and the expanded preview grow
+ * the window and must turn it off first.
+ */
+export function shouldApplyCapsuleGlass({
+  glassEnabled,
+  contextMenuOpen,
+  translationTargetMenuOpen = false,
+  capsuleExpanded,
+}: CapsuleGlassInput): boolean {
+  return glassEnabled && !contextMenuOpen && !translationTargetMenuOpen && !capsuleExpanded
+}
+
+/** With glass the window equals the pill; otherwise keep the 12px margin each side. */
+export function getCapsuleWindowPadding(glass: boolean): number {
+  return glass ? 0 : CAPSULE_WINDOW_PADDING
+}
+
+/**
+ * Keep the pill's left edge fixed on screen when the window padding changes:
+ * the pill sits `padding / 2` logical px inside the window.
+ */
+export function getCapsuleLeftAnchoredX(
+  prevX: number,
+  prevPadding: number,
+  nextPadding: number,
+  scale: number,
+): number {
+  return Math.round(prevX + ((prevPadding - nextPadding) / 2) * scale)
+}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), Math.max(min, max))
@@ -159,8 +203,11 @@ export function useCapsuleResize() {
   const translationTargetMenuOpen = useAppStore((s) => s.translationTargetMenuOpen)
   const setContextMenuReady = useAppStore((s) => s.setContextMenuReady)
   const capsuleAutoHide = useAppStore((s) => s.config.capsule_auto_hide)
+  const glassEnabled = useAppStore((s) => s.config.capsule_glass_enabled)
   const initialized = useRef(false)
   const prevWindowSize = useRef<{ width: number; height: number } | null>(null)
+  const prevPadding = useRef(CAPSULE_WINDOW_PADDING)
+  const glassApplied = useRef(false)
   const effectGeneration = useRef(0)
 
   const hasError = pipelineError !== null
@@ -176,8 +223,15 @@ export function useCapsuleResize() {
       contextMenuOpen,
       translationTargetMenuOpen,
     )
-    const windowWidth = size.width + 24
-    const windowHeight = size.height + 24
+    const glass = shouldApplyCapsuleGlass({
+      glassEnabled,
+      contextMenuOpen,
+      translationTargetMenuOpen,
+      capsuleExpanded,
+    })
+    const padding = getCapsuleWindowPadding(glass)
+    const windowWidth = size.width + padding
+    const windowHeight = size.height + padding
     const shouldShow = getCapsuleVisibility({
       capsuleAutoHide,
       contextMenuOpen,
@@ -203,6 +257,20 @@ export function useCapsuleResize() {
           if (!isCurrent()) return
           await win.setFocusable(getCapsuleFocusable()).catch(() => {})
           if (!isCurrent()) return
+
+          // Clear the native backdrop *before* the window grows for a menu so
+          // no glass rectangle flashes around it.
+          if (glassApplied.current && !glass) {
+            await setCapsuleGlass(false, CAPSULE_GLASS_RADIUS).catch(() => {})
+            glassApplied.current = false
+            if (!isCurrent()) return
+          }
+          const applyGlassIfNeeded = async () => {
+            if (glass && !glassApplied.current) {
+              await setCapsuleGlass(true, CAPSULE_GLASS_RADIUS).catch(() => {})
+              glassApplied.current = true
+            }
+          }
 
           if (!initialized.current) {
             // First mount: position at bottom-center of screen, then show
@@ -237,6 +305,8 @@ export function useCapsuleResize() {
             }
 
             if (!isCurrent()) return
+            await applyGlassIfNeeded()
+            if (!isCurrent()) return
             if (shouldShow) {
               await win.show().catch(() => {})
             } else {
@@ -247,6 +317,7 @@ export function useCapsuleResize() {
             initialized.current = true
             if (!isCurrent()) return
             prevWindowSize.current = { width: windowWidth, height: windowHeight }
+            prevPadding.current = padding
             return
           }
 
@@ -274,7 +345,7 @@ export function useCapsuleResize() {
               const oldHeight = oldSize?.height ?? Math.round(prev.height * scale)
               const physicalWidth = Math.round(windowWidth * scale)
               const physicalHeight = Math.round(windowHeight * scale)
-              let newX = pos.x
+              let newX = getCapsuleLeftAnchoredX(pos.x, prevPadding.current, padding, scale)
               let newY = Math.round(pos.y + oldHeight / 2 - physicalHeight / 2)
 
               if (!isCurrent()) return
@@ -330,6 +401,9 @@ export function useCapsuleResize() {
 
           if (!isCurrent()) return
           prevWindowSize.current = { width: windowWidth, height: windowHeight }
+          prevPadding.current = padding
+          await applyGlassIfNeeded()
+          if (!isCurrent()) return
 
           // Signal that the window has finished resizing for context menu
           if (contextMenuOpen) {
@@ -358,6 +432,7 @@ export function useCapsuleResize() {
     contextMenuOpen,
     translationTargetMenuOpen,
     capsuleAutoHide,
+    glassEnabled,
     setContextMenuReady,
   ])
 

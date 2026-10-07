@@ -1281,6 +1281,7 @@ pub fn run() {
             commands::misc::get_system_diagnostics,
             commands::config::set_auto_start,
             commands::config::set_capsule_auto_hide,
+            commands::capsule::set_capsule_glass,
             commands::config::get_session_token,
             commands::config::set_session_token,
         ])

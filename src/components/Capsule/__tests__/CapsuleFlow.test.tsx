@@ -26,7 +26,8 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-vi.mock('../../../hooks/useCapsuleResize', () => ({
+vi.mock('../../../hooks/useCapsuleResize', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../hooks/useCapsuleResize')>()),
   useCapsuleResize: () => ({ width: 200, height: 36 }),
 }))
 
@@ -93,7 +94,7 @@ describe('Capsule flow states', () => {
 
   it('does not start dictation when the idle capsule is clicked', () => {
     const { container } = render(<Capsule />)
-    const shell = container.querySelector('.jelly-capsule')
+    const shell = container.querySelector('.jelly-capsule, .glass-capsule')
     expect(shell).toBeTruthy()
 
     const pointerUp = new Event('pointerup', { bubbles: true })
@@ -193,8 +194,39 @@ describe('Capsule flow states', () => {
       expect(screen.getByRole('button', { name: 'capsule.translationTarget en' })).toHaveFocus(),
     )
 
-    const shell = container.querySelector('.jelly-capsule-active') as HTMLElement
+    const shell = container.querySelector(
+      '.jelly-capsule-active, .glass-capsule-active',
+    ) as HTMLElement
     expect(shell.style.width).toBe('200px')
     expect(shell.style.height).toBe('36px')
+  })
+  it('uses the glass shell at the window edge when glass is on, and the jelly shell otherwise', () => {
+    useAppStore.setState((state) => ({
+      pipelineState: 'recording',
+      config: { ...state.config, capsule_glass_enabled: true },
+    }))
+    const { container, unmount } = render(<Capsule />)
+    const glassShell = container.querySelector('.glass-capsule-active') as HTMLElement
+    expect(glassShell).toBeTruthy()
+    expect(glassShell.className).toContain('left-0')
+    expect(glassShell.dataset.glass).toBe('true')
+    unmount()
+
+    useAppStore.setState((state) => ({
+      config: { ...state.config, capsule_glass_enabled: false },
+    }))
+    const { container: solid } = render(<Capsule />)
+    const jellyShell = solid.querySelector('.jelly-capsule-active') as HTMLElement
+    expect(jellyShell).toBeTruthy()
+    expect(jellyShell.className).toContain('left-3')
+    expect(solid.querySelector('.glass-capsule')).toBeNull()
+
+    // Menus grow the window, so the glass shell must give way to the padded layout.
+    useAppStore.setState((state) => ({
+      contextMenuOpen: true,
+      config: { ...state.config, capsule_glass_enabled: true },
+    }))
+    const { container: menu } = render(<Capsule />)
+    expect(menu.querySelector('.glass-capsule')).toBeNull()
   })
 })
