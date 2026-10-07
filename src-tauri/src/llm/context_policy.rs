@@ -168,8 +168,24 @@ impl ContextPolicy {
                 "General: lightly polish into directly usable prose without assuming an artifact type."
             }
         };
+        let list_rule = match self.list_behavior {
+            ListBehavior::Preserve => {
+                "Lists: keep the spoken structure; do not add list markers."
+            }
+            ListBehavior::LineBreaks => {
+                "Lists: when the speaker enumerates items (第一/第二, 首先/然後, first/second), put each item on its own line."
+            }
+            ListBehavior::NumberWhenExplicit => {
+                "Lists: when the speaker enumerates items (第一/第二/第三, 首先/然後/最後, first/second/third, 一是/二是), output a numbered list with each item on its own line, and keep any lead-in sentence before the list."
+            }
+        };
+        let tokens_rule = if self.preserve_technical_tokens {
+            " Preserve technical tokens (identifiers, paths, versions, error codes, URLs) character for character."
+        } else {
+            ""
+        };
         format!(
-            "{family_rule}\nUse {:?} density. Add none of: {}.",
+            "{family_rule}\nUse {:?} density. {list_rule}{tokens_rule} Add none of: {}.",
             self.density,
             self.forbidden_additions.join(", ")
         )

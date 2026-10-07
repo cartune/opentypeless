@@ -193,7 +193,7 @@
       "grantLater": "稍後授予",
       "accessibilityGranted": "已授予輔助功能許可權",
       "appWritingModes": "按 App 調整寫法",
-      "appWritingModesSub": "在 Scenes 裡編輯郵件、聊天、檔案等預設寫法。"
+      "appWritingModesSub": "在 Scenes 裡編輯郵件、聊天、文件等預設寫法。"
     },
     "permissions": {
       "subtitle": "Typelazy 只會在功能需要時請求許可權。",
@@ -498,7 +498,7 @@
     "email": "郵件",
     "work_chat": "工作聊天",
     "personal_chat": "私人聊天",
-    "document": "檔案",
+    "document": "文件",
     "project_management": "專案管理",
     "developer_collaboration": "開發協作",
     "prompt_or_code": "提示詞或程式碼",
@@ -632,7 +632,7 @@
       "email": "Gmail、Outlook、Mail 等郵件應用。",
       "work_chat": "Slack、飛書、Teams、釘釘等工作聊天。",
       "personal_chat": "微信、Messages、WhatsApp 等個人聊天。",
-      "document": "Google Docs、Notion、Word、語雀等檔案筆記。",
+      "document": "Google Docs、Notion、Word、語雀等文件筆記。",
       "project_management": "Linear、Jira、Confluence 等專案工具。",
       "developer_collaboration": "GitHub、GitLab 等開發協作工具。",
       "prompt_or_code": "Cursor、VS Code、JetBrains 等提示詞和程式碼工具。",
@@ -643,7 +643,7 @@
       "email": "郵件格式",
       "work_chat": "工作聊天",
       "personal_chat": "個人聊天",
-      "document": "檔案筆記",
+      "document": "文件筆記",
       "project_management": "專案進展",
       "developer_collaboration": "工程備註",
       "prompt_or_code": "提示詞 / 程式碼請求",

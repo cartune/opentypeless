@@ -771,7 +771,7 @@ pub struct PipelineHandle {
     llm_abort: Arc<tokio::sync::Notify>,
     preloaded_config: Arc<Mutex<Option<storage::AppConfig>>>,
     preloaded_app_ctx: Arc<Mutex<Option<RecordingContext>>>,
-    preloaded_dictionary: Arc<Mutex<Option<Vec<String>>>>,
+    preloaded_dictionary: Arc<Mutex<Option<Vec<llm::DictionaryTerm>>>>,
     preloaded_correction_rules: Arc<Mutex<Option<Vec<llm::CorrectionRule>>>>,
     preloaded_selected_text: Arc<Mutex<Option<String>>>,
     preloaded_voice_mode: Arc<Mutex<Option<crate::voice_intent::VoiceMode>>>,
@@ -791,7 +791,7 @@ struct PolishTextInput<'a> {
     voice_mode: crate::voice_intent::VoiceMode,
     config: &'a storage::AppConfig,
     app_ctx: &'a RecordingContext,
-    dictionary_words: Vec<String>,
+    dictionary: Vec<llm::DictionaryTerm>,
     correction_rules: Vec<llm::CorrectionRule>,
     selected_text: Option<String>,
     session_token: String,
@@ -1256,7 +1256,16 @@ impl PipelineHandle {
                 .snapshot_for_recording_enabled(config_data.context_adaptation_enabled),
         );
         let dictionary_store = self.app_handle.state::<storage::DictionaryStore>();
-        let dict_words = dictionary_store.words().await;
+        let dict_terms: Vec<llm::DictionaryTerm> = dictionary_store
+            .terms()
+            .await
+            .into_iter()
+            .map(|(word, pronunciation)| llm::DictionaryTerm {
+                word,
+                pronunciation,
+            })
+            .collect();
+        let dict_words: Vec<String> = dict_terms.iter().map(|t| t.word.clone()).collect();
         let correction_rules = dictionary_store
             .enabled_correction_rules()
             .await
@@ -1271,7 +1280,7 @@ impl PipelineHandle {
         *self
             .preloaded_dictionary
             .lock()
-            .unwrap_or_else(|e| e.into_inner()) = Some(dict_words.clone());
+            .unwrap_or_else(|e| e.into_inner()) = Some(dict_terms);
         *self
             .preloaded_correction_rules
             .lock()
@@ -2018,7 +2027,7 @@ impl PipelineHandle {
                 self.context_detector
                     .snapshot_for_recording_enabled(config.context_adaptation_enabled)
             });
-        let dictionary_words = self
+        let dictionary = self
             .preloaded_dictionary
             .lock()
             .unwrap_or_else(|e| e.into_inner())
@@ -2097,7 +2106,7 @@ impl PipelineHandle {
                 voice_mode,
                 config: &config,
                 app_ctx: &app_ctx,
-                dictionary_words,
+                dictionary,
                 correction_rules,
                 selected_text,
                 session_token,
@@ -2254,7 +2263,7 @@ impl PipelineHandle {
             voice_mode,
             config,
             app_ctx,
-            dictionary_words,
+            dictionary,
             correction_rules,
             selected_text,
             session_token,
@@ -2411,11 +2420,18 @@ impl PipelineHandle {
             app_ctx.mapped_scene_id.as_deref(),
         )
         .unwrap_or_default();
+        let chinese_script = config.resolved_chinese_script();
+        let post_process_options = llm::post_process::PostProcessOptions {
+            chinese_script,
+            correction_rules: correction_rules.clone(),
+            apply_correction_rules: config.correction_rules_exact_apply,
+        };
         let req = PolishRequest {
             raw_text: provider_text.to_string(),
             context: app_ctx.summary(),
-            dictionary: dictionary_words,
+            dictionary,
             correction_rules,
+            chinese_script,
             polish_style: config.polish_style.clone(),
             mapped_scene_prompt,
             active_scene_prompt: config
@@ -2642,7 +2658,7 @@ impl PipelineHandle {
                 };
                 let final_output = llm::post_process::post_process_final_text(
                     &response.polished_text,
-                    &llm::post_process::PostProcessOptions::default(),
+                    &post_process_options,
                 );
                 let execution = crate::voice_intent::executor::execute_voice_intent(
                     crate::voice_intent::executor::VoiceExecutionRequest {
@@ -2798,7 +2814,15 @@ impl PipelineHandle {
         self.abort_flag.store(false, Ordering::SeqCst);
 
         let dictionary_store = self.app_handle.state::<storage::DictionaryStore>();
-        let dictionary_words = dictionary_store.words().await;
+        let dictionary: Vec<llm::DictionaryTerm> = dictionary_store
+            .terms()
+            .await
+            .into_iter()
+            .map(|(word, pronunciation)| llm::DictionaryTerm {
+                word,
+                pronunciation,
+            })
+            .collect();
         let correction_rules = dictionary_store
             .enabled_correction_rules()
             .await
@@ -2827,7 +2851,7 @@ impl PipelineHandle {
                 voice_mode: crate::voice_intent::VoiceMode::Ask,
                 config,
                 app_ctx,
-                dictionary_words,
+                dictionary,
                 correction_rules,
                 selected_text: None,
                 session_token,

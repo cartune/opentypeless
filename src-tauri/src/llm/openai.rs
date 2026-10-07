@@ -47,6 +47,7 @@ impl LlmProvider for OpenAiProvider {
             context: &req.context,
             dictionary: &req.dictionary,
             correction_rules: &req.correction_rules,
+            chinese_script: req.chinese_script,
             polish_style: &req.polish_style,
             personal_style_prompt: "",
             mapped_scene_prompt: &req.mapped_scene_prompt,

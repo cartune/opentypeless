@@ -385,6 +385,8 @@ pub struct AppConfig {
     pub capsule_auto_hide: bool,
     /// Plain Escape cancels an active dictation/Ask run (macOS native monitor).
     pub esc_cancel_enabled: bool,
+    /// Apply correction rules as literal replacements on the final text.
+    pub correction_rules_exact_apply: bool,
 }
 
 impl Default for AppConfig {
@@ -412,7 +414,7 @@ impl Default for AppConfig {
             voice_routing_flags: crate::voice_intent::VoiceRoutingFlags::default(),
             polish_style: "clean".to_string(),
             polish_custom_prompt: String::new(),
-            polish_chinese_script: "preserve".to_string(),
+            polish_chinese_script: "auto".to_string(),
             custom_scenes: Vec::new(),
             system_scene_overrides: Vec::new(),
             active_scene: None,
@@ -445,15 +447,40 @@ impl Default for AppConfig {
             ui_language: "en".to_string(),
             capsule_auto_hide: false,
             esc_cancel_enabled: true,
+            correction_rules_exact_apply: true,
         }
     }
 }
 
 impl AppConfig {
-    /// Defaults for a fresh install of this fork: OpenAI for both STT and LLM.
+    /// The Chinese script the polished output should use, resolving `auto`
+    /// from the configured STT / UI language.
+    pub fn resolved_chinese_script(&self) -> crate::llm::ChineseScript {
+        match normalize_chinese_script(&self.polish_chinese_script) {
+            "traditional" => crate::llm::ChineseScript::Traditional,
+            "simplified" => crate::llm::ChineseScript::Simplified,
+            "preserve" => crate::llm::ChineseScript::Preserve,
+            _ => {
+                let traditional_signal = |value: &str| {
+                    let v = value.trim().to_ascii_lowercase();
+                    v == "zh-tw" || v == "zh-hant" || v == "zh_hant" || v == "zh-hk"
+                };
+                if traditional_signal(&self.stt_language) || traditional_signal(&self.ui_language) {
+                    crate::llm::ChineseScript::Traditional
+                } else {
+                    crate::llm::ChineseScript::Preserve
+                }
+            }
+        }
+    }
+
+    /// Defaults for a fresh install of this fork: OpenAI for both STT and LLM,
+    /// Traditional Chinese UI and recognition.
     pub fn new_install_default() -> Self {
         Self {
             capsule_auto_hide: true,
+            ui_language: "zh-TW".to_string(),
+            stt_language: "zh-TW".to_string(),
             stt_provider: "openai-whisper".to_string(),
             stt_openai_model: "gpt-4o-mini-transcribe".to_string(),
             llm_provider: "openai".to_string(),
@@ -591,7 +618,8 @@ impl AppConfig {
         }
         self.polish_style = normalize_polish_style(&self.polish_style).to_string();
         self.polish_custom_prompt = sanitize_polish_custom_prompt(&self.polish_custom_prompt);
-        self.polish_chinese_script = "preserve".to_string();
+        self.polish_chinese_script =
+            normalize_chinese_script(&self.polish_chinese_script).to_string();
         sanitize_custom_scenes(&mut self.custom_scenes);
         sanitize_system_scene_overrides(&mut self.system_scene_overrides);
         sanitize_active_scene(&mut self.active_scene);
@@ -946,6 +974,15 @@ fn legacy_output_mode_for_insertion_strategy(strategy: &str) -> &'static str {
 }
 
 const POLISH_CUSTOM_PROMPT_MAX_CHARS: usize = 2000;
+
+fn normalize_chinese_script(value: &str) -> &'static str {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "traditional" => "traditional",
+        "simplified" => "simplified",
+        "preserve" => "preserve",
+        _ => "auto",
+    }
+}
 
 fn normalize_polish_style(value: &str) -> &'static str {
     match value.trim() {
@@ -2066,6 +2103,24 @@ impl DictionaryStore {
         Ok(entries)
     }
 
+    /// Words with their optional "sounds like" pronunciation.
+    pub async fn terms(&self) -> Vec<(String, Option<String>)> {
+        let conn = self.conn.lock().unwrap_or_else(|e| e.into_inner());
+        let mut stmt = match conn.prepare("SELECT word, pronunciation FROM dictionary") {
+            Ok(s) => s,
+            Err(_) => return Vec::new(),
+        };
+        let rows = match stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
+        }) {
+            Ok(r) => r,
+            Err(_) => return Vec::new(),
+        };
+        rows.filter_map(|r| r.ok())
+            .map(|(word, pronunciation)| (word, pronunciation.filter(|p| !p.trim().is_empty())))
+            .collect()
+    }
+
     pub async fn words(&self) -> Vec<String> {
         let conn = self.conn.lock().unwrap_or_else(|e| e.into_inner());
         let mut stmt = match conn.prepare("SELECT word FROM dictionary") {
@@ -2337,7 +2392,7 @@ mod tests {
         let config = AppConfig::from_stored_value(value).unwrap();
 
         assert_eq!(config.polish_custom_prompt, "");
-        assert_eq!(config.polish_chinese_script, "preserve");
+        assert_eq!(config.polish_chinese_script, "auto");
         assert_eq!(config.polish_style, "clean");
     }
 
@@ -3138,7 +3193,7 @@ mod tests {
     }
 
     #[test]
-    fn app_config_sanitizes_custom_polish_prompt_and_clears_chinese_script() {
+    fn app_config_sanitizes_custom_polish_prompt_and_keeps_chinese_script() {
         let mut value = serde_json::to_value(AppConfig::default()).unwrap();
         value["polish_custom_prompt"] = serde_json::json!("  use formal tone\0  ");
         value["polish_chinese_script"] = serde_json::json!("traditional");
@@ -3146,7 +3201,46 @@ mod tests {
         let config = AppConfig::from_stored_value(value).unwrap();
 
         assert_eq!(config.polish_custom_prompt, "use formal tone");
-        assert_eq!(config.polish_chinese_script, "preserve");
+        assert_eq!(config.polish_chinese_script, "traditional");
+        assert_eq!(
+            config.resolved_chinese_script(),
+            crate::llm::ChineseScript::Traditional
+        );
+    }
+
+    #[test]
+    fn app_config_unknown_chinese_script_falls_back_to_auto() {
+        let mut value = serde_json::to_value(AppConfig::default()).unwrap();
+        value["polish_chinese_script"] = serde_json::json!("bogus");
+        let config = AppConfig::from_stored_value(value).unwrap();
+        assert_eq!(config.polish_chinese_script, "auto");
+        assert_eq!(
+            config.resolved_chinese_script(),
+            crate::llm::ChineseScript::Preserve
+        );
+    }
+
+    #[test]
+    fn auto_chinese_script_follows_traditional_stt_or_ui_language() {
+        let mut config = AppConfig {
+            stt_language: "zh-TW".to_string(),
+            ..AppConfig::default()
+        };
+        assert_eq!(
+            config.resolved_chinese_script(),
+            crate::llm::ChineseScript::Traditional
+        );
+        config.stt_language = "multi".to_string();
+        config.ui_language = "zh-TW".to_string();
+        assert_eq!(
+            config.resolved_chinese_script(),
+            crate::llm::ChineseScript::Traditional
+        );
+        config.ui_language = "zh".to_string();
+        assert_eq!(
+            config.resolved_chinese_script(),
+            crate::llm::ChineseScript::Preserve
+        );
     }
 
     #[test]

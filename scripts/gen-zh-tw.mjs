@@ -5,7 +5,9 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import * as OpenCC from 'opencc-js'
 
 const converter = OpenCC.Converter({ from: 'cn', to: 'twp' })
-const src = JSON.parse(readFileSync(new URL('../src/i18n/locales/zh.json', import.meta.url), 'utf8'))
+const src = JSON.parse(
+  readFileSync(new URL('../src/i18n/locales/zh.json', import.meta.url), 'utf8'),
+)
 
 // Taiwan UI conventions the phrase table does not cover (applied after conversion).
 const OVERRIDES = [
@@ -98,6 +100,17 @@ function convertValue(value) {
 }
 
 const out = convertValue(src)
+// 文件 meaning "document" (not "file") in these keys.
+out.contextFamilies.document = '文件'
+out.scenes.systemModes.document = '文件筆記'
+out.scenes.appModeDescriptions.document = out.scenes.appModeDescriptions.document.replace(
+  '檔案筆記',
+  '文件筆記',
+)
+out.onboarding.done.appWritingModesSub = out.onboarding.done.appWritingModesSub.replace(
+  '檔案',
+  '文件',
+)
 writeFileSync(
   new URL('../src/i18n/locales/zh-TW.json', import.meta.url),
   JSON.stringify(out, null, 2) + '\n',

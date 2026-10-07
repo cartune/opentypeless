@@ -35,12 +35,52 @@ impl Default for LlmConfig {
     }
 }
 
+/// Which Chinese script the polished output must use.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ChineseScript {
+    /// Keep whatever script the speaker/STT produced.
+    #[default]
+    Preserve,
+    /// Traditional Chinese with Taiwan vocabulary (enforced by prompt + OpenCC).
+    Traditional,
+    Simplified,
+}
+
+impl ChineseScript {
+    pub fn from_config_value(value: &str) -> Self {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "traditional" | "zh-tw" | "zh-hant" => Self::Traditional,
+            "simplified" | "zh-cn" | "zh-hans" => Self::Simplified,
+            _ => Self::Preserve,
+        }
+    }
+}
+
+/// A user dictionary entry as seen by the prompt builder.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DictionaryTerm {
+    pub word: String,
+    /// Optional "sounds like" spelling that STT tends to produce.
+    pub pronunciation: Option<String>,
+}
+
+impl DictionaryTerm {
+    pub fn word(word: impl Into<String>) -> Self {
+        Self {
+            word: word.into(),
+            pronunciation: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolishRequest {
     pub raw_text: String,
     pub context: ContextProfileSummary,
-    pub dictionary: Vec<String>,
+    pub dictionary: Vec<DictionaryTerm>,
     pub correction_rules: Vec<CorrectionRule>,
+    pub chinese_script: ChineseScript,
     pub polish_style: String,
     pub mapped_scene_prompt: String,
     pub active_scene_prompt: String,
@@ -178,6 +218,7 @@ mod context_prompt_contract_tests {
             context,
             dictionary: &[],
             correction_rules: &[],
+            chinese_script: super::ChineseScript::Preserve,
             polish_style: "clean",
             personal_style_prompt: "Prefer direct language.",
             mapped_scene_prompt: "Use a project update shape.",
@@ -267,6 +308,7 @@ mod context_prompt_contract_tests {
             context: &context(ContextFamily::Email, None),
             dictionary: &[],
             correction_rules: &[],
+            chinese_script: super::ChineseScript::Preserve,
             polish_style: "clean",
             personal_style_prompt: "",
             mapped_scene_prompt: "",
