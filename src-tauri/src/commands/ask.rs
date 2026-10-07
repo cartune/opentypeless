@@ -1131,6 +1131,7 @@ pub(crate) async fn start_reserved_ask_dictation(
             capture_ready_at,
             effective_max_seconds,
         );
+        let voiced_counter = handle.voiced_counter();
         let mut handle = Some(handle);
         let transcript = Arc::new(Mutex::new(String::new()));
         let error = Arc::new(Mutex::new(None::<String>));
@@ -1224,6 +1225,15 @@ pub(crate) async fn start_reserved_ask_dictation(
                                 }
                             }
                             None => {
+                                let voiced_chunks =
+                                    voiced_counter.load(std::sync::atomic::Ordering::Relaxed);
+                                if crate::pipeline::should_skip_stt_for_silence(voiced_chunks) {
+                                    tracing::info!(
+                                        "Skipping Ask STT finalize: only {} voiced chunks",
+                                        voiced_chunks
+                                    );
+                                    break;
+                                }
                                 match provider.disconnect().await {
                                     Ok(Some(text)) => {
                                         let current = append_final_transcript(&transcript, &text);
@@ -1423,13 +1433,19 @@ pub async fn stop_ask_dictation(
             return Err(message);
         }
 
-        let question = validate_ask_question(
-            &session
-                .transcript
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .clone(),
-        )?;
+        let collected_transcript = session
+            .transcript
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone();
+        if crate::stt::is_known_hallucination(&collected_transcript) {
+            tracing::warn!(
+                "Dropping Ask transcript that matches a known no-speech hallucination: {:?}",
+                collected_transcript
+            );
+            return Err("No speech detected. Please try again.".to_string());
+        }
+        let question = validate_ask_question(&collected_transcript)?;
         let selected_text_metadata = session
             .selected_text
             .as_deref()
@@ -1548,13 +1564,9 @@ pub async fn stop_ask_flow(
 #[tauri::command]
 pub fn abort_ask_dictation(
     app: tauri::AppHandle,
-    state: tauri::State<'_, AskDictationState>,
+    _state: tauri::State<'_, AskDictationState>,
 ) -> Result<(), String> {
-    let (session, _was_starting) = state.abort_starting_or_recording();
-    if let Some(mut session) = session {
-        session.handle.stop();
-    }
-    emit_capsule_state(&app, PipelineState::Idle);
+    abort_ask_flow(&app);
     Ok(())
 }
 

@@ -302,7 +302,7 @@ const STT_PCM_BYTES_PER_SECOND: f64 = 16_000.0 * 2.0;
 /// recording is worth sending to the STT provider.
 const MIN_VOICED_CHUNKS_FOR_STT: u32 = 10;
 
-fn should_skip_stt_for_silence(voiced_chunks: u32) -> bool {
+pub(crate) fn should_skip_stt_for_silence(voiced_chunks: u32) -> bool {
     voiced_chunks < MIN_VOICED_CHUNKS_FOR_STT
 }
 
