@@ -270,7 +270,8 @@
       "account": "账户",
       "upgrade": "升级",
       "exit": "退出"
-    }
+    },
+    "timing": "{{stt}} · {{llm}}"
   },
   "settings": {
     "title": "设置",
@@ -661,7 +662,9 @@
       "partial": "部分结果",
       "fallback": "已回退输出",
       "clipboardFallback": "已复制到剪贴板"
-    }
+    },
+    "timingStt": "识别 {{value}}",
+    "timingLlm": "润色 {{value}}"
   },
   "upgrade": {
     "title": "升级",

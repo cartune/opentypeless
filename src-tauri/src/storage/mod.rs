@@ -1246,6 +1246,29 @@ pub struct HistoryEntry {
     pub active_scene_prompt_truncated: bool,
     pub output_status: Option<String>,
     pub output_error: Option<String>,
+    /// Per-run latency, provider and usage metrics. Flattened into the entry
+    /// so the frontend sees plain nullable fields. All optional: older rows and
+    /// providers without usage reporting leave them `None`.
+    #[serde(flatten, default)]
+    pub metrics: HistoryRunMetrics,
+}
+
+/// Latency, provider/model and usage numbers captured for one dictation run.
+/// Persisted alongside the history row so slow runs and BYOK usage can be
+/// inspected after the fact.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct HistoryRunMetrics {
+    pub stt_ms: Option<i64>,
+    pub llm_ms: Option<i64>,
+    pub stt_provider: Option<String>,
+    pub stt_model: Option<String>,
+    pub llm_provider: Option<String>,
+    pub llm_model: Option<String>,
+    pub audio_bytes: Option<i64>,
+    pub audio_seconds: Option<f64>,
+    pub llm_prompt_tokens: Option<i64>,
+    pub llm_completion_tokens: Option<i64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -1322,7 +1345,17 @@ impl HistoryStore {
                 active_scene_prompt_chars INTEGER,
                 active_scene_prompt_truncated INTEGER NOT NULL DEFAULT 0,
                 output_status TEXT,
-                output_error TEXT
+                output_error TEXT,
+                stt_ms INTEGER,
+                llm_ms INTEGER,
+                stt_provider TEXT,
+                stt_model TEXT,
+                llm_provider TEXT,
+                llm_model TEXT,
+                audio_bytes INTEGER,
+                audio_seconds REAL,
+                llm_prompt_tokens INTEGER,
+                llm_completion_tokens INTEGER
             );",
         )?;
         ensure_history_optional_columns(&conn)?;
@@ -1370,9 +1403,19 @@ impl HistoryStore {
                     active_scene_prompt_chars,
                     active_scene_prompt_truncated,
                     output_status,
-                    output_error
+                    output_error,
+                    stt_ms,
+                    llm_ms,
+                    stt_provider,
+                    stt_model,
+                    llm_provider,
+                    llm_model,
+                    audio_bytes,
+                    audio_seconds,
+                    llm_prompt_tokens,
+                    llm_completion_tokens
                 )
-             VALUES (?1, '', '', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)",
+             VALUES (?1, '', '', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28)",
                 rusqlite::params![
                     entry.created_at,
                     entry.context_profile_id,
@@ -1392,6 +1435,16 @@ impl HistoryStore {
                     entry.active_scene_prompt_truncated,
                     entry.output_status,
                     entry.output_error,
+                    entry.metrics.stt_ms,
+                    entry.metrics.llm_ms,
+                    entry.metrics.stt_provider,
+                    entry.metrics.stt_model,
+                    entry.metrics.llm_provider,
+                    entry.metrics.llm_model,
+                    entry.metrics.audio_bytes,
+                    entry.metrics.audio_seconds,
+                    entry.metrics.llm_prompt_tokens,
+                    entry.metrics.llm_completion_tokens,
                 ],
             )?;
         }
@@ -1453,7 +1506,17 @@ impl HistoryStore {
                 active_scene_prompt_chars,
                 active_scene_prompt_truncated,
                 output_status,
-                output_error
+                output_error,
+                stt_ms,
+                llm_ms,
+                stt_provider,
+                stt_model,
+                llm_provider,
+                llm_model,
+                audio_bytes,
+                audio_seconds,
+                llm_prompt_tokens,
+                llm_completion_tokens
              FROM history ORDER BY id DESC LIMIT ?1 OFFSET ?2",
         )?;
         let rows = stmt.query_map(rusqlite::params![limit, offset], |row| {
@@ -1479,6 +1542,18 @@ impl HistoryStore {
                 active_scene_prompt_truncated: row.get(16)?,
                 output_status: row.get(17)?,
                 output_error: row.get(18)?,
+                metrics: HistoryRunMetrics {
+                    stt_ms: row.get(19)?,
+                    llm_ms: row.get(20)?,
+                    stt_provider: row.get(21)?,
+                    stt_model: row.get(22)?,
+                    llm_provider: row.get(23)?,
+                    llm_model: row.get(24)?,
+                    audio_bytes: row.get(25)?,
+                    audio_seconds: row.get(26)?,
+                    llm_prompt_tokens: row.get(27)?,
+                    llm_completion_tokens: row.get(28)?,
+                },
             })
         })?;
         let mut entries = Vec::new();
@@ -1566,8 +1641,18 @@ impl HistoryStore {
                             active_scene_prompt_chars,
                             active_scene_prompt_truncated,
                             output_status,
-                            output_error
-                        ) VALUES (?1, '', '', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)",
+                            output_error,
+                            stt_ms,
+                            llm_ms,
+                            stt_provider,
+                            stt_model,
+                            llm_provider,
+                            llm_model,
+                            audio_bytes,
+                            audio_seconds,
+                            llm_prompt_tokens,
+                            llm_completion_tokens
+                        ) VALUES (?1, '', '', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28)",
                         rusqlite::params![
                             entry.created_at,
                             entry.context_profile_id,
@@ -1587,6 +1672,16 @@ impl HistoryStore {
                             entry.active_scene_prompt_truncated,
                             entry.output_status,
                             entry.output_error,
+                            entry.metrics.stt_ms,
+                            entry.metrics.llm_ms,
+                            entry.metrics.stt_provider,
+                            entry.metrics.stt_model,
+                            entry.metrics.llm_provider,
+                            entry.metrics.llm_model,
+                            entry.metrics.audio_bytes,
+                            entry.metrics.audio_seconds,
+                            entry.metrics.llm_prompt_tokens,
+                            entry.metrics.llm_completion_tokens,
                         ],
                     )?;
                 }
@@ -1715,6 +1810,22 @@ fn ensure_history_optional_columns(conn: &Connection) -> Result<()> {
         (
             "provider_kind",
             "ALTER TABLE history ADD COLUMN provider_kind TEXT NOT NULL DEFAULT 'local'",
+        ),
+        ("stt_ms", "ALTER TABLE history ADD COLUMN stt_ms INTEGER"),
+        ("llm_ms", "ALTER TABLE history ADD COLUMN llm_ms INTEGER"),
+        ("stt_provider", "ALTER TABLE history ADD COLUMN stt_provider TEXT"),
+        ("stt_model", "ALTER TABLE history ADD COLUMN stt_model TEXT"),
+        ("llm_provider", "ALTER TABLE history ADD COLUMN llm_provider TEXT"),
+        ("llm_model", "ALTER TABLE history ADD COLUMN llm_model TEXT"),
+        ("audio_bytes", "ALTER TABLE history ADD COLUMN audio_bytes INTEGER"),
+        ("audio_seconds", "ALTER TABLE history ADD COLUMN audio_seconds REAL"),
+        (
+            "llm_prompt_tokens",
+            "ALTER TABLE history ADD COLUMN llm_prompt_tokens INTEGER",
+        ),
+        (
+            "llm_completion_tokens",
+            "ALTER TABLE history ADD COLUMN llm_completion_tokens INTEGER",
         ),
     ] {
         if !columns.contains(name) {
@@ -3222,6 +3333,7 @@ mod tests {
             active_scene_prompt_truncated: false,
             output_status: None,
             output_error: None,
+            metrics: HistoryRunMetrics::default(),
         }
     }
 
@@ -3445,6 +3557,114 @@ mod tests {
         );
         assert_eq!(entries[0].active_scene_prompt_chars, Some(128));
         assert!(!entries[0].active_scene_prompt_truncated);
+    }
+
+    #[tokio::test]
+    async fn history_store_round_trips_run_metrics() {
+        let store = temp_history_store("run-metrics");
+        let mut entry = test_history_entry(1, "2026-10-07T00:00:00");
+        entry.metrics = HistoryRunMetrics {
+            stt_ms: Some(812),
+            llm_ms: Some(1104),
+            stt_provider: Some("openai-whisper".to_string()),
+            stt_model: Some("whisper-1".to_string()),
+            llm_provider: Some("openai".to_string()),
+            llm_model: Some("gpt-4.1-mini".to_string()),
+            audio_bytes: Some(320_000),
+            audio_seconds: Some(10.0),
+            llm_prompt_tokens: Some(1200),
+            llm_completion_tokens: Some(80),
+        };
+        let expected = entry.metrics.clone();
+
+        store.add(entry).await.unwrap();
+
+        let entries = store.list(10, 0).await.unwrap();
+        assert_eq!(entries[0].metrics, expected);
+
+        // Older rows without metrics deserialize to all-None.
+        store
+            .add(test_history_entry(2, "2026-10-07T00:00:01"))
+            .await
+            .unwrap();
+        let entries = store.list(10, 0).await.unwrap();
+        assert_eq!(entries[0].metrics, HistoryRunMetrics::default());
+    }
+
+    #[test]
+    fn history_run_metrics_flatten_into_entry_json() {
+        let mut entry = test_history_entry(7, "2026-10-07T00:00:00");
+        entry.metrics.stt_ms = Some(500);
+        let json = serde_json::to_value(&entry).unwrap();
+        assert_eq!(json["stt_ms"], serde_json::json!(500));
+        assert_eq!(json["llm_ms"], serde_json::Value::Null);
+        assert!(json.get("metrics").is_none(), "metrics must be flattened");
+
+        // Backup payloads written before metrics existed still deserialize.
+        let legacy = serde_json::json!({
+            "id": 1,
+            "created_at": "2026-01-01T00:00:00",
+            "context_profile_id": "general.native",
+            "context_label": "General",
+            "context_icon_key": "general",
+            "context_family": "general",
+            "browser_access_status": "not_applicable",
+            "provider_kind": "local",
+            "raw_text": "raw",
+            "polished_text": "polished",
+            "language": null,
+            "duration_ms": null,
+            "active_scene_id": null,
+            "active_scene_source": null,
+            "active_scene_name": null,
+            "active_scene_prompt_chars": null,
+            "active_scene_prompt_truncated": false,
+            "output_status": null,
+            "output_error": null
+        });
+        let parsed: HistoryEntry = serde_json::from_value(legacy).unwrap();
+        assert_eq!(parsed.metrics, HistoryRunMetrics::default());
+    }
+
+    #[tokio::test]
+    async fn history_store_migrates_pre_metrics_schema() {
+        let path = std::env::temp_dir().join(format!(
+            "opentypeless-history-migrate-{}.sqlite",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(
+                "CREATE TABLE history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    app_name TEXT NOT NULL DEFAULT '',
+                    app_type TEXT NOT NULL DEFAULT '',
+                    raw_text TEXT NOT NULL DEFAULT '',
+                    polished_text TEXT NOT NULL DEFAULT '',
+                    language TEXT,
+                    duration_ms INTEGER
+                );
+                INSERT INTO history (created_at, app_name, app_type, raw_text, polished_text)
+                VALUES ('2026-01-01T00:00:00', 'Notes', 'general', 'old raw', 'old polished');",
+            )
+            .unwrap();
+        }
+
+        let store = HistoryStore::new(path).unwrap();
+        let entries = store.list(10, 0).await.unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].polished_text, "old polished");
+        assert_eq!(entries[0].metrics, HistoryRunMetrics::default());
+
+        let mut entry = test_history_entry(2, "2026-10-07T00:00:00");
+        entry.metrics.stt_ms = Some(321);
+        store.add(entry).await.unwrap();
+        let entries = store.list(10, 0).await.unwrap();
+        assert_eq!(entries[0].metrics.stt_ms, Some(321));
     }
 
     #[tokio::test]

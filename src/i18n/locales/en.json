@@ -270,7 +270,8 @@
       "account": "Account",
       "upgrade": "Upgrade",
       "exit": "Exit"
-    }
+    },
+    "timing": "{{stt}} · {{llm}}"
   },
   "settings": {
     "title": "Settings",
@@ -661,7 +662,9 @@
       "partial": "Partial result",
       "fallback": "Fallback output",
       "clipboardFallback": "Copied to clipboard"
-    }
+    },
+    "timingStt": "STT {{value}}",
+    "timingLlm": "AI {{value}}"
   },
   "upgrade": {
     "title": "Upgrade",

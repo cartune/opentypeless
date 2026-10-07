@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { UpdatePrompt } from '../UpdatePrompt'
+import { shouldCheckForUpdates } from '../../lib/update-check'
 
 const { mockCheck, mockRelaunch } = vi.hoisted(() => ({
   mockCheck: vi.fn(),
@@ -39,9 +40,29 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
+beforeEach(() => {
+  // vitest runs with DEV=true; the prompt skips update checks in dev mode.
+  vi.stubEnv('DEV', false)
+})
+
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  vi.unstubAllEnvs()
+})
+
+describe('shouldCheckForUpdates', () => {
+  it('skips in dev mode', () => {
+    expect(shouldCheckForUpdates({ DEV: true })).toBe(false)
+  })
+
+  it('skips when VITE_DISABLE_UPDATE_CHECK=1', () => {
+    expect(shouldCheckForUpdates({ DEV: false, VITE_DISABLE_UPDATE_CHECK: '1' })).toBe(false)
+  })
+
+  it('checks in production builds by default', () => {
+    expect(shouldCheckForUpdates({ DEV: false })).toBe(true)
+  })
 })
 
 describe('UpdatePrompt', () => {

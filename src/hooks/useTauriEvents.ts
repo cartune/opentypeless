@@ -9,6 +9,7 @@ import type {
   ContextProfileSummary,
   InsertResult,
   PipelineState,
+  PipelineTiming,
   RecordingDeadlineSnapshot,
   VoiceMode,
 } from '../stores/appStore'
@@ -61,6 +62,7 @@ export function useTauriEvents() {
     setTargetApp,
     setLastInsertResult,
     setLastContext,
+    setLastTiming,
     setPipelineError,
     setAccessibilityTrusted,
     setHistory,
@@ -91,6 +93,7 @@ export function useTauriEvents() {
     addListener<string>('stt:partial', setPartialTranscript)
     addListener<string>('stt:final', setFinalTranscript)
     addListener<string>('llm:chunk', appendPolishedChunk)
+    addListener<PipelineTiming>('pipeline:timing', setLastTiming)
     addListener<PipelineState>('pipeline:state', (state) => {
       setPipelineState(state)
       if (state === 'preparing' || state === 'recording' || state === 'ask_recording') {
@@ -206,6 +209,7 @@ export function useTauriEvents() {
     setTargetApp,
     setLastInsertResult,
     setLastContext,
+    setLastTiming,
     setPipelineError,
     setAccessibilityTrusted,
     setHistory,

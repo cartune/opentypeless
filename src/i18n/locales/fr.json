@@ -270,7 +270,8 @@
       "account": "Compte",
       "upgrade": "Passer à Pro",
       "exit": "Quitter"
-    }
+    },
+    "timing": "{{stt}} · {{llm}}"
   },
   "settings": {
     "title": "Paramètres",
@@ -661,7 +662,9 @@
       "partial": "Partial result",
       "fallback": "Fallback output",
       "clipboardFallback": "Copied to clipboard"
-    }
+    },
+    "timingStt": "STT {{value}}",
+    "timingLlm": "AI {{value}}"
   },
   "upgrade": {
     "title": "Upgrade",

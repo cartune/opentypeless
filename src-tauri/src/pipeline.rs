@@ -295,6 +295,46 @@ fn voice_intent_requires_generated_output(kind: crate::voice_intent::VoiceIntent
     )
 }
 
+/// Bytes per second of the 16 kHz mono i16 PCM stream sent to STT providers.
+const STT_PCM_BYTES_PER_SECOND: f64 = 16_000.0 * 2.0;
+
+/// Best-effort model label for the configured STT provider, for history rows.
+fn stt_model_label(config: &storage::AppConfig) -> Option<String> {
+    match config.stt_provider.as_str() {
+        stt::config::CUSTOM_WHISPER_PROVIDER => {
+            let model = config.stt_custom_model.trim();
+            (!model.is_empty()).then(|| model.to_string())
+        }
+        "deepgram" => Some("nova-3".to_string()),
+        "assemblyai" => Some("universal-3-5-pro".to_string()),
+        "cloud" => Some("cloud".to_string()),
+        provider => stt::config::get_whisper_config(provider).map(|cfg| cfg.model.to_string()),
+    }
+}
+
+fn build_history_run_metrics(
+    config: &storage::AppConfig,
+    stt_elapsed: std::time::Duration,
+    llm_elapsed: std::time::Duration,
+    audio_bytes: u64,
+    llm_usage: Option<&llm::LlmUsage>,
+) -> storage::HistoryRunMetrics {
+    let polished = llm_elapsed > std::time::Duration::ZERO;
+    storage::HistoryRunMetrics {
+        stt_ms: Some(stt_elapsed.as_millis() as i64),
+        llm_ms: polished.then_some(llm_elapsed.as_millis() as i64),
+        stt_provider: Some(config.stt_provider.clone()),
+        stt_model: stt_model_label(config),
+        llm_provider: polished.then(|| config.llm_provider.clone()),
+        llm_model: polished.then(|| config.llm_model.clone()),
+        audio_bytes: (audio_bytes > 0).then_some(audio_bytes as i64),
+        audio_seconds: (audio_bytes > 0).then_some(audio_bytes as f64 / STT_PCM_BYTES_PER_SECOND),
+        llm_prompt_tokens: llm_usage.and_then(|usage| usage.prompt_tokens.map(|v| v as i64)),
+        llm_completion_tokens: llm_usage
+            .and_then(|usage| usage.completion_tokens.map(|v| v as i64)),
+    }
+}
+
 fn history_provider_kind(config: &storage::AppConfig) -> storage::HistoryProviderKind {
     let provider = if config.polish_enabled {
         config.llm_provider.as_str()
@@ -707,6 +747,8 @@ pub struct PipelineHandle {
     active_stt_session_id: Arc<AtomicU64>,
     active_deadline_session_id: Arc<AtomicU64>,
     abort_flag: Arc<AtomicBool>,
+    /// Bytes of 16 kHz mono PCM forwarded to the STT provider in the current run.
+    stt_audio_bytes: Arc<AtomicU64>,
     preloaded_config: Arc<Mutex<Option<storage::AppConfig>>>,
     preloaded_app_ctx: Arc<Mutex<Option<RecordingContext>>>,
     preloaded_dictionary: Arc<Mutex<Option<Vec<String>>>>,
@@ -745,6 +787,8 @@ struct PolishTextOutcome {
     history_output_status: Option<String>,
     history_output_error: Option<String>,
     voice_execution: Option<crate::voice_intent::executor::VoiceExecutionResult>,
+    /// Token usage reported by the LLM provider, when available.
+    llm_usage: Option<llm::LlmUsage>,
 }
 
 pub(crate) struct AskVoiceDraftOutcome {
@@ -920,6 +964,7 @@ impl PolishTextOutcome {
             history_output_status: None,
             history_output_error: None,
             voice_execution: None,
+            llm_usage: None,
         }
     }
 
@@ -935,6 +980,7 @@ impl PolishTextOutcome {
             history_output_status: Some(status.to_string()),
             history_output_error: Some(error.into()),
             voice_execution: None,
+            llm_usage: None,
         }
     }
 
@@ -951,7 +997,13 @@ impl PolishTextOutcome {
             history_output_status,
             history_output_error,
             voice_execution: Some(execution),
+            llm_usage: None,
         }
+    }
+
+    fn with_usage(mut self, usage: Option<llm::LlmUsage>) -> Self {
+        self.llm_usage = usage;
+        self
     }
 }
 
@@ -973,6 +1025,7 @@ impl PipelineHandle {
             active_stt_session_id: Arc::new(AtomicU64::new(0)),
             active_deadline_session_id: Arc::new(AtomicU64::new(0)),
             abort_flag: Arc::new(AtomicBool::new(false)),
+            stt_audio_bytes: Arc::new(AtomicU64::new(0)),
             preloaded_config: Arc::new(Mutex::new(None)),
             preloaded_app_ctx: Arc::new(Mutex::new(None)),
             preloaded_dictionary: Arc::new(Mutex::new(None)),
@@ -1123,6 +1176,7 @@ impl PipelineHandle {
 
         // Reset abort flag for new recording
         self.abort_flag.store(false, Ordering::SeqCst);
+        self.stt_audio_bytes.store(0, Ordering::SeqCst);
 
         // Atomic CAS: only one caller can transition Idle → Preparing. Recording is emitted only
         // after audio capture is ready, so the capsule does not tell users to speak too early.
@@ -1599,6 +1653,7 @@ impl PipelineHandle {
         let abort_flag_ref = self.abort_flag.clone();
         let active_session_id_ref = self.active_stt_session_id.clone();
         let stt_error_ref = self.stt_error.clone();
+        let stt_audio_bytes_ref = self.stt_audio_bytes.clone();
 
         tokio::spawn(async move {
             // Forward audio to STT and receive transcripts
@@ -1619,6 +1674,7 @@ impl PipelineHandle {
                     chunk = audio_rx.recv() => {
                         match chunk {
                             Some(data) => {
+                                stt_audio_bytes_ref.fetch_add(data.len() as u64, Ordering::Relaxed);
                                 if let Err(error) = provider.send_audio(&data).await {
                                     tracing::error!("STT send audio error: {}", error);
                                     crate::error::emit_cloud_session_invalid(&app_handle, &error);
@@ -2016,6 +2072,15 @@ impl PipelineHandle {
             total_elapsed.as_millis() - stt_elapsed.as_millis() - llm_elapsed.as_millis(),
         );
 
+        let audio_bytes = self.stt_audio_bytes.load(Ordering::SeqCst);
+        let metrics = build_history_run_metrics(
+            &config,
+            stt_elapsed,
+            llm_elapsed,
+            audio_bytes,
+            polish_outcome.llm_usage.as_ref(),
+        );
+
         // Emit timing to frontend
         let _ = self.app_handle.emit(
             "pipeline:timing",
@@ -2024,6 +2089,9 @@ impl PipelineHandle {
                 "llm_ms": llm_elapsed.as_millis() as u64,
                 "total_ms": total_elapsed.as_millis() as u64,
                 "recording_ms": duration_ms,
+                "audio_bytes": audio_bytes,
+                "stt_model": metrics.stt_model,
+                "llm_model": metrics.llm_model,
             }),
         );
 
@@ -2040,6 +2108,7 @@ impl PipelineHandle {
                 status: polish_outcome.history_output_status,
                 error: polish_outcome.history_output_error,
             },
+            metrics,
         )
         .await;
 
@@ -2210,6 +2279,7 @@ impl PipelineHandle {
                 history_output_status: output_metadata.status,
                 history_output_error: output_metadata.error,
                 voice_execution: None,
+                llm_usage: None,
             };
         }
 
@@ -2297,6 +2367,7 @@ impl PipelineHandle {
         let polish_outcome = match polish_result {
             Ok(response) => {
                 let elapsed = llm_start.elapsed();
+                let response_usage = response.usage.clone();
                 if let Some(report) = streaming_report.as_ref() {
                     if report.has_inserted_text() {
                         let mut streaming_history_status: Option<(&'static str, String)> = None;
@@ -2529,6 +2600,7 @@ impl PipelineHandle {
                     history_status,
                     history_error,
                 )
+                .with_usage(response_usage)
             }
             Err(e) => {
                 crate::error::emit_cloud_session_invalid(&self.app_handle, &e);
@@ -2612,6 +2684,7 @@ impl PipelineHandle {
                     history_output_status: output_metadata.status,
                     history_output_error: output_metadata.error,
                     voice_execution: None,
+                    llm_usage: None,
                 }
             }
         };
@@ -2694,6 +2767,7 @@ impl PipelineHandle {
     }
 
     /// Save the transcription to history.
+    #[allow(clippy::too_many_arguments)]
     async fn save_history(
         &self,
         raw_text: &str,
@@ -2702,6 +2776,7 @@ impl PipelineHandle {
         duration_ms: Option<i64>,
         config: &storage::AppConfig,
         output: HistoryOutputMetadata,
+        metrics: storage::HistoryRunMetrics,
     ) {
         let policy = config.history_retention_policy();
         if !policy.enabled {
@@ -2731,6 +2806,7 @@ impl PipelineHandle {
             active_scene_prompt_truncated: scene_diagnostics.prompt_truncated,
             output_status: output.status,
             output_error: output.error,
+            metrics,
         };
         if let Err(e) = self
             .app_handle

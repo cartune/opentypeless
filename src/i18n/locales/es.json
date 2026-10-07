@@ -270,7 +270,8 @@
       "account": "Cuenta",
       "upgrade": "Mejorar",
       "exit": "Salir"
-    }
+    },
+    "timing": "{{stt}} · {{llm}}"
   },
   "settings": {
     "title": "Configuración",
@@ -661,7 +662,9 @@
       "partial": "Partial result",
       "fallback": "Fallback output",
       "clipboardFallback": "Copied to clipboard"
-    }
+    },
+    "timingStt": "STT {{value}}",
+    "timingLlm": "AI {{value}}"
   },
   "upgrade": {
     "title": "Mejorar",

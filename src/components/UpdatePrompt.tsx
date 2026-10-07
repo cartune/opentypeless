@@ -3,6 +3,7 @@ import { Download, RefreshCw, X } from 'lucide-react'
 import { check, type Update } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { useTranslation } from 'react-i18next'
+import { shouldCheckForUpdates } from '../lib/update-check'
 
 type InstallState = 'idle' | 'installing' | 'error'
 
@@ -13,6 +14,8 @@ export function UpdatePrompt() {
   const [installState, setInstallState] = useState<InstallState>('idle')
 
   useEffect(() => {
+    if (!shouldCheckForUpdates()) return
+
     let cancelled = false
 
     check()

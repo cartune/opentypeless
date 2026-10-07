@@ -260,6 +260,7 @@ impl LlmProvider for OpenAiProvider {
 
             Ok(PolishResponse {
                 polished_text: full_text,
+                usage: None,
             })
         } else {
             // Non-streaming mode
@@ -275,6 +276,7 @@ impl LlmProvider for OpenAiProvider {
 
             Ok(PolishResponse {
                 polished_text: text,
+                usage: None,
             })
         }
     }

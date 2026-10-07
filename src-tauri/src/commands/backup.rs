@@ -1,6 +1,6 @@
 use crate::app_detector::types::{BrowserAccessStatus, ContextFamily};
 use crate::storage::{
-    self, CorrectionRule, DictionaryEntry, HistoryEntry, HistoryProviderKind,
+    self, CorrectionRule, DictionaryEntry, HistoryEntry, HistoryProviderKind, HistoryRunMetrics,
     DEFAULT_HISTORY_MAX_ENTRIES,
 };
 use serde::{Deserialize, Serialize};
@@ -127,6 +127,7 @@ impl BackupHistoryEntry {
                 2_000,
                 "backup_history_output_error",
             )?,
+            metrics: HistoryRunMetrics::default(),
         })
     }
 }

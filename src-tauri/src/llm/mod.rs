@@ -59,9 +59,20 @@ pub struct CorrectionRule {
     pub enabled: bool,
 }
 
+/// Token usage reported by an LLM provider for one request.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct LlmUsage {
+    pub prompt_tokens: Option<u64>,
+    pub completion_tokens: Option<u64>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolishResponse {
     pub polished_text: String,
+    /// Usage is only known for providers that report it (see M5); `None` otherwise.
+    #[serde(default)]
+    pub usage: Option<LlmUsage>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Default)]

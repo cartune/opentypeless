@@ -7,6 +7,7 @@ import { useAppStore, type HistoryEntry } from '../../stores/appStore'
 import { addCorrectionRule, clearHistory, getCorrectionRules } from '../../lib/tauri'
 import { toast } from '../toast-service'
 import { AppContextMeta } from './AppContextMeta'
+import { RunTimingMeta } from './RunTimingMeta'
 import { CreateCorrectionDialog } from './CreateCorrectionDialog'
 
 export function History() {
@@ -182,6 +183,12 @@ export function History() {
                           time={entry.created_at.split('T')[1]?.slice(0, 5) || ''}
                           providerKind={entry.provider_kind}
                           browserAccessStatus={entry.browser_access_status}
+                        />
+                        <RunTimingMeta
+                          stt_ms={entry.stt_ms}
+                          llm_ms={entry.llm_ms}
+                          stt_model={entry.stt_model}
+                          llm_model={entry.llm_model}
                         />
                         {entry.output_status && outputStatusLabel(entry.output_status) && (
                           <p className="text-[11px] text-warning mt-1 leading-snug break-words">

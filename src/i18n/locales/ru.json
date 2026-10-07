@@ -270,7 +270,8 @@
       "account": "Аккаунт",
       "upgrade": "Обновить",
       "exit": "Выход"
-    }
+    },
+    "timing": "{{stt}} · {{llm}}"
   },
   "settings": {
     "title": "Настройки",
@@ -661,7 +662,9 @@
       "partial": "Partial result",
       "fallback": "Fallback output",
       "clipboardFallback": "Copied to clipboard"
-    }
+    },
+    "timingStt": "STT {{value}}",
+    "timingLlm": "AI {{value}}"
   },
   "upgrade": {
     "title": "Обновить",

@@ -116,6 +116,28 @@ export interface HistoryEntry {
   active_scene_prompt_truncated: boolean
   output_status: string | null
   output_error: string | null
+  // Per-run metrics (nullable; absent on rows written before they were tracked)
+  stt_ms?: number | null
+  llm_ms?: number | null
+  stt_provider?: string | null
+  stt_model?: string | null
+  llm_provider?: string | null
+  llm_model?: string | null
+  audio_bytes?: number | null
+  audio_seconds?: number | null
+  llm_prompt_tokens?: number | null
+  llm_completion_tokens?: number | null
+}
+
+/** Payload of the `pipeline:timing` event emitted after each dictation run. */
+export interface PipelineTiming {
+  stt_ms: number
+  llm_ms: number
+  total_ms: number
+  recording_ms: number | null
+  audio_bytes?: number
+  stt_model?: string | null
+  llm_model?: string | null
 }
 
 export interface ContextProfileSummary {
@@ -278,6 +300,8 @@ interface AppState {
   setLastInsertResult: (result: InsertResult | null) => void
   lastContext: ContextProfileSummary | null
   setLastContext: (context: ContextProfileSummary | null) => void
+  lastTiming: PipelineTiming | null
+  setLastTiming: (timing: PipelineTiming | null) => void
 
   // Config
   config: AppConfig
@@ -815,6 +839,8 @@ export const useAppStore = create<AppState>((set) => ({
   setLastInsertResult: (lastInsertResult) => set({ lastInsertResult }),
   lastContext: null,
   setLastContext: (lastContext) => set({ lastContext }),
+  lastTiming: null,
+  setLastTiming: (lastTiming) => set({ lastTiming }),
 
   config: defaultConfig,
   setConfig: (config) => set((s) => ({ config: syncHotkeyConfig(s.config, config) })),

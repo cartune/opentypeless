@@ -314,6 +314,7 @@ impl LlmProvider for CloudLlmProvider {
 
             Ok(PolishResponse {
                 polished_text: full_text,
+                usage: None,
             })
         } else {
             let v: serde_json::Value = response.json().await?;
@@ -325,6 +326,7 @@ impl LlmProvider for CloudLlmProvider {
 
             Ok(PolishResponse {
                 polished_text: text,
+                usage: None,
             })
         }
     }

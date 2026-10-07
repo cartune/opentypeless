@@ -4,11 +4,14 @@ import { Check } from 'lucide-react'
 import { useEffect } from 'react'
 import { useAppStore } from '../../stores/appStore'
 import { spring } from '../../lib/animations'
+import { summarizeRunTiming } from '../../lib/timing'
 
 export function CapsuleComplete() {
   const { t } = useTranslation()
   const resetRecording = useAppStore((s) => s.resetRecording)
   const setPipelineState = useAppStore((s) => s.setPipelineState)
+  const lastTiming = useAppStore((s) => s.lastTiming)
+  const timing = lastTiming ? summarizeRunTiming(lastTiming) : null
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -28,6 +31,11 @@ export function CapsuleComplete() {
         <Check size={14} className="text-white" />
       </motion.div>
       <span className="text-[11px] text-white font-medium">{t('capsule.done')}</span>
+      {timing && (
+        <span className="text-[10px] text-white/60 tabular-nums whitespace-nowrap">
+          {t('capsule.timing', { stt: timing.stt ?? '–', llm: timing.llm ?? '–' })}
+        </span>
+      )}
     </motion.div>
   )
 }
