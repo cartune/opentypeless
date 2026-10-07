@@ -9,7 +9,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -28,7 +29,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -47,7 +49,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -66,7 +69,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -85,7 +89,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -104,7 +109,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -123,7 +129,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -142,7 +149,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -161,7 +169,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -180,7 +189,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -199,7 +209,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -218,7 +229,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -237,7 +249,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -256,7 +269,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -275,7 +289,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -294,7 +309,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -313,7 +329,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -332,7 +349,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -351,7 +369,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -370,7 +389,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -389,7 +409,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -408,7 +429,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -427,7 +449,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -446,7 +469,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -465,7 +489,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -484,7 +509,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -503,7 +529,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -522,7 +549,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -541,7 +569,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -560,7 +589,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -579,7 +609,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -598,7 +629,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -617,7 +649,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -636,7 +669,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -655,7 +689,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -674,7 +709,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -693,7 +729,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -712,7 +749,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -731,7 +769,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -750,7 +789,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -769,7 +809,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -788,7 +829,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -807,7 +849,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -826,7 +869,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -845,7 +889,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -864,7 +909,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -883,7 +929,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -902,7 +949,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -921,7 +969,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -940,7 +989,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -959,7 +1009,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -978,7 +1029,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -997,7 +1049,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1016,7 +1069,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1035,7 +1089,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1054,7 +1109,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1073,7 +1129,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1092,7 +1149,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1111,7 +1169,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1130,7 +1189,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1149,7 +1209,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1168,7 +1229,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1187,7 +1249,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1206,7 +1269,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1225,7 +1289,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1244,7 +1309,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1263,7 +1329,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1282,7 +1349,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1301,7 +1369,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1320,7 +1389,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1339,7 +1409,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1358,7 +1429,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1377,7 +1449,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "rewrite_selection",
     "expectedPlacement": "replace_selection",
@@ -1396,7 +1469,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "translate_selection",
     "expectedPlacement": "replace_selection",
@@ -1415,7 +1489,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "translate_selection",
     "expectedPlacement": "replace_selection",
@@ -1434,7 +1509,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "translate_selection",
     "expectedPlacement": "replace_selection",
@@ -1453,7 +1529,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "translate_selection",
     "expectedPlacement": "replace_selection",
@@ -1472,7 +1549,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "translate_selection",
     "expectedPlacement": "replace_selection",
@@ -1491,7 +1569,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "translate_selection",
     "expectedPlacement": "replace_selection",
@@ -1510,7 +1589,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "translate_selection",
     "expectedPlacement": "replace_selection",
@@ -1529,7 +1609,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "translate_selection",
     "expectedPlacement": "replace_selection",
@@ -1548,7 +1629,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "translate_selection",
     "expectedPlacement": "replace_selection",
@@ -1567,7 +1649,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "translate_selection",
     "expectedPlacement": "replace_selection",
@@ -1586,7 +1669,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "translate_selection",
     "expectedPlacement": "replace_selection",
@@ -1605,7 +1689,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "translate_selection",
     "expectedPlacement": "replace_selection",
@@ -1624,7 +1709,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1643,7 +1729,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1662,7 +1749,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1681,7 +1769,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1700,7 +1789,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1719,7 +1809,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1738,7 +1829,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1757,7 +1849,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1776,7 +1869,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1795,7 +1889,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1814,7 +1909,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1833,7 +1929,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1852,7 +1949,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1871,7 +1969,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1890,7 +1989,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1909,7 +2009,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -1928,7 +2029,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -1947,7 +2049,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -1966,7 +2069,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -1985,7 +2089,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2004,7 +2109,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2023,7 +2129,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2042,7 +2149,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2061,7 +2169,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2080,7 +2189,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2099,7 +2209,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2118,7 +2229,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2137,7 +2249,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2156,7 +2269,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2175,7 +2289,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2194,7 +2309,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2213,7 +2329,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2232,7 +2349,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2251,7 +2369,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2270,7 +2389,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2289,7 +2409,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2308,7 +2429,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2327,7 +2449,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2346,7 +2469,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2365,7 +2489,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "search",
     "expectedPlacement": "open_url",
@@ -2384,7 +2509,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2403,7 +2529,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -2422,7 +2549,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2441,7 +2569,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -2460,7 +2589,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2479,7 +2609,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -2498,7 +2629,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2517,7 +2649,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -2536,7 +2669,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2555,7 +2689,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -2574,7 +2709,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2593,7 +2729,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -2612,7 +2749,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2631,7 +2769,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -2650,7 +2789,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2669,7 +2809,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -2688,7 +2829,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2707,7 +2849,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -2726,7 +2869,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2745,7 +2889,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -2764,7 +2909,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2783,7 +2929,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2802,7 +2949,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2821,7 +2969,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "draft_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2840,7 +2989,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2859,7 +3009,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2878,7 +3029,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2897,7 +3049,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2916,7 +3069,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2935,7 +3089,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2954,7 +3109,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2973,7 +3129,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -2992,7 +3149,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3011,7 +3169,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3030,7 +3189,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3049,7 +3209,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3068,7 +3229,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3087,7 +3249,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3106,7 +3269,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3125,7 +3289,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3144,7 +3309,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3163,7 +3329,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3182,7 +3349,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3201,7 +3369,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3220,7 +3389,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3239,7 +3409,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3258,7 +3429,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -3277,7 +3449,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -3296,7 +3469,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -3315,7 +3489,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -3334,7 +3509,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -3353,7 +3529,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -3372,7 +3549,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3391,7 +3569,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3410,7 +3589,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3429,7 +3609,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3448,7 +3629,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3467,7 +3649,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3486,7 +3669,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3505,7 +3689,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3524,7 +3709,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3543,7 +3729,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3562,7 +3749,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3581,7 +3769,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3600,7 +3789,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3619,7 +3809,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3638,7 +3829,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3657,7 +3849,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3676,7 +3869,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3695,7 +3889,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3714,7 +3909,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3733,7 +3929,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3752,7 +3949,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -3771,7 +3969,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3790,7 +3989,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3809,7 +4009,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3828,7 +4029,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -3847,7 +4049,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -3866,7 +4069,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -3885,7 +4089,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3904,7 +4109,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3923,7 +4129,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3942,7 +4149,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3961,7 +4169,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3980,7 +4189,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -3999,7 +4209,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4018,7 +4229,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4037,7 +4249,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4056,7 +4269,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4075,7 +4289,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4094,7 +4309,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4113,7 +4329,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4132,7 +4349,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4151,7 +4369,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4170,7 +4389,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4189,7 +4409,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4208,7 +4429,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4227,7 +4449,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4246,7 +4469,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4265,7 +4489,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4284,7 +4509,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4303,7 +4529,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4322,7 +4549,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4341,7 +4569,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4360,7 +4589,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4379,7 +4609,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4398,7 +4629,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4417,7 +4649,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4436,7 +4669,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4455,7 +4689,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4474,7 +4709,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4493,7 +4729,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4512,7 +4749,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4531,7 +4769,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4550,7 +4789,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4569,7 +4809,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4588,7 +4829,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -4607,7 +4849,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -4626,7 +4869,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -4645,7 +4889,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -4664,7 +4909,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -4683,7 +4929,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -4702,7 +4949,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -4721,7 +4969,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -4740,7 +4989,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -4759,7 +5009,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -4778,7 +5029,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -4797,7 +5049,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -4816,7 +5069,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4835,7 +5089,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4854,7 +5109,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4873,7 +5129,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4892,7 +5149,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4911,7 +5169,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4930,7 +5189,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4949,7 +5209,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4968,7 +5229,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -4987,7 +5249,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -5006,7 +5269,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -5025,7 +5289,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -5044,7 +5309,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -5063,7 +5329,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -5082,7 +5349,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -5101,7 +5369,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -5120,7 +5389,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -5139,7 +5409,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -5158,7 +5429,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -5177,7 +5449,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -5196,7 +5469,8 @@
       "draft_insert": false,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "dictate_insert",
     "expectedPlacement": "insert_at_cursor",
@@ -5215,7 +5489,8 @@
       "draft_insert": true,
       "rewrite_selection": false,
       "translate_selection": true,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -5234,7 +5509,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": false,
-      "search": true
+      "search": true,
+      "command_mode": true
     },
     "expectedKind": "ask_selection",
     "expectedPlacement": "popup_answer",
@@ -5253,7 +5529,8 @@
       "draft_insert": true,
       "rewrite_selection": true,
       "translate_selection": true,
-      "search": false
+      "search": false,
+      "command_mode": true
     },
     "expectedKind": "open_question",
     "expectedPlacement": "popup_answer",
@@ -5261,5 +5538,945 @@
     "expectedPayload": null,
     "expectedFallbackReason": "feature_disabled",
     "destructiveBlocker": true
+  },
+  {
+    "id": "en-278-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "make this more formal",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-279-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "make it shorter",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-280-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "make this sound friendlier",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-281-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "rewrite this in plain English",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-282-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "rephrase this",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-283-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "reword this paragraph",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-284-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "fix the grammar",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-285-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "fix typos",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-286-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "shorten this",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-287-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "simplify this",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-288-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "expand this into two paragraphs",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-289-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "proofread this",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-290-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "clean this up",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-291-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "change this to passive voice",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-292-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "convert this to bullet points",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-293-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "turn this into a numbered list",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-294-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "format this as a table",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-295-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "add punctuation",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-296-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "tighten this up",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-297-ask-command-rewrite",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "polish this",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "rewrite_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-298-ask-command-translate",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "translate this to French",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "translate_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-299-ask-command-translate",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "translate this into Japanese",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "translate_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-300-ask-command-translate",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "translate it to Spanish",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "translate_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-301-ask-command-translate",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "translate into German",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "translate_selection",
+    "expectedPlacement": "replace_selection",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-302-ask-command-popup",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "what does this mean?",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-303-ask-command-popup",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "is this correct",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-304-ask-command-popup",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "is this formal enough?",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-305-ask-command-popup",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "this looks good",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-306-ask-command-popup",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "this reads well to me",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-307-ask-command-popup",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "summarize this",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-308-ask-command-popup",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "explain this",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-309-ask-command-popup",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "why is this wrong",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-310-ask-command-popup",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "how would you say this",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-311-ask-command-popup",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "make this shorter?",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-312-ask-command-popup",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "who wrote this",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-313-ask-command-popup",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "rewrite this?",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": null,
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-314-ask-command-blocked",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "don't rewrite this",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": "negated",
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-315-ask-command-blocked",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "do not translate this to French",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": "negated",
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-316-ask-command-blocked",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "never shorten this",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": "negated",
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-317-ask-command-blocked",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "she said \"make this shorter\"",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": "quoted_or_reported",
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-318-ask-command-blocked",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "he asked me to rewrite this",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": "quoted_or_reported",
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-319-ask-command-blocked",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "rewrite_text is the function name",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": "code_or_identifier",
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-320-ask-command-blocked",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "make_this_shorter() is a test",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": "code_or_identifier",
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-321-ask-command-mode-disabled",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "make this more formal",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": false
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": "feature_disabled",
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-322-ask-command-mode-disabled",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "make it shorter",
+    "hasSelection": true,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": false
+    },
+    "expectedKind": "ask_selection",
+    "expectedPlacement": "popup_answer",
+    "expectedProvider": null,
+    "expectedPayload": null,
+    "expectedFallbackReason": "feature_disabled",
+    "destructiveBlocker": true
+  },
+  {
+    "id": "en-323-ask-command-draft",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "write a short apology to the client",
+    "hasSelection": false,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "draft_insert",
+    "expectedPlacement": "insert_at_cursor",
+    "expectedProvider": null,
+    "expectedPayload": "a short apology to the client",
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
+  },
+  {
+    "id": "en-324-ask-command-draft",
+    "mode": "ask",
+    "locale": "en",
+    "utterance": "draft a reply saying yes",
+    "hasSelection": false,
+    "flags": {
+      "draft_insert": true,
+      "rewrite_selection": true,
+      "translate_selection": true,
+      "search": true,
+      "command_mode": true
+    },
+    "expectedKind": "draft_insert",
+    "expectedPlacement": "insert_at_cursor",
+    "expectedProvider": null,
+    "expectedPayload": "a reply saying yes",
+    "expectedFallbackReason": null,
+    "destructiveBlocker": false
   }
 ]

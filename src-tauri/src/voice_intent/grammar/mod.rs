@@ -64,6 +64,21 @@ pub(crate) fn match_search(
     }
 }
 
+/// True when the utterance reads as a question rather than an instruction:
+/// it ends with a question mark or a sentence-final question particle.
+/// Used by Ask command mode to keep questions on the nondestructive popup.
+pub(crate) fn is_question_shaped(view: &NormalizedUtterance<'_>) -> bool {
+    let text = view
+        .match_text()
+        .trim_end_matches(['.', '。', '!', '！', ' ']);
+    if text.ends_with('?') || text.ends_with('？') {
+        return true;
+    }
+    ["嗎", "吗", "呢", "麼", "么"]
+        .iter()
+        .any(|particle| text.ends_with(particle))
+}
+
 pub(crate) fn exact_confidence(view: &NormalizedUtterance<'_>) -> f32 {
     if view
         .match_text()

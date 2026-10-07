@@ -8,6 +8,7 @@ const enabledFlags = {
   rewrite_selection: true,
   translate_selection: true,
   search: true,
+  command_mode: true,
 }
 
 function flags(overrides = {}) {
@@ -82,6 +83,83 @@ const providers = [
   ['Amazon', 'amazon'],
   ['GitHub', 'github'],
 ]
+
+// Ask shortcut (Fn+Space) with text selected: command mode. Positive
+// imperatives rewrite or translate the selection in place; questions,
+// comments, negations, quotes and identifiers stay on the popup route.
+function addAskCommandCases(corpus, locale, spec) {
+  for (const utterance of spec.rewrite) {
+    corpus.add({
+      id: 'ask-command-rewrite',
+      mode: 'ask',
+      locale,
+      utterance,
+      hasSelection: true,
+      expectedKind: 'rewrite_selection',
+      expectedPlacement: 'replace_selection',
+    })
+  }
+  for (const utterance of spec.translate) {
+    corpus.add({
+      id: 'ask-command-translate',
+      mode: 'ask',
+      locale,
+      utterance,
+      hasSelection: true,
+      expectedKind: 'translate_selection',
+      expectedPlacement: 'replace_selection',
+    })
+  }
+  for (const utterance of spec.popup) {
+    corpus.add({
+      id: 'ask-command-popup',
+      mode: 'ask',
+      locale,
+      utterance,
+      hasSelection: true,
+      expectedKind: 'ask_selection',
+      expectedPlacement: 'popup_answer',
+      expectedFallbackReason: null,
+      destructiveBlocker: true,
+    })
+  }
+  for (const [utterance, reason] of spec.blocked) {
+    corpus.blocked({
+      id: 'ask-command-blocked',
+      mode: 'ask',
+      locale,
+      utterance,
+      hasSelection: true,
+      reason,
+    })
+  }
+  for (const utterance of spec.rewrite.slice(0, 2)) {
+    corpus.add({
+      id: 'ask-command-mode-disabled',
+      mode: 'ask',
+      locale,
+      utterance,
+      hasSelection: true,
+      routeFlags: flags({ command_mode: false }),
+      expectedKind: 'ask_selection',
+      expectedPlacement: 'popup_answer',
+      expectedFallbackReason: 'feature_disabled',
+      destructiveBlocker: true,
+    })
+  }
+  for (const utterance of spec.draft) {
+    corpus.add({
+      id: 'ask-command-draft',
+      mode: 'ask',
+      locale,
+      utterance: utterance.utterance,
+      hasSelection: false,
+      expectedKind: 'draft_insert',
+      expectedPlacement: 'insert_at_cursor',
+      expectedPayload: utterance.payload,
+    })
+  }
+}
 
 function buildEnglish() {
   const corpus = corpusBuilder('en')
@@ -457,6 +535,64 @@ function buildEnglish() {
     })
   }
 
+  addAskCommandCases(corpus, locale, {
+    rewrite: [
+      'make this more formal',
+      'make it shorter',
+      'make this sound friendlier',
+      'rewrite this in plain English',
+      'rephrase this',
+      'reword this paragraph',
+      'fix the grammar',
+      'fix typos',
+      'shorten this',
+      'simplify this',
+      'expand this into two paragraphs',
+      'proofread this',
+      'clean this up',
+      'change this to passive voice',
+      'convert this to bullet points',
+      'turn this into a numbered list',
+      'format this as a table',
+      'add punctuation',
+      'tighten this up',
+      'polish this',
+    ],
+    translate: [
+      'translate this to French',
+      'translate this into Japanese',
+      'translate it to Spanish',
+      'translate into German',
+    ],
+    popup: [
+      'what does this mean?',
+      'is this correct',
+      'is this formal enough?',
+      'this looks good',
+      'this reads well to me',
+      'summarize this',
+      'explain this',
+      'why is this wrong',
+      'how would you say this',
+      'make this shorter?',
+      'who wrote this',
+      'rewrite this?',
+    ],
+    blocked: [
+      ["don't rewrite this", 'negated'],
+      ['do not translate this to French', 'negated'],
+      ['never shorten this', 'negated'],
+      ['she said "make this shorter"', 'quoted_or_reported'],
+      ['he asked me to rewrite this', 'quoted_or_reported'],
+      ['rewrite_text is the function name', 'code_or_identifier'],
+      ['make_this_shorter() is a test', 'code_or_identifier'],
+    ],
+    draft: [
+      { utterance: 'write a short apology to the client', payload: 'a short apology to the client' },
+      { utterance: 'draft a reply saying yes', payload: 'a reply saying yes' },
+    ],
+  })
+
   return corpus.cases
 }
 
@@ -739,6 +875,116 @@ function buildChinese({ traditional }) {
       destructiveBlocker: true,
     })
   }
+
+  addAskCommandCases(
+    corpus,
+    locale,
+    traditional
+      ? {
+          rewrite: [
+            '改成正式語氣',
+            '改成條列式',
+            '改寫成比較口語的說法',
+            '幫我改得簡潔一點',
+            '幫我改成英文信的格式',
+            '潤飾一下',
+            '精簡一點',
+            '縮短成一句話',
+            '重寫這段',
+            '修正錯字',
+            '把它改成被動語氣',
+            '把這句改成問句',
+            '整理成條列',
+            '換句話說',
+            '加上標點',
+            '讓它更口語',
+            '讓這段更正式',
+            '正式一點',
+            '簡潔一點',
+            '調整語氣成道歉',
+          ],
+          translate: ['翻成英文', '翻譯成日文', '幫我翻成法文', '把它翻譯成韓文'],
+          popup: [
+            '這段寫得不錯',
+            '這段是什麼意思',
+            '這是什麼意思',
+            '為什麼這樣寫',
+            '總結這段',
+            '解釋這段',
+            '這段有錯字嗎',
+            '改成功了嗎',
+            '改天再說',
+            '幫我看看這段有沒有問題',
+            '翻譯得對嗎',
+            '這段要翻成英文嗎',
+          ],
+          blocked: [
+            ['不要改成正式語氣', 'negated'],
+            ['先別翻成英文', 'negated'],
+            ['不用潤飾', 'negated'],
+            ['他說「改成正式語氣」', 'quoted_or_reported'],
+            ['原文是改寫這段', 'quoted_or_reported'],
+            ['改成_v2 是檔名', 'code_or_identifier'],
+          ],
+          draft: [
+            { utterance: '幫我寫一封請假信', payload: '一封請假信' },
+            { utterance: '幫我擬一段會議開場白', payload: '一段會議開場白' },
+            { utterance: '回覆說我明天可以', payload: '我明天可以' },
+          ],
+        }
+      : {
+          rewrite: [
+            '改成正式语气',
+            '改成条列式',
+            '改写成比较口语的说法',
+            '帮我改得简洁一点',
+            '帮我改成英文信的格式',
+            '润饰一下',
+            '精简一点',
+            '缩短成一句话',
+            '重写这段',
+            '修正错字',
+            '把它改成被动语气',
+            '把这句改成问句',
+            '整理成条列',
+            '换句话说',
+            '加上标点',
+            '让它更口语',
+            '让这段更正式',
+            '正式一点',
+            '简洁一点',
+            '调整语气成道歉',
+          ],
+          translate: ['翻成英文', '翻译成日文', '帮我翻成法文', '把它翻译成韩文'],
+          popup: [
+            '这段写得不错',
+            '这段是什么意思',
+            '这是什么意思',
+            '为什么这样写',
+            '总结这段',
+            '解释这段',
+            '这段有错字吗',
+            '改成功了吗',
+            '改天再说',
+            '帮我看看这段有没有问题',
+            '翻译得对吗',
+            '这段要翻成英文吗',
+          ],
+          blocked: [
+            ['不要改成正式语气', 'negated'],
+            ['先别翻成英文', 'negated'],
+            ['不用润饰', 'negated'],
+            ['他说“改成正式语气”', 'quoted_or_reported'],
+            ['原文是改写这段', 'quoted_or_reported'],
+            ['改成_v2 是文件名', 'code_or_identifier'],
+          ],
+          draft: [
+            { utterance: '帮我写一封请假信', payload: '一封请假信' },
+            { utterance: '帮我拟一段会议开场白', payload: '一段会议开场白' },
+            { utterance: '回复说我明天可以', payload: '我明天可以' },
+          ],
+        },
+  )
 
   return corpus.cases
 }

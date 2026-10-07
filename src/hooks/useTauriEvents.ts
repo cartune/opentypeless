@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import { useTranslation } from 'react-i18next'
 import i18n from '../i18n'
-import { useAppStore } from '../stores/appStore'
+import { useAppStore, type AskSelectionCaptured } from '../stores/appStore'
 import { useAuthStore } from '../stores/authStore'
 import type {
   AppConfig,
@@ -94,8 +94,14 @@ export function useTauriEvents() {
     addListener<string>('stt:final', setFinalTranscript)
     addListener<string>('llm:chunk', appendPolishedChunk)
     addListener<PipelineTiming>('pipeline:timing', setLastTiming)
+    addListener<AskSelectionCaptured>('ask:selection_captured', (selection) => {
+      useAppStore.getState().setAskSelection(selection.chars > 0 ? selection : null)
+    })
     addListener<PipelineState>('pipeline:state', (state) => {
       setPipelineState(state)
+      if (state === 'idle' || state === 'preparing' || state === 'recording') {
+        useAppStore.getState().setAskSelection(null)
+      }
       if (state === 'preparing' || state === 'recording' || state === 'ask_recording') {
         const config = useAppStore.getState().config
         managedRunActive =

@@ -282,6 +282,18 @@ export function GeneralPane() {
               label={t('settings.escCancel')}
             />
             <p className="text-[11px] text-text-tertiary -mt-1">{t('settings.escCancelHint')}</p>
+            <Toggle
+              checked={config.voice_routing_flags.command_mode}
+              onChange={(checked) =>
+                updateConfig({
+                  voice_routing_flags: { ...config.voice_routing_flags, command_mode: checked },
+                  // Command mode needs the selection captured when Ask starts.
+                  ...(checked ? { selected_text_enabled: true } : {}),
+                })
+              }
+              label={t('settings.commandMode')}
+            />
+            <p className="text-[11px] text-text-tertiary -mt-1">{t('settings.commandModeHint')}</p>
           </div>
         )}
       </div>

@@ -273,7 +273,9 @@
       "exit": "終了"
     },
     "timing": "{{stt}} · {{llm}}",
-    "noAudioHint": "No audio — check mic"
+    "noAudioHint": "No audio — check mic",
+    "commandMode": "コマンド",
+    "commandThinking": "処理中..."
   },
   "settings": {
     "title": "設定",
@@ -492,7 +494,9 @@
     "chineseScriptPreserve": "Keep as spoken",
     "chineseScriptHint": "Traditional output is enforced twice: the AI is instructed to write Traditional, and the final text is converted with OpenCC (s2twp) before it is typed.",
     "correctionExactApply": "Apply correction rules exactly",
-    "correctionExactApplyHint": "Besides hinting the AI, replace each rule’s pattern literally in the final text (case-insensitive for Latin text)."
+    "correctionExactApplyHint": "Besides hinting the AI, replace each rule’s pattern literally in the final text (case-insensitive for Latin text).",
+    "commandMode": "コマンドモード（テキスト選択中の Ask ショートカット）",
+    "commandModeHint": "テキストを選択して Ask ショートカットを押し、「フォーマルにして」「英語に翻訳して」などの指示を話すと選択範囲をその場で置き換えます。質問は引き続き回答ポップアップを開きます。"
   },
   "contextFamilies": {
     "email": "Email",

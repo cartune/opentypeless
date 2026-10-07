@@ -203,6 +203,14 @@ export interface VoiceRoutingFlags {
   rewrite_selection: boolean
   translate_selection: boolean
   search: boolean
+  /** Fn+Space with text selected: spoken imperatives rewrite the selection in place. */
+  command_mode: boolean
+}
+
+/** Emitted by the backend when an Ask recording starts with captured selection. */
+export interface AskSelectionCaptured {
+  chars: number
+  commandMode: boolean
 }
 
 export interface TranslationConfig {
@@ -354,6 +362,8 @@ interface AppState {
   // Pipeline error
   pipelineError: string | null
   setPipelineError: (error: string | null) => void
+  askSelection: AskSelectionCaptured | null
+  setAskSelection: (selection: AskSelectionCaptured | null) => void
 
   // macOS Accessibility permission
   accessibilityTrusted: boolean
@@ -774,6 +784,7 @@ const defaultConfig: AppConfig = {
     rewrite_selection: true,
     translate_selection: true,
     search: true,
+    command_mode: true,
   },
   polish_style: 'clean',
   polish_custom_prompt: '',
@@ -895,6 +906,8 @@ export const useAppStore = create<AppState>((set) => ({
 
   pipelineError: null,
   setPipelineError: (pipelineError) => set({ pipelineError }),
+  askSelection: null,
+  setAskSelection: (askSelection) => set({ askSelection }),
 
   accessibilityTrusted: true,
   setAccessibilityTrusted: (accessibilityTrusted) => set({ accessibilityTrusted }),

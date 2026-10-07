@@ -273,7 +273,9 @@
       "exit": "退出"
     },
     "timing": "{{stt}} · {{llm}}",
-    "noAudioHint": "没收到声音，检查麦克风"
+    "noAudioHint": "没收到声音，检查麦克风",
+    "commandMode": "指令",
+    "commandThinking": "处理指令中…"
   },
   "settings": {
     "title": "设置",
@@ -492,7 +494,9 @@
     "chineseScriptPreserve": "保持原样",
     "chineseScriptHint": "繁体输出有两道保证：提示 AI 使用繁体，并在输出前用 OpenCC（s2twp）做确定性转换。",
     "correctionExactApply": "精确套用更正规则",
-    "correctionExactApplyHint": "除了提示 AI，也会在最终文本中逐字替换规则（拉丁字母不区分大小写）。"
+    "correctionExactApplyHint": "除了提示 AI，也会在最终文本中逐字替换规则（拉丁字母不区分大小写）。",
+    "commandMode": "指令模式（选中文字后按 Ask 快捷键）",
+    "commandModeHint": "选中文字、按 Ask 快捷键（默认 Fn+Space）说“改成正式语气”“翻成英文”等指令，会直接原地替换选中内容；提问仍会打开回答窗口。开启时会一并启用“选中文字”上下文。"
   },
   "contextFamilies": {
     "email": "邮件",

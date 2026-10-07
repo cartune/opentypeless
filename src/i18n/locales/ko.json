@@ -273,7 +273,9 @@
       "exit": "종료"
     },
     "timing": "{{stt}} · {{llm}}",
-    "noAudioHint": "No audio — check mic"
+    "noAudioHint": "No audio — check mic",
+    "commandMode": "명령",
+    "commandThinking": "처리 중..."
   },
   "settings": {
     "title": "설정",
@@ -492,7 +494,9 @@
     "chineseScriptPreserve": "Keep as spoken",
     "chineseScriptHint": "Traditional output is enforced twice: the AI is instructed to write Traditional, and the final text is converted with OpenCC (s2twp) before it is typed.",
     "correctionExactApply": "Apply correction rules exactly",
-    "correctionExactApplyHint": "Besides hinting the AI, replace each rule’s pattern literally in the final text (case-insensitive for Latin text)."
+    "correctionExactApplyHint": "Besides hinting the AI, replace each rule’s pattern literally in the final text (case-insensitive for Latin text).",
+    "commandMode": "명령 모드 (텍스트 선택 후 Ask 단축키)",
+    "commandModeHint": "텍스트를 선택하고 Ask 단축키를 누른 뒤 \"격식 있게 바꿔줘\", \"영어로 번역해줘\" 같은 명령을 말하면 선택 영역이 바로 교체됩니다. 질문은 여전히 답변 팝업을 엽니다."
   },
   "contextFamilies": {
     "email": "Email",

@@ -811,7 +811,9 @@ struct PolishTextOutcome {
     llm_usage: Option<llm::LlmUsage>,
 }
 
-pub(crate) struct AskVoiceDraftOutcome {
+/// Result of an Ask-mode voice command that produced application text
+/// (draft at cursor, or rewrite/translate of the selection in place).
+pub(crate) struct AskVoiceCommandOutcome {
     pub text: String,
     pub execution: crate::voice_intent::executor::VoiceExecutionResult,
 }
@@ -2797,16 +2799,30 @@ impl PipelineHandle {
         polish_outcome
     }
 
-    pub(crate) async fn run_ask_draft(
+    /// Run an Ask-mode voice command through the polish pipeline so it gets
+    /// the same prompt, dictionary, post-processing and target-app guards as
+    /// dictation. Supports drafting at the cursor and rewriting or
+    /// translating the captured selection in place.
+    pub(crate) async fn run_ask_voice_command(
         &self,
         config: &storage::AppConfig,
         app_ctx: &RecordingContext,
         utterance: &str,
         operation_id: &str,
         voice_intent: crate::voice_intent::VoiceIntent,
-    ) -> std::result::Result<AskVoiceDraftOutcome, String> {
-        if voice_intent.kind != crate::voice_intent::VoiceIntentKind::DraftInsert {
-            return Err("Ask draft execution requires a draft intent".to_string());
+        selected_text: Option<String>,
+    ) -> std::result::Result<AskVoiceCommandOutcome, String> {
+        use crate::voice_intent::VoiceIntentKind;
+        match voice_intent.kind {
+            VoiceIntentKind::DraftInsert => {}
+            VoiceIntentKind::RewriteSelection | VoiceIntentKind::TranslateSelection => {
+                if !selected_text_has_content(selected_text.as_deref()) {
+                    return Err(
+                        "Selection editing requires selected text; nothing was changed".to_string(),
+                    );
+                }
+            }
+            _ => return Err("Ask voice command requires a draft or selection intent".to_string()),
         }
         if self.current_state() != PipelineState::Idle {
             return Err("Another voice operation is already active".to_string());
@@ -2853,7 +2869,7 @@ impl PipelineHandle {
                 app_ctx,
                 dictionary,
                 correction_rules,
-                selected_text: None,
+                selected_text,
                 session_token,
                 operation_id: Some(operation_id.to_string()),
                 voice_intent,
@@ -2863,12 +2879,12 @@ impl PipelineHandle {
         self.set_state(PipelineState::Idle);
 
         let execution = outcome.voice_execution.ok_or_else(|| {
-            "Draft was not generated; no application text was changed".to_string()
+            "The command produced no output; no application text was changed".to_string()
         })?;
         if outcome.final_text.trim().is_empty() {
-            return Err("Draft generation returned empty output".to_string());
+            return Err("The command returned empty output".to_string());
         }
-        Ok(AskVoiceDraftOutcome {
+        Ok(AskVoiceCommandOutcome {
             text: outcome.final_text,
             execution,
         })

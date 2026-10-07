@@ -486,6 +486,9 @@ impl AppConfig {
             llm_provider: "openai".to_string(),
             llm_model: "gpt-4.1-mini".to_string(),
             llm_base_url: "https://api.openai.com/v1".to_string(),
+            // Command mode (Fn+Space with text selected) needs the selection
+            // captured, so new installs opt in.
+            selected_text_enabled: true,
             ..Self::default()
         }
     }
@@ -2482,6 +2485,7 @@ mod tests {
                 rewrite_selection: true,
                 translate_selection: true,
                 search: true,
+                command_mode: true,
             }
         );
     }

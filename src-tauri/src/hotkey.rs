@@ -957,7 +957,7 @@ pub fn handle_hotkey_role_event(
     event_state: ShortcutState,
 ) {
     match role {
-        HotkeyRole::Ask => {
+        HotkeyRole::Ask | HotkeyRole::EditSelection => {
             let ask_state = handle.state::<commands::ask::AskDictationState>();
             let action = ask_shortcut_action(
                 event_state,

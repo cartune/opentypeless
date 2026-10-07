@@ -244,6 +244,13 @@ pub struct VoiceRoutingFlags {
     pub translate_selection: bool,
     #[serde(default = "default_true")]
     pub search: bool,
+    /// Typeless-style command mode for the Ask shortcut: with text selected,
+    /// a positive imperative ("make this formal", "改成正式語氣", "翻成英文")
+    /// rewrites or translates the selection in place instead of opening the
+    /// answer popup. Questions and anything that is not an explicit command
+    /// still fall back to the nondestructive popup.
+    #[serde(default = "default_true")]
+    pub command_mode: bool,
 }
 
 impl Default for VoiceRoutingFlags {
@@ -253,6 +260,7 @@ impl Default for VoiceRoutingFlags {
             rewrite_selection: true,
             translate_selection: true,
             search: true,
+            command_mode: true,
         }
     }
 }
@@ -466,6 +474,7 @@ mod tests {
                 rewrite_selection: true,
                 translate_selection: true,
                 search: true,
+                command_mode: true,
             }
         );
     }

@@ -195,6 +195,7 @@ export function createBackupSettings(config: AppConfig): BackupSettings {
       rewrite_selection: config.voice_routing_flags.rewrite_selection,
       translate_selection: config.voice_routing_flags.translate_selection,
       search: config.voice_routing_flags.search,
+      command_mode: config.voice_routing_flags.command_mode ?? true,
     }
   }
 

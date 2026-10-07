@@ -31,6 +31,7 @@ pub enum AskResultOutput {
     PopupAnswer,
     OpenedSearch,
     InsertedText,
+    ReplacedSelection,
     CopiedFallback,
 }
 
@@ -149,6 +150,15 @@ pub struct AskDictationSession {
     done: Arc<Notify>,
 }
 
+/// Emitted to the capsule when an Ask recording starts, so it can show the
+/// command-mode badge when text was captured for in-place editing.
+#[derive(Clone, Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AskSelectionCapturedEvent {
+    pub chars: usize,
+    pub command_mode: bool,
+}
+
 #[derive(Clone, Debug, Default, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AskDictationStartResult {
@@ -223,22 +233,26 @@ impl AskDictationResultMetadata {
         }
     }
 
-    fn from_draft_execution(
+    fn from_command_execution(
         execution: &crate::voice_intent::executor::VoiceExecutionResult,
+        used_selected_text: bool,
+        selected_text_truncated: bool,
     ) -> Self {
-        let output = if execution.status
-            == crate::voice_intent::executor::VoiceExecutionStatus::Completed
-            && execution.actual_placement
-                == Some(crate::voice_intent::VoiceOutputPlacement::InsertAtCursor)
-        {
-            AskResultOutput::InsertedText
-        } else {
-            AskResultOutput::CopiedFallback
+        let completed =
+            execution.status == crate::voice_intent::executor::VoiceExecutionStatus::Completed;
+        let output = match execution.actual_placement {
+            Some(crate::voice_intent::VoiceOutputPlacement::InsertAtCursor) if completed => {
+                AskResultOutput::InsertedText
+            }
+            Some(crate::voice_intent::VoiceOutputPlacement::ReplaceSelection) if completed => {
+                AskResultOutput::ReplacedSelection
+            }
+            _ => AskResultOutput::CopiedFallback,
         };
         Self {
             output,
-            used_selected_text: false,
-            selected_text_truncated: false,
+            used_selected_text,
+            selected_text_truncated,
             search_provider: None,
             requested_placement: execution.requested_placement,
             actual_placement: execution.actual_placement,
@@ -269,7 +283,10 @@ impl AskDictationResult {
     }
 
     pub(crate) fn should_show_window(&self) -> bool {
-        self.output != AskResultOutput::InsertedText
+        !matches!(
+            self.output,
+            AskResultOutput::InsertedText | AskResultOutput::ReplacedSelection
+        )
     }
 }
 
@@ -1085,6 +1102,18 @@ pub(crate) async fn start_reserved_ask_dictation(
         if selected_text.is_some() {
             tracing::info!("Ask shortcut captured selected text context");
         }
+        // Let the capsule show the command-mode badge while recording.
+        let _ = app.emit(
+            "ask:selection_captured",
+            AskSelectionCapturedEvent {
+                chars: selected_text
+                    .as_deref()
+                    .map(|text| text.trim().chars().count())
+                    .unwrap_or(0),
+                command_mode: start_result.used_selected_text
+                    && config.voice_routing_flags.command_mode,
+            },
+        );
 
         let stt_api_key = ask_stt_api_key(&config, &token_store)?;
         if stt::config::stt_provider_requires_api_key(&config.stt_provider)
@@ -1526,22 +1555,36 @@ pub async fn stop_ask_dictation(
             ));
         }
 
-        if voice_intent.kind == VoiceIntentKind::DraftInsert {
-            let draft = app
+        if matches!(
+            voice_intent.kind,
+            VoiceIntentKind::DraftInsert
+                | VoiceIntentKind::RewriteSelection
+                | VoiceIntentKind::TranslateSelection
+        ) {
+            let selected_text_for_command = selected_text_metadata
+                .as_ref()
+                .filter(|_| voice_intent.kind != VoiceIntentKind::DraftInsert)
+                .map(|selected_text| selected_text.text.clone());
+            let outcome = app
                 .state::<crate::pipeline::PipelineHandle>()
-                .run_ask_draft(
+                .run_ask_voice_command(
                     &config,
                     &session.recording_context,
                     &question,
                     &session.operation_id,
                     voice_intent.clone(),
+                    selected_text_for_command,
                 )
                 .await?;
             return Ok(AskDictationResult::new(
                 question,
-                draft.text,
+                outcome.text,
                 voice_intent.kind,
-                AskDictationResultMetadata::from_draft_execution(&draft.execution),
+                AskDictationResultMetadata::from_command_execution(
+                    &outcome.execution,
+                    used_selected_text && voice_intent.kind != VoiceIntentKind::DraftInsert,
+                    selected_text_truncated && voice_intent.kind != VoiceIntentKind::DraftInsert,
+                ),
             ));
         }
 
@@ -1703,15 +1746,17 @@ mod tests {
     }
 
     #[test]
-    fn selected_text_router_defaults_to_nondestructive_ask() {
+    fn selected_text_router_keeps_questions_nondestructive_and_rewrites_commands() {
         let flags = VoiceRoutingFlags::default();
         assert_eq!(
             route_ask_intent("What does this mean?", true, "en", flags).kind,
             VoiceIntentKind::AskSelection
         );
+        let rewrite = route_ask_intent("Make this shorter", true, "en", flags);
+        assert_eq!(rewrite.kind, VoiceIntentKind::RewriteSelection);
         assert_eq!(
-            route_ask_intent("Make this shorter", true, "en", flags).kind,
-            VoiceIntentKind::AskSelection
+            rewrite.placement,
+            crate::voice_intent::VoiceOutputPlacement::ReplaceSelection
         );
         assert_eq!(
             route_ask_intent("What is OpenTypeless?", false, "en", flags).kind,
@@ -1720,8 +1765,11 @@ mod tests {
     }
 
     #[test]
-    fn shared_voice_router_ask_never_replaces_selected_text() {
-        let flags = crate::voice_intent::VoiceRoutingFlags::default();
+    fn shared_voice_router_ask_never_replaces_selected_text_without_command_mode() {
+        let flags = crate::voice_intent::VoiceRoutingFlags {
+            command_mode: false,
+            ..crate::voice_intent::VoiceRoutingFlags::default()
+        };
         for question in [
             "rewrite this",
             "translate this to French",
@@ -1737,6 +1785,57 @@ mod tests {
                 crate::voice_intent::VoiceOutputPlacement::PopupAnswer
             );
         }
+        // Negated and question-shaped phrasing stays nondestructive even with
+        // command mode on.
+        let flags = crate::voice_intent::VoiceRoutingFlags::default();
+        for question in ["do not rewrite this", "rewrite this?", "is this formal"] {
+            assert_eq!(
+                route_ask_intent(question, true, "en", flags).kind,
+                crate::voice_intent::VoiceIntentKind::AskSelection,
+                "{question}"
+            );
+        }
+    }
+
+    #[test]
+    fn ask_command_execution_metadata_reports_replaced_selection() {
+        let execution = crate::voice_intent::executor::VoiceExecutionResult {
+            intent_kind: VoiceIntentKind::RewriteSelection,
+            requested_placement: crate::voice_intent::VoiceOutputPlacement::ReplaceSelection,
+            actual_placement: Some(crate::voice_intent::VoiceOutputPlacement::ReplaceSelection),
+            status: crate::voice_intent::executor::VoiceExecutionStatus::Completed,
+            fallback_reason: None,
+        };
+        let result = AskDictationResult::new(
+            "make this formal".to_string(),
+            "Dear team,".to_string(),
+            VoiceIntentKind::RewriteSelection,
+            AskDictationResultMetadata::from_command_execution(&execution, true, false),
+        );
+        assert!(!result.should_show_window());
+        let value = serde_json::to_value(&result).unwrap();
+        assert_eq!(value["output"], "replacedSelection");
+        assert_eq!(value["usedSelectedText"], true);
+
+        let fallback = crate::voice_intent::executor::VoiceExecutionResult {
+            status: crate::voice_intent::executor::VoiceExecutionStatus::CopiedFallback,
+            actual_placement: None,
+            fallback_reason: Some(
+                crate::voice_intent::executor::VoiceExecutionFallbackReason::SelectionLost,
+            ),
+            ..execution
+        };
+        let result = AskDictationResult::new(
+            "make this formal".to_string(),
+            "Dear team,".to_string(),
+            VoiceIntentKind::RewriteSelection,
+            AskDictationResultMetadata::from_command_execution(&fallback, true, false),
+        );
+        assert!(result.should_show_window());
+        assert_eq!(
+            serde_json::to_value(&result).unwrap()["output"],
+            "copiedFallback"
+        );
     }
 
     #[test]
@@ -1776,7 +1875,7 @@ mod tests {
             "draft a launch note".to_string(),
             "Launch note".to_string(),
             VoiceIntentKind::DraftInsert,
-            AskDictationResultMetadata::from_draft_execution(&inserted),
+            AskDictationResultMetadata::from_command_execution(&inserted, false, false),
         );
         assert!(!inserted_result.should_show_window());
         assert_eq!(
@@ -1796,7 +1895,7 @@ mod tests {
             "draft a launch note".to_string(),
             "Launch note".to_string(),
             VoiceIntentKind::DraftInsert,
-            AskDictationResultMetadata::from_draft_execution(&copied),
+            AskDictationResultMetadata::from_command_execution(&copied, false, false),
         );
         assert!(copied_result.should_show_window());
         assert_eq!(

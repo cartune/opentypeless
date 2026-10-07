@@ -273,7 +273,9 @@
       "exit": "Beenden"
     },
     "timing": "{{stt}} · {{llm}}",
-    "noAudioHint": "No audio — check mic"
+    "noAudioHint": "No audio — check mic",
+    "commandMode": "Command",
+    "commandThinking": "Working on it..."
   },
   "settings": {
     "title": "Einstellungen",
@@ -492,7 +494,9 @@
     "chineseScriptPreserve": "Keep as spoken",
     "chineseScriptHint": "Traditional output is enforced twice: the AI is instructed to write Traditional, and the final text is converted with OpenCC (s2twp) before it is typed.",
     "correctionExactApply": "Apply correction rules exactly",
-    "correctionExactApplyHint": "Besides hinting the AI, replace each rule’s pattern literally in the final text (case-insensitive for Latin text)."
+    "correctionExactApplyHint": "Besides hinting the AI, replace each rule’s pattern literally in the final text (case-insensitive for Latin text).",
+    "commandMode": "Command mode (Ask shortcut with text selected)",
+    "commandModeHint": "Select text, press the Ask shortcut and say a command such as \"make this formal\" or \"translate to English\" to replace the selection in place. Questions still open the answer popup. Turning this on also enables selected-text context."
   },
   "contextFamilies": {
     "email": "Email",

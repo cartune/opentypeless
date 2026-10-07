@@ -15,34 +15,76 @@ pub(super) fn match_draft(view: &NormalizedUtterance<'_>) -> CommandMatch<String
     CommandMatch::NoMatch
 }
 
+/// Positive imperatives that edit the selection in place. Every entry is
+/// verb-first and matched on a token boundary, so questions ("is this
+/// formal?") and comments ("this reads well") never match.
+pub(super) const REWRITE_PREFIXES: &[&str] = &[
+    "rewrite",
+    "rephrase",
+    "reword",
+    "make this",
+    "make it",
+    "make the",
+    "fix this",
+    "fix the",
+    "fix it",
+    "fix grammar",
+    "fix typos",
+    "fix spelling",
+    "format this",
+    "format it",
+    "turn this into",
+    "turn it into",
+    "shorten",
+    "simplify",
+    "expand this",
+    "expand it",
+    "elaborate on this",
+    "tighten",
+    "polish this",
+    "polish it",
+    "proofread",
+    "clean this up",
+    "clean it up",
+    "clean up",
+    "correct this",
+    "correct the",
+    "edit this",
+    "improve this",
+    "improve the",
+    "change this to",
+    "change it to",
+    "change the tone",
+    "convert this",
+    "convert it",
+    "put this in",
+    "put it in",
+    "add punctuation",
+    "capitalize",
+    "formalize",
+    "paraphrase",
+    "condense",
+];
+
+pub(super) const TRANSLATE_PREFIXES: &[&str] = &[
+    "translate this to",
+    "translate this into",
+    "translate the selection to",
+    "translate the selection into",
+    "translate it to",
+    "translate it into",
+    "translate to",
+    "translate into",
+];
+
 pub(super) fn matches_rewrite(view: &NormalizedUtterance<'_>) -> bool {
-    [
-        "rewrite this",
-        "rephrase this",
-        "make this shorter",
-        "make this longer",
-        "make this warmer",
-        "make this friendlier",
-        "make this more formal",
-        "make this more concise",
-        "fix the grammar",
-        "fix the spelling",
-        "format this as",
-        "turn this into",
-    ]
-    .iter()
-    .any(|prefix| view.starts_with_prefix(prefix, true))
+    REWRITE_PREFIXES
+        .iter()
+        .any(|prefix| view.starts_with_prefix(prefix, true))
 }
 
 pub(super) fn matches_translation(view: &NormalizedUtterance<'_>) -> bool {
-    [
-        "translate this to",
-        "translate this into",
-        "translate the selection to",
-        "translate the selection into",
-    ]
-    .iter()
-    .any(|prefix| {
+    TRANSLATE_PREFIXES.iter().any(|prefix| {
         view.starts_with_prefix(prefix, true) && view.payload_after_prefix(prefix).is_some()
     })
 }

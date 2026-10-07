@@ -1,11 +1,14 @@
 import { useTranslation } from 'react-i18next'
-import { MessageCircle, X } from 'lucide-react'
+import { MessageCircle, WandSparkles, X } from 'lucide-react'
 import { abortAskDictation } from '../../lib/tauri'
+import { useAppStore } from '../../stores/appStore'
 import { CapsuleWorkIndicator } from './CapsuleWorkIndicator'
 import { DurationTimer } from './DurationTimer'
 
 export function CapsuleAskRecording() {
   const { t } = useTranslation()
+  const askSelection = useAppStore((s) => s.askSelection)
+  const commandMode = Boolean(askSelection?.commandMode)
 
   const handleCancel = async (event: React.MouseEvent) => {
     event.stopPropagation()
@@ -22,8 +25,14 @@ export function CapsuleAskRecording() {
 
   return (
     <div className="relative z-10 flex h-9 items-center gap-2 px-3">
-      <MessageCircle size={13} className="shrink-0 text-white/90" />
-      <span className="whitespace-nowrap text-[11px] font-medium text-white">{t('ask.title')}</span>
+      {commandMode ? (
+        <WandSparkles size={13} className="shrink-0 text-white/90" />
+      ) : (
+        <MessageCircle size={13} className="shrink-0 text-white/90" />
+      )}
+      <span className="whitespace-nowrap text-[11px] font-medium text-white">
+        {commandMode ? t('capsule.commandMode') : t('ask.title')}
+      </span>
       <CapsuleWorkIndicator tone="steady" />
       <div className="flex-1" />
       <DurationTimer recordingKind="ask" />

@@ -199,12 +199,7 @@ fn route_ask(
     view: &NormalizedUtterance<'_>,
 ) -> VoiceIntent {
     if request.has_selected_text {
-        return fallback_intent(
-            VoiceMode::Ask,
-            true,
-            Some(locale),
-            discussed_command_reason(locale, request.utterance),
-        );
+        return route_ask_with_selection(request, locale, view);
     }
 
     match grammar::match_search(locale, view) {
@@ -267,6 +262,58 @@ fn route_ask(
             discussed_command_reason(locale, request.utterance),
         ),
     }
+}
+
+/// Ask shortcut with text selected. Only a positive imperative that the
+/// grammar recognises becomes a destructive in-place rewrite or translation;
+/// questions, comments, and unrecognised phrasing stay on the popup route.
+fn route_ask_with_selection(
+    request: VoiceRouteRequest<'_>,
+    locale: CommandLocale,
+    view: &NormalizedUtterance<'_>,
+) -> VoiceIntent {
+    let nondestructive = || {
+        fallback_intent(
+            VoiceMode::Ask,
+            true,
+            Some(locale),
+            discussed_command_reason(locale, request.utterance),
+        )
+    };
+    if grammar::is_question_shaped(view) || grammar::matches_informational(locale, view) {
+        return nondestructive();
+    }
+
+    let translation = grammar::matches_translation(locale, view);
+    let rewrite = !translation && grammar::matches_rewrite(locale, view);
+    if !translation && !rewrite {
+        return nondestructive();
+    }
+    if !request.flags.command_mode
+        || (translation && !request.flags.translate_selection)
+        || (rewrite && !request.flags.rewrite_selection)
+    {
+        return fallback_intent(
+            VoiceMode::Ask,
+            true,
+            Some(locale),
+            Some(RouteFallbackReason::FeatureDisabled),
+        );
+    }
+    let kind = if translation {
+        VoiceIntentKind::TranslateSelection
+    } else {
+        VoiceIntentKind::RewriteSelection
+    };
+    intent(
+        kind,
+        VoiceOutputPlacement::ReplaceSelection,
+        grammar::exact_confidence(view),
+        None,
+        None,
+        Some(locale),
+        None,
+    )
 }
 
 fn route_translate_mode(request: &VoiceRouteRequest<'_>) -> VoiceIntent {
@@ -524,20 +571,102 @@ mod tests {
     }
 
     #[test]
-    fn voice_intent_grammar_keeps_ask_with_selection_nondestructive() {
+    fn voice_intent_grammar_keeps_ask_with_selection_nondestructive_when_command_mode_off() {
         for utterance in [
             "rewrite this",
             "translate this to French",
             "make this warmer",
         ] {
+            let routed = VoiceIntentRouter::route(VoiceRouteRequest {
+                mode: VoiceMode::Ask,
+                utterance,
+                has_selected_text: true,
+                speech_language: SpeechLanguageMode::Explicit("en"),
+                flags: VoiceRoutingFlags {
+                    command_mode: false,
+                    ..VoiceRoutingFlags::default()
+                },
+            });
+            assert_eq!(routed.kind, VoiceIntentKind::AskSelection);
+            assert_eq!(routed.placement, VoiceOutputPlacement::PopupAnswer);
+            assert_eq!(
+                routed.fallback_reason,
+                Some(RouteFallbackReason::FeatureDisabled)
+            );
+        }
+    }
+
+    #[test]
+    fn voice_intent_grammar_ask_command_mode_rewrites_selection_on_positive_imperative() {
+        for (utterance, language, kind) in [
+            (
+                "make this more formal",
+                "en",
+                VoiceIntentKind::RewriteSelection,
+            ),
+            ("make it shorter", "en", VoiceIntentKind::RewriteSelection),
+            ("fix the grammar", "en", VoiceIntentKind::RewriteSelection),
+            (
+                "translate this to French",
+                "en",
+                VoiceIntentKind::TranslateSelection,
+            ),
+            ("改成正式語氣", "zh-TW", VoiceIntentKind::RewriteSelection),
+            (
+                "幫我改得簡潔一點",
+                "zh-TW",
+                VoiceIntentKind::RewriteSelection,
+            ),
+            ("潤飾一下", "zh-TW", VoiceIntentKind::RewriteSelection),
+            ("翻成英文", "zh-TW", VoiceIntentKind::TranslateSelection),
+            ("改成正式语气", "zh-CN", VoiceIntentKind::RewriteSelection),
+            ("翻成英文", "zh-CN", VoiceIntentKind::TranslateSelection),
+        ] {
             let routed = VoiceIntentRouter::route(request(
                 VoiceMode::Ask,
                 utterance,
                 true,
-                SpeechLanguageMode::Explicit("en"),
+                SpeechLanguageMode::Explicit(language),
             ));
-            assert_eq!(routed.kind, VoiceIntentKind::AskSelection);
-            assert_eq!(routed.placement, VoiceOutputPlacement::PopupAnswer);
+            assert_eq!(routed.kind, kind, "{utterance}");
+            assert_eq!(
+                routed.placement,
+                VoiceOutputPlacement::ReplaceSelection,
+                "{utterance}"
+            );
+            assert_eq!(routed.fallback_reason, None, "{utterance}");
+        }
+    }
+
+    #[test]
+    fn voice_intent_grammar_ask_command_mode_keeps_questions_and_comments_on_popup() {
+        for (utterance, language) in [
+            ("what does this mean?", "en"),
+            ("is this correct", "en"),
+            ("this looks good", "en"),
+            ("make this shorter?", "en"),
+            ("summarize this", "en"),
+            ("這段寫得不錯", "zh-TW"),
+            ("這段是什麼意思", "zh-TW"),
+            ("改成功了嗎", "zh-TW"),
+            ("總結這段", "zh-TW"),
+            ("不要改成正式語氣", "zh-TW"),
+            ("他說「改成正式語氣」", "zh-TW"),
+            ("这段写得不错", "zh-CN"),
+            ("不要改成正式语气", "zh-CN"),
+        ] {
+            let routed = VoiceIntentRouter::route(request(
+                VoiceMode::Ask,
+                utterance,
+                true,
+                SpeechLanguageMode::Explicit(language),
+            ));
+            assert_eq!(routed.kind, VoiceIntentKind::AskSelection, "{utterance}");
+            assert_eq!(
+                routed.placement,
+                VoiceOutputPlacement::PopupAnswer,
+                "{utterance}"
+            );
         }
     }
 
