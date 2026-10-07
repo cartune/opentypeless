@@ -787,6 +787,13 @@ fn append_final_transcript(transcript: &Arc<Mutex<String>>, text: &str) -> Strin
     current.trim().to_string()
 }
 
+/// A popup Ask answer plus the LLM cost signals needed for BYOK usage.
+pub(crate) struct AskAnswer {
+    pub text: String,
+    pub usage: Option<crate::llm::LlmUsage>,
+    pub llm_elapsed: std::time::Duration,
+}
+
 async fn answer_question(
     config: &storage::AppConfig,
     client: &reqwest::Client,
@@ -795,7 +802,7 @@ async fn answer_question(
     selected_text: Option<&str>,
     operation_id: Option<&str>,
     voice_intent: &VoiceIntent,
-) -> Result<String, AppError> {
+) -> Result<AskAnswer, AppError> {
     let llm_api_key = if config.llm_provider == "cloud" {
         String::new()
     } else {
@@ -803,20 +810,24 @@ async fn answer_question(
             .map_err(|e| AppError::Config(e.to_string()))?
     };
 
-    let answer = if should_use_byok(config, &llm_api_key) {
+    let started = std::time::Instant::now();
+    let (answer, usage) = if should_use_byok(config, &llm_api_key) {
         ask_via_byok(client, config, &llm_api_key, question, selected_text)
             .await
             .map_err(AppError::Config)?
     } else if should_use_cloud(config) {
-        ask_via_cloud(
-            client,
-            token_store,
-            question,
-            selected_text,
-            operation_id,
-            voice_intent,
+        (
+            ask_via_cloud(
+                client,
+                token_store,
+                question,
+                selected_text,
+                operation_id,
+                voice_intent,
+            )
+            .await?,
+            None,
         )
-        .await?
     } else {
         return Err(AppError::Config(
             "Configure a BYOK LLM provider or choose Cloud LLM to use Ask.".to_string(),
@@ -824,13 +835,17 @@ async fn answer_question(
     };
 
     // Deterministic script conversion so a Simplified slip never reaches the popup.
-    Ok(crate::llm::post_process::post_process_final_text(
-        &answer,
-        &crate::llm::post_process::PostProcessOptions {
-            chinese_script: config.resolved_chinese_script(),
-            ..Default::default()
-        },
-    ))
+    Ok(AskAnswer {
+        text: crate::llm::post_process::post_process_final_text(
+            &answer,
+            &crate::llm::post_process::PostProcessOptions {
+                chinese_script: config.resolved_chinese_script(),
+                ..Default::default()
+            },
+        ),
+        usage,
+        llm_elapsed: started.elapsed(),
+    })
 }
 
 fn response_error(status: reqwest::StatusCode, text: String) -> String {
@@ -923,7 +938,7 @@ async fn ask_via_byok(
     api_key: &str,
     question: &str,
     selected_text: Option<&str>,
-) -> Result<String, String> {
+) -> Result<(String, Option<crate::llm::LlmUsage>), String> {
     let parsed =
         url::Url::parse(&config.llm_base_url).map_err(|e| format!("Invalid LLM base URL: {e}"))?;
     if parsed.scheme() != "https" && parsed.scheme() != "http" {
@@ -961,7 +976,11 @@ async fn ask_via_byok(
     }
 
     let body: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-    validate_ask_answer(&crate::llm::protocol::response_text(api_kind, &body))
+    let answer = validate_ask_answer(&crate::llm::protocol::response_text(api_kind, &body))?;
+    Ok((
+        answer,
+        crate::llm::protocol::response_usage(api_kind, &body),
+    ))
 }
 
 async fn ask_via_cloud(
@@ -1035,7 +1054,22 @@ pub async fn ask_anything(
     )
     .await
     {
-        Ok(answer) => Ok(answer),
+        Ok(answer) => {
+            let recording_context = app
+                .state::<crate::app_detector::ContextDetectorHandle>()
+                .snapshot_for_recording_enabled(config.context_adaptation_enabled);
+            app.state::<crate::pipeline::PipelineHandle>()
+                .record_ask_answer_history(
+                    &config,
+                    &recording_context,
+                    &question,
+                    &answer.text,
+                    answer.llm_elapsed,
+                    answer.usage.as_ref(),
+                )
+                .await;
+            Ok(answer.text)
+        }
         Err(error) => {
             emit_cloud_session_invalid(&app, &error);
             Err(ask_app_error_message(error))
@@ -1602,10 +1636,20 @@ pub async fn stop_ask_dictation(
             emit_cloud_session_invalid(&app, &error);
             ask_app_error_message(error)
         })?;
+        app.state::<crate::pipeline::PipelineHandle>()
+            .record_ask_answer_history(
+                &config,
+                &session.recording_context,
+                &question,
+                &answer.text,
+                answer.llm_elapsed,
+                answer.usage.as_ref(),
+            )
+            .await;
 
         Ok(AskDictationResult::new(
             question,
-            answer,
+            answer.text,
             voice_intent.kind,
             AskDictationResultMetadata::popup(used_selected_text, selected_text_truncated),
         ))

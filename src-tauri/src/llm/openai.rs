@@ -200,6 +200,7 @@ impl LlmProvider for OpenAiProvider {
             // Streaming mode
             let mut full_text = String::new();
             let mut reasoning_text = String::new();
+            let mut usage: Option<super::LlmUsage> = None;
             let mut stream = response.bytes_stream();
 
             let mut buffer = String::new();
@@ -240,6 +241,7 @@ impl LlmProvider for OpenAiProvider {
                                     reasoning_text.push_str(&rc);
                                 }
                             }
+                            protocol::merge_usage(&mut usage, event.usage);
                             stream_done = event.done;
                         }
                     }
@@ -261,12 +263,13 @@ impl LlmProvider for OpenAiProvider {
 
             Ok(PolishResponse {
                 polished_text: full_text,
-                usage: None,
+                usage,
             })
         } else {
             // Non-streaming mode
             let v: serde_json::Value = response.json().await?;
             let text = protocol::response_text(api_kind, &v);
+            let usage = protocol::response_usage(api_kind, &v);
 
             if text.is_empty() {
                 tracing::warn!(
@@ -277,7 +280,7 @@ impl LlmProvider for OpenAiProvider {
 
             Ok(PolishResponse {
                 polished_text: text,
-                usage: None,
+                usage,
             })
         }
     }

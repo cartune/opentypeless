@@ -8,6 +8,7 @@ import type {
   SystemSceneOverride,
   TranslationConfig,
   VoiceRoutingFlags,
+  UsagePrice,
 } from '../stores/appStore'
 
 type SafeScalarKey =
@@ -57,6 +58,7 @@ type SafeScalarKey =
 
 export type BackupSettings = Partial<Pick<AppConfig, SafeScalarKey>> & {
   voice_routing_flags?: VoiceRoutingFlags
+  usage_pricing?: UsagePrice[]
   custom_scenes?: CustomScene[]
   system_scene_overrides?: SystemSceneOverride[]
   active_scene?: ActiveScene | null
@@ -187,6 +189,17 @@ export function createBackupSettings(config: AppConfig): BackupSettings {
     correction_rules_exact_apply: config.correction_rules_exact_apply,
     stt_openai_model: config.stt_openai_model,
     stt_upload_format: config.stt_upload_format,
+  }
+
+  if (Array.isArray(config.usage_pricing)) {
+    settings.usage_pricing = config.usage_pricing
+      .filter((row) => row && typeof row.model === 'string' && row.model.trim())
+      .map((row) => ({
+        model: row.model,
+        usd_per_minute: typeof row.usd_per_minute === 'number' ? row.usd_per_minute : null,
+        usd_per_mtok_in: typeof row.usd_per_mtok_in === 'number' ? row.usd_per_mtok_in : null,
+        usd_per_mtok_out: typeof row.usd_per_mtok_out === 'number' ? row.usd_per_mtok_out : null,
+      }))
   }
 
   if (config.voice_routing_flags) {

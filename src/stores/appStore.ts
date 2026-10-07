@@ -207,6 +207,14 @@ export interface VoiceRoutingFlags {
   command_mode: boolean
 }
 
+/** One row of the BYOK price table (USD). Null means unknown / not applicable. */
+export interface UsagePrice {
+  model: string
+  usd_per_minute: number | null
+  usd_per_mtok_in: number | null
+  usd_per_mtok_out: number | null
+}
+
 /** Emitted by the backend when an Ask recording starts with captured selection. */
 export interface AskSelectionCaptured {
   chars: number
@@ -272,6 +280,8 @@ export interface AppConfig {
   ui_language: string
   capsule_auto_hide: boolean
   esc_cancel_enabled: boolean
+  /** User overrides for the BYOK price table; empty = built-in defaults. */
+  usage_pricing: UsagePrice[]
   correction_rules_exact_apply: boolean
 }
 
@@ -833,6 +843,7 @@ const defaultConfig: AppConfig = {
   ui_language: 'en',
   capsule_auto_hide: true,
   esc_cancel_enabled: true,
+  usage_pricing: [],
   correction_rules_exact_apply: true,
 }
 

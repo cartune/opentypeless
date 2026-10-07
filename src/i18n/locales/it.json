@@ -76,7 +76,14 @@
     "disabled": "Disabilitato",
     "outputMode": "Modalità di output",
     "wordsRemaining": "Parole rimanenti",
-    "wordsReset": "Si reimposta il {{date}}"
+    "wordsReset": "Si reimposta il {{date}}",
+    "usageTitle": "BYOK usage this month",
+    "usageMinutes": "Audio",
+    "usageTokens": "Tokens",
+    "usageCost": "Est. cost",
+    "usageRuns": "Runs",
+    "usageHint": "Estimated from your price table in Settings → Usage. Check the OpenAI pricing page for current rates.",
+    "usageManage": "Details & prices"
   },
   "onboarding": {
     "speakToWrite": "Parla per scrivere — trasforma la tua voce in testo rifinito in tempo reale",
@@ -496,7 +503,29 @@
     "correctionExactApply": "Apply correction rules exactly",
     "correctionExactApplyHint": "Besides hinting the AI, replace each rule’s pattern literally in the final text (case-insensitive for Latin text).",
     "commandMode": "Command mode (Ask shortcut with text selected)",
-    "commandModeHint": "Select text, press the Ask shortcut and say a command such as \"make this formal\" or \"translate to English\" to replace the selection in place. Questions still open the answer popup. Turning this on also enables selected-text context."
+    "commandModeHint": "Select text, press the Ask shortcut and say a command such as \"make this formal\" or \"translate to English\" to replace the selection in place. Questions still open the answer popup. Turning this on also enables selected-text context.",
+    "usage": "Usage",
+    "usageDescription": "Minutes, tokens and an estimated cost for your own API keys, computed from local history. Nothing is sent anywhere.",
+    "usagePeriodMonth": "This month",
+    "usagePeriod7": "Last 7 days",
+    "usagePeriod30": "Last 30 days",
+    "usageModel": "Model",
+    "usageRuns": "Runs",
+    "usageMinutes": "Minutes",
+    "usageTokensIn": "Input tokens",
+    "usageTokensOut": "Output tokens",
+    "usageCost": "Est. USD",
+    "usageTotal": "Total",
+    "usageNoData": "No runs with your own keys in this period yet.",
+    "usageUnpriced": "No price set for: {{models}}",
+    "usagePricingTitle": "Price table (USD)",
+    "usagePricingHint": "Built-in values are estimates and may be out of date. Edit any cell to match the OpenAI pricing page; audio models are priced per minute, text models per million tokens.",
+    "usagePerMinute": "$ / min",
+    "usagePerMtokIn": "$ / M input",
+    "usagePerMtokOut": "$ / M output",
+    "usageResetPricing": "Reset to defaults",
+    "usageAddModel": "Add model",
+    "usageModelPlaceholder": "model name"
   },
   "contextFamilies": {
     "email": "Email",
@@ -688,7 +717,8 @@
       "clipboardFallback": "Copied to clipboard"
     },
     "timingStt": "STT {{value}}",
-    "timingLlm": "AI {{value}}"
+    "timingLlm": "AI {{value}}",
+    "tokens": "{{value}} tok"
   },
   "upgrade": {
     "title": "Aggiorna",

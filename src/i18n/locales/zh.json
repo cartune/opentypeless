@@ -76,7 +76,14 @@
     "aiPolish": "AI 润色",
     "enabled": "已启用",
     "disabled": "已禁用",
-    "outputMode": "文字写入"
+    "outputMode": "文字写入",
+    "usageTitle": "本月 BYOK 用量",
+    "usageMinutes": "语音",
+    "usageTokens": "Tokens",
+    "usageCost": "估计费用",
+    "usageRuns": "次数",
+    "usageHint": "按“设置 → 用量”的价格表估算，实际金额以 OpenAI 定价页为准。",
+    "usageManage": "明细与价格"
   },
   "onboarding": {
     "speakToWrite": "说话即写作 — 实时将语音转化为润色文本",
@@ -496,7 +503,29 @@
     "correctionExactApply": "精确套用更正规则",
     "correctionExactApplyHint": "除了提示 AI，也会在最终文本中逐字替换规则（拉丁字母不区分大小写）。",
     "commandMode": "指令模式（选中文字后按 Ask 快捷键）",
-    "commandModeHint": "选中文字、按 Ask 快捷键（默认 Fn+Space）说“改成正式语气”“翻成英文”等指令，会直接原地替换选中内容；提问仍会打开回答窗口。开启时会一并启用“选中文字”上下文。"
+    "commandModeHint": "选中文字、按 Ask 快捷键（默认 Fn+Space）说“改成正式语气”“翻成英文”等指令，会直接原地替换选中内容；提问仍会打开回答窗口。开启时会一并启用“选中文字”上下文。",
+    "usage": "用量",
+    "usageDescription": "使用自己 API key 的语音分钟数、token 数与估计费用，全部由本机历史记录计算，不会上传任何数据。",
+    "usagePeriodMonth": "本月",
+    "usagePeriod7": "最近 7 天",
+    "usagePeriod30": "最近 30 天",
+    "usageModel": "模型",
+    "usageRuns": "次数",
+    "usageMinutes": "分钟",
+    "usageTokensIn": "输入 tokens",
+    "usageTokensOut": "输出 tokens",
+    "usageCost": "估计 USD",
+    "usageTotal": "合计",
+    "usageNoData": "这段时间还没有使用自己 key 的记录。",
+    "usageUnpriced": "尚未设置价格：{{models}}",
+    "usagePricingTitle": "价格表（USD）",
+    "usagePricingHint": "内置数值只是估计，可能已过期。请对照 OpenAI 定价页修改；语音模型按每分钟计价，文本模型按每百万 tokens 计价。",
+    "usagePerMinute": "$ / 分钟",
+    "usagePerMtokIn": "$ / 百万输入",
+    "usagePerMtokOut": "$ / 百万输出",
+    "usageResetPricing": "恢复默认",
+    "usageAddModel": "添加模型",
+    "usageModelPlaceholder": "模型名称"
   },
   "contextFamilies": {
     "email": "邮件",
@@ -688,7 +717,8 @@
       "clipboardFallback": "已复制到剪贴板"
     },
     "timingStt": "识别 {{value}}",
-    "timingLlm": "润色 {{value}}"
+    "timingLlm": "润色 {{value}}",
+    "tokens": "{{value}} tok"
   },
   "upgrade": {
     "title": "升级",

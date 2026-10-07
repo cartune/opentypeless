@@ -495,6 +495,44 @@ export async function getHistory(limit: number, offset: number): Promise<History
   return invoke('get_history', { limit, offset })
 }
 
+export interface UsageTotals {
+  runs: number
+  audioSeconds: number
+  promptTokens: number
+  completionTokens: number
+}
+
+export interface UsageByModel {
+  kind: 'stt' | 'llm'
+  provider: string
+  model: string
+  runs: number
+  audioSeconds: number
+  promptTokens: number
+  completionTokens: number
+}
+
+export interface UsageByDay {
+  day: string
+  runs: number
+  audioSeconds: number
+  promptTokens: number
+  completionTokens: number
+}
+
+/** Aggregated BYOK usage read from history (see `get_usage_summary`). */
+export interface UsageSummary {
+  since: string
+  totals: UsageTotals
+  byModel: UsageByModel[]
+  byDay: UsageByDay[]
+}
+
+/** `since` is an ISO date prefix such as "2026-10-01" compared against history `created_at`. */
+export async function getUsageSummary(since: string): Promise<UsageSummary> {
+  return invoke('get_usage_summary', { since })
+}
+
 export async function clearHistory(): Promise<void> {
   return invoke('clear_history')
 }

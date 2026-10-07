@@ -1,4 +1,4 @@
-import { Settings, Mic, Sparkles, BookOpen, Info, LayoutGrid } from 'lucide-react'
+import { BarChart3, Settings, Mic, Sparkles, BookOpen, Info, LayoutGrid } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { spring } from '../../lib/animations'
@@ -9,6 +9,7 @@ const PANES = [
   { id: 'llm', labelKey: 'settings.aiPolish', icon: Sparkles },
   { id: 'dictionary', labelKey: 'settings.dictionary', icon: BookOpen },
   { id: 'scenes', labelKey: 'settings.scenes', icon: LayoutGrid },
+  { id: 'usage', labelKey: 'settings.usage', icon: BarChart3 },
   { id: 'about', labelKey: 'settings.about', icon: Info },
 ] as const
 

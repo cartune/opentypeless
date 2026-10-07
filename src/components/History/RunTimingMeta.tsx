@@ -2,8 +2,10 @@ import { useTranslation } from 'react-i18next'
 
 import type { HistoryEntry } from '../../stores/appStore'
 import { summarizeRunTiming } from '../../lib/timing'
+import { formatTokens } from '../../lib/usage'
 
-type Props = Pick<HistoryEntry, 'stt_ms' | 'llm_ms' | 'stt_model' | 'llm_model'>
+type Props = Pick<HistoryEntry, 'stt_ms' | 'llm_ms' | 'stt_model' | 'llm_model'> &
+  Partial<Pick<HistoryEntry, 'llm_prompt_tokens' | 'llm_completion_tokens'>>
 
 /** Compact "STT 0.8s · LLM 1.1s · whisper-1 / gpt-4.1-mini" line under a history row. */
 export function RunTimingMeta(props: Props) {
@@ -12,6 +14,7 @@ export function RunTimingMeta(props: Props) {
   if (!summary) return null
 
   const models = [summary.sttModel, summary.llmModel].filter(Boolean).join(' / ')
+  const tokens = (props.llm_prompt_tokens ?? 0) + (props.llm_completion_tokens ?? 0)
 
   return (
     <div
@@ -35,6 +38,14 @@ export function RunTimingMeta(props: Props) {
             ·
           </span>
           <span className="min-w-0 truncate">{models}</span>
+        </>
+      )}
+      {tokens > 0 && (
+        <>
+          <span aria-hidden="true" className="shrink-0">
+            ·
+          </span>
+          <span className="shrink-0">{t('history.tokens', { value: formatTokens(tokens) })}</span>
         </>
       )}
     </div>

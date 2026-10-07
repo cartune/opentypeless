@@ -76,7 +76,14 @@
     "disabled": "비활성화",
     "outputMode": "출력 모드",
     "wordsRemaining": "남은 words",
-    "wordsReset": "{{date}} 재설정"
+    "wordsReset": "{{date}} 재설정",
+    "usageTitle": "BYOK usage this month",
+    "usageMinutes": "Audio",
+    "usageTokens": "Tokens",
+    "usageCost": "Est. cost",
+    "usageRuns": "Runs",
+    "usageHint": "Estimated from your price table in Settings → Usage. Check the OpenAI pricing page for current rates.",
+    "usageManage": "Details & prices"
   },
   "onboarding": {
     "speakToWrite": "말해서 글 쓰기 — 음성을 실시간으로 다듬어진 텍스트로 변환합니다",
@@ -496,7 +503,29 @@
     "correctionExactApply": "Apply correction rules exactly",
     "correctionExactApplyHint": "Besides hinting the AI, replace each rule’s pattern literally in the final text (case-insensitive for Latin text).",
     "commandMode": "명령 모드 (텍스트 선택 후 Ask 단축키)",
-    "commandModeHint": "텍스트를 선택하고 Ask 단축키를 누른 뒤 \"격식 있게 바꿔줘\", \"영어로 번역해줘\" 같은 명령을 말하면 선택 영역이 바로 교체됩니다. 질문은 여전히 답변 팝업을 엽니다."
+    "commandModeHint": "텍스트를 선택하고 Ask 단축키를 누른 뒤 \"격식 있게 바꿔줘\", \"영어로 번역해줘\" 같은 명령을 말하면 선택 영역이 바로 교체됩니다. 질문은 여전히 답변 팝업을 엽니다.",
+    "usage": "Usage",
+    "usageDescription": "Minutes, tokens and an estimated cost for your own API keys, computed from local history. Nothing is sent anywhere.",
+    "usagePeriodMonth": "This month",
+    "usagePeriod7": "Last 7 days",
+    "usagePeriod30": "Last 30 days",
+    "usageModel": "Model",
+    "usageRuns": "Runs",
+    "usageMinutes": "Minutes",
+    "usageTokensIn": "Input tokens",
+    "usageTokensOut": "Output tokens",
+    "usageCost": "Est. USD",
+    "usageTotal": "Total",
+    "usageNoData": "No runs with your own keys in this period yet.",
+    "usageUnpriced": "No price set for: {{models}}",
+    "usagePricingTitle": "Price table (USD)",
+    "usagePricingHint": "Built-in values are estimates and may be out of date. Edit any cell to match the OpenAI pricing page; audio models are priced per minute, text models per million tokens.",
+    "usagePerMinute": "$ / min",
+    "usagePerMtokIn": "$ / M input",
+    "usagePerMtokOut": "$ / M output",
+    "usageResetPricing": "Reset to defaults",
+    "usageAddModel": "Add model",
+    "usageModelPlaceholder": "model name"
   },
   "contextFamilies": {
     "email": "Email",
@@ -688,7 +717,8 @@
       "clipboardFallback": "Copied to clipboard"
     },
     "timingStt": "STT {{value}}",
-    "timingLlm": "AI {{value}}"
+    "timingLlm": "AI {{value}}",
+    "tokens": "{{value}} tok"
   },
   "upgrade": {
     "title": "업그레이드",

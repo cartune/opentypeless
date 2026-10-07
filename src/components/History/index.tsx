@@ -189,6 +189,8 @@ export function History() {
                           llm_ms={entry.llm_ms}
                           stt_model={entry.stt_model}
                           llm_model={entry.llm_model}
+                          llm_prompt_tokens={entry.llm_prompt_tokens}
+                          llm_completion_tokens={entry.llm_completion_tokens}
                         />
                         {entry.output_status && outputStatusLabel(entry.output_status) && (
                           <p className="text-[11px] text-warning mt-1 leading-snug break-words">

@@ -2884,10 +2884,80 @@ impl PipelineHandle {
         if outcome.final_text.trim().is_empty() {
             return Err("The command returned empty output".to_string());
         }
+        // Record the run so BYOK usage includes Ask commands, not only dictation.
+        let metrics = storage::HistoryRunMetrics {
+            stt_ms: None,
+            llm_ms: Some(outcome.llm_elapsed.as_millis() as i64),
+            stt_provider: Some(config.stt_provider.clone()),
+            stt_model: stt_model_label(config),
+            llm_provider: Some(config.llm_provider.clone()),
+            llm_model: Some(config.llm_model.clone()),
+            audio_bytes: None,
+            audio_seconds: None,
+            llm_prompt_tokens: outcome
+                .llm_usage
+                .as_ref()
+                .and_then(|usage| usage.prompt_tokens.map(|v| v as i64)),
+            llm_completion_tokens: outcome
+                .llm_usage
+                .as_ref()
+                .and_then(|usage| usage.completion_tokens.map(|v| v as i64)),
+        };
+        self.save_history(
+            utterance,
+            &outcome.final_text,
+            app_ctx,
+            None,
+            config,
+            HistoryOutputMetadata {
+                status: outcome.history_output_status.clone(),
+                error: outcome.history_output_error.clone(),
+            },
+            metrics,
+        )
+        .await;
         Ok(AskVoiceCommandOutcome {
             text: outcome.final_text,
             execution,
         })
+    }
+
+    /// Record a popup Ask answer in history so its BYOK token usage is counted.
+    pub(crate) async fn record_ask_answer_history(
+        &self,
+        config: &storage::AppConfig,
+        app_ctx: &RecordingContext,
+        question: &str,
+        answer: &str,
+        llm_elapsed: std::time::Duration,
+        llm_usage: Option<&llm::LlmUsage>,
+    ) {
+        let metrics = storage::HistoryRunMetrics {
+            stt_ms: None,
+            llm_ms: Some(llm_elapsed.as_millis() as i64),
+            stt_provider: Some(config.stt_provider.clone()),
+            stt_model: stt_model_label(config),
+            llm_provider: Some(config.llm_provider.clone()),
+            llm_model: Some(config.llm_model.clone()),
+            audio_bytes: None,
+            audio_seconds: None,
+            llm_prompt_tokens: llm_usage.and_then(|usage| usage.prompt_tokens.map(|v| v as i64)),
+            llm_completion_tokens: llm_usage
+                .and_then(|usage| usage.completion_tokens.map(|v| v as i64)),
+        };
+        self.save_history(
+            question,
+            answer,
+            app_ctx,
+            None,
+            config,
+            HistoryOutputMetadata {
+                status: Some("popup".to_string()),
+                error: None,
+            },
+            metrics,
+        )
+        .await;
     }
 
     /// Save the transcription to history.

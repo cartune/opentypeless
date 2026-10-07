@@ -5,6 +5,7 @@ import { spring } from '../../lib/animations'
 import { useAppStore } from '../../stores/appStore'
 import { hasManagedCloudAccess, useAuthStore } from '../../stores/authStore'
 import { useRoute } from '../../lib/router'
+import { UsageCard } from './UsageCard'
 
 export function HomePage() {
   const config = useAppStore((s) => s.config)
@@ -154,6 +155,9 @@ export function HomePage() {
           )}
         </div>
       )}
+
+      {/* BYOK usage (local history, no cloud subscription) */}
+      {!hasCloudAccess && <UsageCard />}
 
       {/* Current config */}
       <div className="rounded-[18px] p-5 jelly-card">

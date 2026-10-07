@@ -387,6 +387,61 @@ pub struct AppConfig {
     pub esc_cancel_enabled: bool,
     /// Apply correction rules as literal replacements on the final text.
     pub correction_rules_exact_apply: bool,
+    /// User-editable BYOK price table used only for the cost estimate shown in
+    /// the app. Empty means "use the built-in defaults" on the frontend.
+    pub usage_pricing: Vec<UsagePrice>,
+}
+
+/// One row of the BYOK price table. All prices are USD; `None` means unknown.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UsagePrice {
+    pub model: String,
+    pub usd_per_minute: Option<f64>,
+    pub usd_per_mtok_in: Option<f64>,
+    pub usd_per_mtok_out: Option<f64>,
+}
+
+/// Aggregated BYOK usage read from history for the usage card and pane.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UsageSummary {
+    pub since: String,
+    pub totals: UsageTotals,
+    pub by_model: Vec<UsageByModel>,
+    pub by_day: Vec<UsageByDay>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UsageTotals {
+    pub runs: i64,
+    pub audio_seconds: f64,
+    pub prompt_tokens: i64,
+    pub completion_tokens: i64,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UsageByModel {
+    /// "stt" or "llm".
+    pub kind: String,
+    pub provider: String,
+    pub model: String,
+    pub runs: i64,
+    pub audio_seconds: f64,
+    pub prompt_tokens: i64,
+    pub completion_tokens: i64,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UsageByDay {
+    pub day: String,
+    pub runs: i64,
+    pub audio_seconds: f64,
+    pub prompt_tokens: i64,
+    pub completion_tokens: i64,
 }
 
 impl Default for AppConfig {
@@ -447,6 +502,7 @@ impl Default for AppConfig {
             ui_language: "en".to_string(),
             capsule_auto_hide: false,
             esc_cancel_enabled: true,
+            usage_pricing: Vec::new(),
             correction_rules_exact_apply: true,
         }
     }
@@ -1549,6 +1605,111 @@ impl HistoryStore {
         }
 
         Ok(())
+    }
+
+    /// Aggregate run metrics for rows created at or after `since`
+    /// (compared as an ISO-8601 local timestamp prefix, e.g. "2026-10-01").
+    pub async fn usage_summary(&self, since: &str) -> Result<UsageSummary> {
+        let conn = self.conn.lock().unwrap_or_else(|e| e.into_inner());
+        let totals = conn.query_row(
+            "SELECT COUNT(*),
+                    COALESCE(SUM(audio_seconds), 0.0),
+                    COALESCE(SUM(llm_prompt_tokens), 0),
+                    COALESCE(SUM(llm_completion_tokens), 0)
+             FROM history WHERE created_at >= ?1",
+            rusqlite::params![since],
+            |row| {
+                Ok(UsageTotals {
+                    runs: row.get(0)?,
+                    audio_seconds: row.get(1)?,
+                    prompt_tokens: row.get(2)?,
+                    completion_tokens: row.get(3)?,
+                })
+            },
+        )?;
+
+        let mut by_model = Vec::new();
+        {
+            let mut stmt = conn.prepare(
+                "SELECT stt_provider, stt_model, COUNT(*), COALESCE(SUM(audio_seconds), 0.0)
+                 FROM history
+                 WHERE created_at >= ?1 AND stt_provider IS NOT NULL
+                 GROUP BY stt_provider, stt_model
+                 ORDER BY 4 DESC, 3 DESC",
+            )?;
+            let rows = stmt.query_map(rusqlite::params![since], |row| {
+                Ok(UsageByModel {
+                    kind: "stt".to_string(),
+                    provider: row.get::<_, Option<String>>(0)?.unwrap_or_default(),
+                    model: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
+                    runs: row.get(2)?,
+                    audio_seconds: row.get(3)?,
+                    prompt_tokens: 0,
+                    completion_tokens: 0,
+                })
+            })?;
+            for row in rows {
+                by_model.push(row?);
+            }
+        }
+        {
+            let mut stmt = conn.prepare(
+                "SELECT llm_provider, llm_model, COUNT(*),
+                        COALESCE(SUM(llm_prompt_tokens), 0),
+                        COALESCE(SUM(llm_completion_tokens), 0)
+                 FROM history
+                 WHERE created_at >= ?1 AND llm_provider IS NOT NULL
+                 GROUP BY llm_provider, llm_model
+                 ORDER BY 4 DESC, 3 DESC",
+            )?;
+            let rows = stmt.query_map(rusqlite::params![since], |row| {
+                Ok(UsageByModel {
+                    kind: "llm".to_string(),
+                    provider: row.get::<_, Option<String>>(0)?.unwrap_or_default(),
+                    model: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
+                    runs: row.get(2)?,
+                    audio_seconds: 0.0,
+                    prompt_tokens: row.get(3)?,
+                    completion_tokens: row.get(4)?,
+                })
+            })?;
+            for row in rows {
+                by_model.push(row?);
+            }
+        }
+
+        let mut by_day = Vec::new();
+        {
+            let mut stmt = conn.prepare(
+                "SELECT substr(created_at, 1, 10) AS day, COUNT(*),
+                        COALESCE(SUM(audio_seconds), 0.0),
+                        COALESCE(SUM(llm_prompt_tokens), 0),
+                        COALESCE(SUM(llm_completion_tokens), 0)
+                 FROM history
+                 WHERE created_at >= ?1
+                 GROUP BY day
+                 ORDER BY day ASC",
+            )?;
+            let rows = stmt.query_map(rusqlite::params![since], |row| {
+                Ok(UsageByDay {
+                    day: row.get(0)?,
+                    runs: row.get(1)?,
+                    audio_seconds: row.get(2)?,
+                    prompt_tokens: row.get(3)?,
+                    completion_tokens: row.get(4)?,
+                })
+            })?;
+            for row in rows {
+                by_day.push(row?);
+            }
+        }
+
+        Ok(UsageSummary {
+            since: since.to_string(),
+            totals,
+            by_model,
+            by_day,
+        })
     }
 
     pub async fn list(&self, limit: u32, offset: u32) -> Result<Vec<HistoryEntry>> {
@@ -3682,6 +3843,99 @@ mod tests {
         );
         assert_eq!(entries[0].active_scene_prompt_chars, Some(128));
         assert!(!entries[0].active_scene_prompt_truncated);
+    }
+
+    #[tokio::test]
+    async fn history_store_usage_summary_aggregates_by_model_and_day_since_cutoff() {
+        let store = temp_history_store("usage-summary");
+        let metrics =
+            |stt_model: &str, llm_model: Option<&str>, seconds: f64, tokens: (i64, i64)| {
+                HistoryRunMetrics {
+                    stt_ms: Some(500),
+                    llm_ms: llm_model.map(|_| 900),
+                    stt_provider: Some("openai-whisper".to_string()),
+                    stt_model: Some(stt_model.to_string()),
+                    llm_provider: llm_model.map(|_| "openai".to_string()),
+                    llm_model: llm_model.map(str::to_string),
+                    audio_bytes: Some((seconds * 32_000.0) as i64),
+                    audio_seconds: Some(seconds),
+                    llm_prompt_tokens: llm_model.map(|_| tokens.0),
+                    llm_completion_tokens: llm_model.map(|_| tokens.1),
+                }
+            };
+        let mut old = test_history_entry(1, "2026-09-30T23:59:00");
+        old.metrics = metrics("whisper-1", Some("gpt-4.1-mini"), 60.0, (1000, 100));
+        let mut first = test_history_entry(2, "2026-10-01T09:00:00");
+        first.metrics = metrics(
+            "gpt-4o-mini-transcribe",
+            Some("gpt-4.1-mini"),
+            10.0,
+            (300, 40),
+        );
+        let mut second = test_history_entry(3, "2026-10-01T10:00:00");
+        second.metrics = metrics("gpt-4o-mini-transcribe", None, 5.0, (0, 0));
+        let mut third = test_history_entry(4, "2026-10-02T08:00:00");
+        third.metrics = metrics("whisper-1", Some("gpt-5-mini"), 20.0, (500, 60));
+        for entry in [old, first, second, third] {
+            store.add(entry).await.unwrap();
+        }
+
+        let summary = store.usage_summary("2026-10-01").await.unwrap();
+        assert_eq!(summary.totals.runs, 3);
+        assert!((summary.totals.audio_seconds - 35.0).abs() < 1e-9);
+        assert_eq!(summary.totals.prompt_tokens, 800);
+        assert_eq!(summary.totals.completion_tokens, 100);
+
+        let stt: Vec<_> = summary
+            .by_model
+            .iter()
+            .filter(|row| row.kind == "stt")
+            .collect();
+        assert_eq!(stt.len(), 2);
+        let mini = stt
+            .iter()
+            .find(|row| row.model == "gpt-4o-mini-transcribe")
+            .unwrap();
+        assert_eq!(mini.runs, 2);
+        assert!((mini.audio_seconds - 15.0).abs() < 1e-9);
+
+        let llm: Vec<_> = summary
+            .by_model
+            .iter()
+            .filter(|row| row.kind == "llm")
+            .collect();
+        assert_eq!(llm.len(), 2);
+        let gpt41 = llm.iter().find(|row| row.model == "gpt-4.1-mini").unwrap();
+        assert_eq!(gpt41.prompt_tokens, 300);
+        assert_eq!(gpt41.completion_tokens, 40);
+
+        assert_eq!(summary.by_day.len(), 2);
+        assert_eq!(summary.by_day[0].day, "2026-10-01");
+        assert_eq!(summary.by_day[0].runs, 2);
+        assert_eq!(summary.by_day[1].day, "2026-10-02");
+        assert_eq!(summary.by_day[1].prompt_tokens, 500);
+
+        let empty = store.usage_summary("2027-01-01").await.unwrap();
+        assert_eq!(empty.totals.runs, 0);
+        assert!(empty.by_model.is_empty());
+        assert!(empty.by_day.is_empty());
+    }
+
+    #[test]
+    fn app_config_usage_pricing_defaults_empty_and_round_trips() {
+        let missing = AppConfig::from_stored_value(serde_json::json!({})).unwrap();
+        assert!(missing.usage_pricing.is_empty());
+        let value = serde_json::json!({
+            "usage_pricing": [
+                { "model": "whisper-1", "usd_per_minute": 0.006 },
+                { "model": "gpt-4.1-mini", "usd_per_mtok_in": 0.4, "usd_per_mtok_out": 1.6 }
+            ]
+        });
+        let config = AppConfig::from_stored_value(value).unwrap();
+        assert_eq!(config.usage_pricing.len(), 2);
+        assert_eq!(config.usage_pricing[0].usd_per_minute, Some(0.006));
+        assert_eq!(config.usage_pricing[0].usd_per_mtok_in, None);
+        assert_eq!(config.usage_pricing[1].usd_per_mtok_out, Some(1.6));
     }
 
     #[tokio::test]
