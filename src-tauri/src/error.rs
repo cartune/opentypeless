@@ -17,13 +17,27 @@ pub struct UserError {
 pub enum AppError {
     Network(String),
     Timeout(Duration),
-    Api { status: u16, body: String },
+    Api {
+        status: u16,
+        body: String,
+    },
     Auth(String),
     Quota(String),
     LlmQuota(String),
     Output(String),
     Config(String),
     CloudSessionInvalid,
+    /// The user cancelled the run (Escape or the capsule cancel button).
+    Cancelled,
+}
+
+/// User-facing notice shown in the capsule when a run is cancelled.
+pub fn cancelled_user_error() -> UserError {
+    UserError {
+        code: "cancelled".to_string(),
+        details: None,
+        retry_count: 0,
+    }
 }
 
 const CLOUD_SESSION_INVALID_EVENT: &str = "auth:session-invalid";
@@ -75,6 +89,7 @@ impl AppError {
             AppError::Output(_) => false,
             AppError::Config(_) => false,
             AppError::CloudSessionInvalid => false,
+            AppError::Cancelled => false,
         }
     }
 
@@ -95,6 +110,7 @@ impl AppError {
             AppError::Output(msg) => ("output_fallback_clipboard".to_string(), Some(msg.clone())),
             AppError::Config(msg) => ("stt_failed".to_string(), Some(msg.clone())),
             AppError::CloudSessionInvalid => ("stt_failed".to_string(), None),
+            AppError::Cancelled => ("cancelled".to_string(), None),
         };
         UserError {
             code,
@@ -122,6 +138,7 @@ impl std::fmt::Display for AppError {
             AppError::Output(msg) => write!(f, "Output error: {}", msg),
             AppError::Config(msg) => write!(f, "Config error: {}", msg),
             AppError::CloudSessionInvalid => write!(f, "Managed cloud session is invalid"),
+            AppError::Cancelled => write!(f, "Cancelled by user"),
         }
     }
 }

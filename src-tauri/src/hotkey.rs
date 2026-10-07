@@ -245,6 +245,9 @@ pub enum HotkeyRole {
     EditSelection,
     SwitchScene,
     OpenApp,
+    /// Escape while a voice run is active. Never user-configurable and never
+    /// part of a registration plan; raised by the native key monitor only.
+    Cancel,
 }
 
 impl HotkeyRole {
@@ -256,7 +259,52 @@ impl HotkeyRole {
             Self::EditSelection => "editSelection",
             Self::SwitchScene => "switchScene",
             Self::OpenApp => "openApp",
+            Self::Cancel => "cancel",
         }
+    }
+}
+
+/// What a Cancel (Escape) press should do given the current voice state.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CancelAction {
+    AbortAsk,
+    AbortPipeline,
+    Ignore,
+}
+
+pub fn cancel_shortcut_action(
+    event_state: ShortcutState,
+    ask_active: bool,
+    pipeline_state: pipeline::PipelineState,
+) -> CancelAction {
+    if event_state != ShortcutState::Pressed {
+        return CancelAction::Ignore;
+    }
+    if ask_active {
+        return CancelAction::AbortAsk;
+    }
+    if pipeline_state != pipeline::PipelineState::Idle {
+        return CancelAction::AbortPipeline;
+    }
+    CancelAction::Ignore
+}
+
+fn handle_cancel_shortcut(handle: tauri::AppHandle, event_state: ShortcutState) {
+    let ask_active = {
+        let ask_state = handle.state::<commands::ask::AskDictationState>();
+        ask_state.is_recording() || ask_state.is_starting()
+    };
+    let pipeline_state = handle.state::<pipeline::PipelineHandle>().current_state();
+    match cancel_shortcut_action(event_state, ask_active, pipeline_state) {
+        CancelAction::AbortAsk => {
+            tracing::info!("Escape pressed: aborting Ask recording");
+            commands::ask::abort_ask_flow(&handle);
+        }
+        CancelAction::AbortPipeline => {
+            tracing::info!("Escape pressed: aborting pipeline ({:?})", pipeline_state);
+            handle.state::<pipeline::PipelineHandle>().abort();
+        }
+        CancelAction::Ignore => {}
     }
 }
 
@@ -965,6 +1013,7 @@ pub fn handle_hotkey_role_event(
             );
             handle_recording_shortcut(handle, action);
         }
+        HotkeyRole::Cancel => handle_cancel_shortcut(handle, event_state),
         role => handle_advanced_role_shortcut(handle, role, event_state),
     }
 }
@@ -1749,5 +1798,58 @@ mod tests {
         assert_eq!(snapshot.state, HotkeySupervisorState::Installed);
         assert_eq!(snapshot.retry_attempts, 0);
         assert_eq!(snapshot.last_error, None);
+    }
+}
+
+#[cfg(test)]
+mod cancel_tests {
+    use super::{cancel_shortcut_action, CancelAction, HotkeyRole};
+    use crate::pipeline::PipelineState;
+    use tauri_plugin_global_shortcut::ShortcutState;
+
+    #[test]
+    fn cancel_role_is_never_a_configurable_string_collision() {
+        assert_eq!(HotkeyRole::Cancel.as_str(), "cancel");
+    }
+
+    #[test]
+    fn cancel_ignores_key_release() {
+        assert_eq!(
+            cancel_shortcut_action(ShortcutState::Released, true, PipelineState::Recording),
+            CancelAction::Ignore
+        );
+    }
+
+    #[test]
+    fn cancel_is_a_no_op_when_idle() {
+        assert_eq!(
+            cancel_shortcut_action(ShortcutState::Pressed, false, PipelineState::Idle),
+            CancelAction::Ignore
+        );
+    }
+
+    #[test]
+    fn cancel_aborts_pipeline_in_every_active_state() {
+        for state in [
+            PipelineState::Preparing,
+            PipelineState::Recording,
+            PipelineState::Transcribing,
+            PipelineState::Polishing,
+            PipelineState::Outputting,
+        ] {
+            assert_eq!(
+                cancel_shortcut_action(ShortcutState::Pressed, false, state),
+                CancelAction::AbortPipeline,
+                "{state:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn cancel_prefers_ask_abort_when_ask_is_active() {
+        assert_eq!(
+            cancel_shortcut_action(ShortcutState::Pressed, true, PipelineState::AskRecording),
+            CancelAction::AbortAsk
+        );
     }
 }

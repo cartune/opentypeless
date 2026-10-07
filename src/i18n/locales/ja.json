@@ -259,7 +259,8 @@
       "audio_failed": "マイク失敗",
       "output_failed": "出力失敗",
       "unknown": "エラー",
-      "output_wayland_clipboard_copy_only": "Copied"
+      "output_wayland_clipboard_copy_only": "Copied",
+      "cancelled": "Cancelled"
     },
     "menu": {
       "hideWhenIdle": "待機中はカプセルを非表示",
@@ -271,7 +272,8 @@
       "upgrade": "アップグレード",
       "exit": "終了"
     },
-    "timing": "{{stt}} · {{llm}}"
+    "timing": "{{stt}} · {{llm}}",
+    "noAudioHint": "No audio — check mic"
   },
   "settings": {
     "title": "設定",
@@ -473,7 +475,9 @@
     "mappingResetConfirm": "Delete all device-only app mappings?",
     "mappingResetConfirmAction": "Reset mappings",
     "mappingNoMappings": "No custom app mappings",
-    "dictationMode": "ディクテーションモード"
+    "dictationMode": "ディクテーションモード",
+    "escCancel": "Esc cancels the current recording",
+    "escCancelHint": "While recording, transcribing or polishing, a plain Esc press aborts the run and nothing is typed. Esc is passed through to apps when idle."
   },
   "contextFamilies": {
     "email": "Email",

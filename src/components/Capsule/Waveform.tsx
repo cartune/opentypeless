@@ -1,13 +1,16 @@
 import { useEffect, useRef } from 'react'
 import { useReducedMotion } from 'framer-motion'
 import { useAppStore } from '../../stores/appStore'
-
-const BAR_COUNT = 7
-const MIN_HEIGHT = 3
-const MAX_HEIGHT = 16
+import {
+  WAVEFORM_BAR_COUNT,
+  WAVEFORM_MAX_HEIGHT,
+  WAVEFORM_MIN_HEIGHT,
+  nextWaveformHeights,
+} from './waveformLevels'
 
 export function Waveform() {
   const barsRef = useRef<(HTMLDivElement | null)[]>([])
+  const heightsRef = useRef<number[]>(Array(WAVEFORM_BAR_COUNT).fill(WAVEFORM_MIN_HEIGHT))
   const rafRef = useRef<number>(0)
   const reduced = useReducedMotion()
 
@@ -16,22 +19,22 @@ export function Waveform() {
       // Static bars at mid-height when reduced motion is preferred
       barsRef.current.forEach((bar) => {
         if (!bar) return
-        bar.style.height = `${(MIN_HEIGHT + MAX_HEIGHT) / 2}px`
+        bar.style.height = `${(WAVEFORM_MIN_HEIGHT + WAVEFORM_MAX_HEIGHT) / 2}px`
         bar.style.opacity = '0.7'
       })
       return
     }
 
     const animate = () => {
-      const volume = useAppStore.getState().audioVolume
+      const level = useAppStore.getState().audioVolume
+      heightsRef.current = nextWaveformHeights(heightsRef.current, level)
       barsRef.current.forEach((bar, i) => {
         if (!bar) return
-        const offset = Math.sin(Date.now() / 200 + i * 0.9) * 0.15
-        const normalized = Math.max(0, Math.min(1, volume + offset))
-        const height = MIN_HEIGHT + (MAX_HEIGHT - MIN_HEIGHT) * normalized
-        const opacity = Math.max(0.5, normalized)
+        const height = heightsRef.current[i]
+        const normalized =
+          (height - WAVEFORM_MIN_HEIGHT) / (WAVEFORM_MAX_HEIGHT - WAVEFORM_MIN_HEIGHT)
         bar.style.height = `${height}px`
-        bar.style.opacity = `${opacity}`
+        bar.style.opacity = `${0.45 + 0.55 * normalized}`
       })
       rafRef.current = requestAnimationFrame(animate)
     }
@@ -41,8 +44,8 @@ export function Waveform() {
   }, [reduced])
 
   return (
-    <div className="flex items-center justify-center gap-[3px] h-4">
-      {Array.from({ length: BAR_COUNT }).map((_, i) => (
+    <div className="flex items-center justify-center gap-[3px] h-4" data-testid="waveform">
+      {Array.from({ length: WAVEFORM_BAR_COUNT }).map((_, i) => (
         <div
           key={i}
           ref={(el) => {
@@ -50,9 +53,9 @@ export function Waveform() {
           }}
           className="w-[2px] rounded-full bg-white/80"
           style={{
-            height: `${MIN_HEIGHT}px`,
-            opacity: 0.5,
-            transition: 'height 75ms ease-out, opacity 75ms ease-out',
+            height: `${WAVEFORM_MIN_HEIGHT}px`,
+            opacity: 0.45,
+            transition: 'height 60ms linear, opacity 60ms linear',
           }}
         />
       ))}

@@ -298,6 +298,14 @@ fn voice_intent_requires_generated_output(kind: crate::voice_intent::VoiceIntent
 /// Bytes per second of the 16 kHz mono i16 PCM stream sent to STT providers.
 const STT_PCM_BYTES_PER_SECOND: f64 = 16_000.0 * 2.0;
 
+/// Minimum number of voiced 20 ms chunks (200 ms of audible signal) before a
+/// recording is worth sending to the STT provider.
+const MIN_VOICED_CHUNKS_FOR_STT: u32 = 10;
+
+fn should_skip_stt_for_silence(voiced_chunks: u32) -> bool {
+    voiced_chunks < MIN_VOICED_CHUNKS_FOR_STT
+}
+
 /// Best-effort model label for the configured STT provider, for history rows.
 fn stt_model_label(config: &storage::AppConfig) -> Option<String> {
     match config.stt_provider.as_str() {
@@ -749,6 +757,8 @@ pub struct PipelineHandle {
     abort_flag: Arc<AtomicBool>,
     /// Bytes of 16 kHz mono PCM forwarded to the STT provider in the current run.
     stt_audio_bytes: Arc<AtomicU64>,
+    /// Wakes an in-flight LLM polish request so abort() cancels it immediately.
+    llm_abort: Arc<tokio::sync::Notify>,
     preloaded_config: Arc<Mutex<Option<storage::AppConfig>>>,
     preloaded_app_ctx: Arc<Mutex<Option<RecordingContext>>>,
     preloaded_dictionary: Arc<Mutex<Option<Vec<String>>>>,
@@ -1026,6 +1036,7 @@ impl PipelineHandle {
             active_deadline_session_id: Arc::new(AtomicU64::new(0)),
             abort_flag: Arc::new(AtomicBool::new(false)),
             stt_audio_bytes: Arc::new(AtomicU64::new(0)),
+            llm_abort: Arc::new(tokio::sync::Notify::new()),
             preloaded_config: Arc::new(Mutex::new(None)),
             preloaded_app_ctx: Arc::new(Mutex::new(None)),
             preloaded_dictionary: Arc::new(Mutex::new(None)),
@@ -1042,6 +1053,7 @@ impl PipelineHandle {
 
     fn set_state(&self, new_state: PipelineState) {
         self.state.store(new_state.as_u8(), Ordering::SeqCst);
+        crate::native_hotkey::set_cancel_armed(new_state != PipelineState::Idle);
         if new_state == PipelineState::Idle {
             *self
                 .active_translation_operation
@@ -1104,10 +1116,14 @@ impl PipelineHandle {
             self.current_state()
         );
 
+        let was_active = self.current_state() != PipelineState::Idle;
+
         // Set abort flag so any running stop() exits early
         self.abort_flag.store(true, Ordering::SeqCst);
         self.active_stt_session_id.fetch_add(1, Ordering::SeqCst);
         self.active_deadline_session_id.store(0, Ordering::SeqCst);
+        // Cancel an in-flight LLM polish request, if any.
+        self.llm_abort.notify_waiters();
 
         // Stop audio capture (closes channel → STT task terminates naturally)
         {
@@ -1140,6 +1156,11 @@ impl PipelineHandle {
 
         // Force state to Idle — emits pipeline:state event to sync frontend
         self.set_state(PipelineState::Idle);
+        if was_active {
+            let _ = self
+                .app_handle
+                .emit("pipeline:error", crate::error::cancelled_user_error());
+        }
     }
 
     fn clear_stt_session(&self, session_id: u64) {
@@ -1520,6 +1541,7 @@ impl PipelineHandle {
             return Ok(());
         }
         let audio_vol = handle.get_volume();
+        let voiced_counter = handle.voiced_counter();
         *self.audio_volume.lock().unwrap_or_else(|e| e.into_inner()) = audio_vol;
         *self.audio_handle.lock().unwrap_or_else(|e| e.into_inner()) = Some(handle);
         if self.abort_flag.load(Ordering::SeqCst) {
@@ -1700,9 +1722,22 @@ impl PipelineHandle {
                                     break;
                                 }
 
-                                let disconnect_result = tokio::select! {
-                                    _ = stt_control.abort.notified() => None,
-                                    result = provider.disconnect() => Some(result),
+                                let voiced_chunks = voiced_counter.load(Ordering::Relaxed);
+                                let disconnect_result = if should_skip_stt_for_silence(voiced_chunks) {
+                                    // Nothing audible was captured: skip the upload entirely.
+                                    // Whisper-family models hallucinate subtitle credits on
+                                    // silence, and the request would cost money for nothing.
+                                    tracing::info!(
+                                        "Skipping STT finalize: only {} voiced chunks (< {})",
+                                        voiced_chunks,
+                                        MIN_VOICED_CHUNKS_FOR_STT
+                                    );
+                                    Some(Ok(None))
+                                } else {
+                                    tokio::select! {
+                                        _ = stt_control.abort.notified() => None,
+                                        result = provider.disconnect() => Some(result),
+                                    }
                                 };
 
                                 match disconnect_result {
@@ -2050,6 +2085,13 @@ impl PipelineHandle {
                 popup_fallback_enabled: true,
             })
             .await;
+        if self.abort_flag.load(Ordering::SeqCst) {
+            tracing::info!("Pipeline aborted during LLM/output; skipping history");
+            if let Some(control) = &stt_control {
+                self.clear_stt_session(control.id);
+            }
+            return Ok(());
+        }
         let final_text = polish_outcome.final_text;
         let llm_elapsed = polish_outcome.llm_elapsed;
 
@@ -2162,6 +2204,17 @@ impl PipelineHandle {
             .to_string();
 
         if raw_text.is_empty() {
+            let _ = self
+                .app_handle
+                .emit("pipeline:error", no_speech_user_error());
+            self.set_state(PipelineState::Idle);
+            return Ok(None);
+        }
+        if stt::is_known_hallucination(&raw_text) {
+            tracing::warn!(
+                "Dropping STT transcript that matches a known no-speech hallucination: {:?}",
+                raw_text
+            );
             let _ = self
                 .app_handle
                 .emit("pipeline:error", no_speech_user_error());
@@ -2357,7 +2410,13 @@ impl PipelineHandle {
             voice_intent: voice_intent.clone(),
         };
 
-        let polish_result = provider.polish(&llm_config, &req, Some(&on_chunk)).await;
+        let polish_result = tokio::select! {
+            result = provider.polish(&llm_config, &req, Some(&on_chunk)) => result,
+            _ = self.llm_abort.notified() => {
+                tracing::info!("LLM polish cancelled by abort");
+                Err(crate::error::AppError::Cancelled)
+            }
+        };
         drop(on_chunk);
         let streaming_report = match streaming_worker.take() {
             Some(worker) => worker.finish().await,
@@ -3815,5 +3874,18 @@ mod tests {
             history_provider_kind(&config),
             storage::HistoryProviderKind::Local
         );
+    }
+}
+
+#[cfg(test)]
+mod silence_gate_tests {
+    use super::*;
+
+    #[test]
+    fn skips_stt_when_fewer_than_200ms_voiced() {
+        assert!(should_skip_stt_for_silence(0));
+        assert!(should_skip_stt_for_silence(MIN_VOICED_CHUNKS_FOR_STT - 1));
+        assert!(!should_skip_stt_for_silence(MIN_VOICED_CHUNKS_FOR_STT));
+        assert!(!should_skip_stt_for_silence(500));
     }
 }

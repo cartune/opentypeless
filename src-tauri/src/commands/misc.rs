@@ -202,6 +202,7 @@ fn register_configured_shortcuts_guarded(
         native_runtime.install(
             native_bindings,
             hotkeys.dictation_mode == "hold",
+            escape_cancel_enabled(config),
             Arc::new(move |event| {
                 crate::hotkey::handle_hotkey_role_event(handle.clone(), event.role, event.state);
             }),
@@ -213,6 +214,11 @@ fn register_configured_shortcuts_guarded(
     }
 
     Ok(())
+}
+
+/// Escape-to-cancel rides on the native key monitor, which only exists on macOS today.
+fn escape_cancel_enabled(config: &storage::AppConfig) -> bool {
+    cfg!(target_os = "macos") && config.esc_cancel_enabled
 }
 
 fn effective_hotkey_config(config: &storage::AppConfig) -> storage::HotkeyConfig {

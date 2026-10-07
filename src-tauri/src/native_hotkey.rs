@@ -1,7 +1,19 @@
-#[cfg(any(target_os = "macos", target_os = "windows", test))]
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri_plugin_global_shortcut::ShortcutState;
+
+/// Whether a plain Escape key press should cancel the current voice run.
+/// Armed while the pipeline (dictation or Ask) is not idle. Read from the
+/// macOS event-tap thread, so it must stay a lock-free atomic.
+static CANCEL_ARMED: AtomicBool = AtomicBool::new(false);
+
+pub fn set_cancel_armed(armed: bool) {
+    CANCEL_ARMED.store(armed, Ordering::SeqCst);
+}
+
+pub fn cancel_armed() -> bool {
+    CANCEL_ARMED.load(Ordering::SeqCst)
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NativeHotkeyTrigger {
@@ -103,22 +115,26 @@ struct NativeHotkeyRuntimeInner {
 }
 
 impl NativeHotkeyRuntime {
+    /// `escape_cancel` keeps the native monitor alive even without Fn/RightAlt
+    /// bindings so a plain Escape press can cancel an active voice run.
     pub fn install(
         &self,
         bindings: Vec<NativeHotkeyBinding>,
         hold_dictation: bool,
+        escape_cancel: bool,
         handler: Arc<dyn Fn(NativeHotkeyEvent) + Send + Sync>,
     ) -> Result<(), String> {
         let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         let _ = inner.monitor.take();
 
-        if bindings.is_empty() {
+        if bindings.is_empty() && !escape_cancel {
             return Ok(());
         }
 
         inner.monitor = Some(platform::PlatformNativeMonitor::start(
             bindings,
             hold_dictation,
+            escape_cancel,
             handler,
         )?);
         Ok(())
@@ -368,9 +384,13 @@ mod platform {
     const KEYBOARD_EVENT_KEYCODE: CgEventField = 9;
     const FLAG_MASK_SECONDARY_FN: CgEventFlags = 0x0080_0000;
     const FLAG_MASK_SHIFT: CgEventFlags = 0x0002_0000;
+    const FLAG_MASK_CONTROL: CgEventFlags = 0x0004_0000;
+    const FLAG_MASK_ALTERNATE: CgEventFlags = 0x0008_0000;
+    const FLAG_MASK_COMMAND: CgEventFlags = 0x0010_0000;
     const FN_KEYCODE: i64 = 63;
     const SPACE_KEYCODE: i64 = 49;
     const LEFT_SHIFT_KEYCODE: i64 = 56;
+    const ESCAPE_KEYCODE: i64 = 53;
 
     type CgEventTapCallBack = extern "C" fn(
         proxy: *mut c_void,
@@ -451,10 +471,11 @@ mod platform {
         pub fn start(
             bindings: Vec<super::NativeHotkeyBinding>,
             hold_dictation: bool,
+            escape_cancel: bool,
             handler: NativeHotkeyHandler,
         ) -> Result<Self, String> {
             let bindings = monitored_bindings_for_base(bindings, NativeHotkeyTrigger::Fn);
-            if bindings.is_empty() {
+            if bindings.is_empty() && !escape_cancel {
                 return Err("macOS native hotkeys currently support Fn only".to_string());
             }
 
@@ -464,7 +485,14 @@ mod platform {
             thread::Builder::new()
                 .name("opentypeless-native-hotkey-mac".to_string())
                 .spawn(move || {
-                    run_event_tap_loop(bindings, hold_dictation, handler, thread_handles, status_tx)
+                    run_event_tap_loop(
+                        bindings,
+                        hold_dictation,
+                        escape_cancel,
+                        handler,
+                        thread_handles,
+                        status_tx,
+                    )
                 })
                 .map_err(|error| {
                     format!("Failed to spawn macOS native hotkey monitor thread: {error}")
@@ -505,11 +533,16 @@ mod platform {
         handler: NativeHotkeyHandler,
         handles: Arc<MacShutdownHandles>,
         state: Arc<Mutex<NativeComboState>>,
+        escape_cancel: bool,
+        /// Set when an Escape key-down was swallowed so the matching key-up is
+        /// swallowed too and the frontmost app never sees half a key press.
+        escape_consumed: AtomicBool,
     }
 
     fn run_event_tap_loop(
         bindings: Vec<NativeMonitoredBinding>,
         hold_dictation: bool,
+        escape_cancel: bool,
         handler: NativeHotkeyHandler,
         handles: Arc<MacShutdownHandles>,
         status_tx: mpsc::Sender<Result<(), String>>,
@@ -527,6 +560,8 @@ mod platform {
                 hold_base,
                 ..NativeComboState::default()
             })),
+            escape_cancel,
+            escape_consumed: AtomicBool::new(false),
         }));
         let mask: CgEventMask = (1u64 << FLAGS_CHANGED) | (1u64 << KEY_DOWN) | (1u64 << KEY_UP);
 
@@ -633,12 +668,42 @@ mod platform {
                 }
             }
             FLAGS_CHANGED => handle_flags_changed(context, event),
-            KEY_DOWN => handle_key_event(context, event, true),
-            KEY_UP => handle_key_event(context, event, false),
+            KEY_DOWN | KEY_UP => {
+                let pressed = event_type == KEY_DOWN;
+                let consumed = handle_key_event(context, event, pressed);
+                if consumed {
+                    return std::ptr::null_mut();
+                }
+            }
             _ => {}
         }
 
         event
+    }
+
+    /// Handles a plain Escape press while a voice run is active. Returns true
+    /// when the event was consumed and must not reach the frontmost app.
+    fn handle_escape_key(context: &CallbackContext, event: CgEventRef, pressed: bool) -> bool {
+        if !context.escape_cancel {
+            return false;
+        }
+        if !pressed {
+            // Swallow the key-up that pairs with a swallowed key-down.
+            return context.escape_consumed.swap(false, Ordering::SeqCst);
+        }
+        let flags = unsafe { CGEventGetFlags(event) };
+        let modifiers =
+            FLAG_MASK_COMMAND | FLAG_MASK_CONTROL | FLAG_MASK_ALTERNATE | FLAG_MASK_SHIFT;
+        if flags & modifiers != 0 || !super::cancel_armed() {
+            return false;
+        }
+        context.escape_consumed.store(true, Ordering::SeqCst);
+        (context.handler)(super::NativeHotkeyEvent {
+            role: crate::hotkey::HotkeyRole::Cancel,
+            index: 0,
+            state: tauri_plugin_global_shortcut::ShortcutState::Pressed,
+        });
+        true
     }
 
     fn handle_flags_changed(context: &CallbackContext, event: CgEventRef) {
@@ -698,10 +763,13 @@ mod platform {
         }
     }
 
-    fn handle_key_event(context: &CallbackContext, event: CgEventRef, pressed: bool) {
+    fn handle_key_event(context: &CallbackContext, event: CgEventRef, pressed: bool) -> bool {
         let keycode = unsafe { CGEventGetIntegerValueField(event, KEYBOARD_EVENT_KEYCODE) };
+        if keycode == ESCAPE_KEYCODE {
+            return handle_escape_key(context, event, pressed);
+        }
         if keycode != SPACE_KEYCODE {
-            return;
+            return false;
         }
         let mut state = context.state.lock().unwrap_or_else(|e| e.into_inner());
         let _ = dispatch_native_combo_edge(
@@ -712,6 +780,7 @@ mod platform {
             pressed,
             &context.handler,
         );
+        false
     }
 }
 
@@ -790,6 +859,7 @@ mod platform {
         pub fn start(
             bindings: Vec<super::NativeHotkeyBinding>,
             _hold_dictation: bool,
+            _escape_cancel: bool,
             handler: NativeHotkeyHandler,
         ) -> Result<Self, String> {
             let bindings = monitored_bindings_for_base(bindings, NativeHotkeyTrigger::RightAlt);
@@ -1055,6 +1125,7 @@ mod platform {
         pub fn start(
             _bindings: Vec<NativeHotkeyBinding>,
             _hold_dictation: bool,
+            _escape_cancel: bool,
             _handler: NativeHotkeyHandler,
         ) -> Result<Self, String> {
             Err("Native hotkey runtime is unsupported on this platform".to_string())
@@ -1082,7 +1153,7 @@ mod tests {
         let runtime = NativeHotkeyRuntime::default();
         let handler: Arc<dyn Fn(NativeHotkeyEvent) + Send + Sync> = Arc::new(|_| {});
 
-        assert!(runtime.install(Vec::new(), false, handler).is_ok());
+        assert!(runtime.install(Vec::new(), false, false, handler).is_ok());
     }
 
     #[test]

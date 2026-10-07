@@ -1,8 +1,14 @@
 use anyhow::Result;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Sample;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 use tokio::sync::{mpsc, oneshot};
+
+/// A 20 ms chunk whose RMS exceeds this (about -45 dBFS) counts as voiced.
+const VOICED_RMS_THRESHOLD: f32 = 0.0056;
+/// Meter floor in dBFS; levels at or below this map to 0.
+const METER_FLOOR_DBFS: f32 = -60.0;
 
 struct CaptureStartupNotifier {
     sender: Option<
@@ -92,6 +98,7 @@ pub struct AudioCaptureHandle {
     startup_waiter: Option<CaptureStartupWaiter>,
     volume: Arc<Mutex<f32>>,
     state: Arc<Mutex<CaptureState>>,
+    voiced_chunks: Arc<AtomicU32>,
 }
 
 impl AudioCaptureHandle {
@@ -101,11 +108,13 @@ impl AudioCaptureHandle {
         let (stop_tx, stop_rx) = std::sync::mpsc::channel::<()>();
         let volume = Arc::new(Mutex::new(0.0f32));
         let state = Arc::new(Mutex::new(initial_capture_state()));
+        let voiced_chunks = Arc::new(AtomicU32::new(0));
         let (mut startup_notifier, startup_waiter) = capture_startup_channel();
 
         let vol_clone = volume.clone();
         let state_clone = state.clone();
         let failed_state = state.clone();
+        let voiced_clone = voiced_chunks.clone();
 
         // Audio capture must run on a dedicated OS thread because cpal::Stream is !Send
         std::thread::spawn(move || {
@@ -115,6 +124,7 @@ impl AudioCaptureHandle {
                 stop_rx,
                 vol_clone,
                 state_clone,
+                voiced_clone,
                 &mut startup_notifier,
             ) {
                 *failed_state
@@ -131,6 +141,7 @@ impl AudioCaptureHandle {
                 startup_waiter: Some(startup_waiter),
                 volume,
                 state,
+                voiced_chunks,
             },
             audio_rx,
         ))
@@ -156,6 +167,11 @@ impl AudioCaptureHandle {
 
     pub fn get_volume(&self) -> f32 {
         *self.volume.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// Shared counter of 20 ms chunks that contained audible signal so far.
+    pub fn voiced_counter(&self) -> Arc<AtomicU32> {
+        self.voiced_chunks.clone()
     }
 
     pub fn state(&self) -> CaptureState {
@@ -214,6 +230,35 @@ struct InputProcessingContext {
     sender: mpsc::Sender<Vec<u8>>,
     volume: Arc<Mutex<f32>>,
     buffer: Arc<Mutex<Vec<i16>>>,
+    voiced_chunks: Arc<AtomicU32>,
+}
+
+/// Map a linear RMS (0..1) to a 0..1 meter level on a dB scale between
+/// `METER_FLOOR_DBFS` and 0 dBFS, so quiet speech is still visible.
+fn meter_level(rms: f32) -> f32 {
+    if rms.is_nan() || rms <= 0.0 {
+        return 0.0;
+    }
+    let dbfs = 20.0 * rms.log10();
+    ((dbfs - METER_FLOOR_DBFS) / -METER_FLOOR_DBFS).clamp(0.0, 1.0)
+}
+
+fn rms_i16(chunk: &[i16]) -> f32 {
+    if chunk.is_empty() {
+        return 0.0;
+    }
+    let sum: f64 = chunk
+        .iter()
+        .map(|&s| {
+            let v = s as f64 / 32768.0;
+            v * v
+        })
+        .sum();
+    (sum / chunk.len() as f64).sqrt() as f32
+}
+
+fn chunk_is_voiced(chunk: &[i16]) -> bool {
+    rms_i16(chunk) > VOICED_RMS_THRESHOLD
 }
 
 fn normalized_rms(data: &[f32]) -> f32 {
@@ -230,9 +275,9 @@ fn normalized_rms(data: &[f32]) -> f32 {
 }
 
 fn process_input_samples(data: &[f32], context: &InputProcessingContext) {
-    // Calculate RMS volume from raw data
+    // Calculate RMS volume from raw data, reported on a dB scale
     if let Ok(mut volume) = context.volume.lock() {
-        *volume = normalized_rms(data);
+        *volume = meter_level(normalized_rms(data));
     }
     if data.is_empty() {
         return;
@@ -268,6 +313,9 @@ fn process_input_samples(data: &[f32], context: &InputProcessingContext) {
     // Send complete chunks
     while buffer.len() >= context.samples_per_chunk {
         let chunk: Vec<i16> = buffer.drain(..context.samples_per_chunk).collect();
+        if chunk_is_voiced(&chunk) {
+            context.voiced_chunks.fetch_add(1, Ordering::Relaxed);
+        }
         let bytes: Vec<u8> = chunk
             .iter()
             .flat_map(|sample| sample.to_le_bytes())
@@ -304,6 +352,7 @@ fn run_capture(
     stop_rx: std::sync::mpsc::Receiver<()>,
     volume: Arc<Mutex<f32>>,
     state: Arc<Mutex<CaptureState>>,
+    voiced_chunks: Arc<AtomicU32>,
     startup_notifier: &mut CaptureStartupNotifier,
 ) -> Result<()> {
     let host = cpal::default_host();
@@ -350,6 +399,7 @@ fn run_capture(
         sender,
         volume,
         buffer,
+        voiced_chunks,
     };
 
     let stream = match device_sample_format {
@@ -505,5 +555,44 @@ mod tests {
             waiter.wait().await,
             Err("input device unavailable".to_string())
         );
+    }
+}
+
+#[cfg(test)]
+mod voiced_tests {
+    use super::*;
+
+    fn tone(amplitude: f32, len: usize) -> Vec<i16> {
+        (0..len)
+            .map(|i| {
+                let t = i as f32 / 16_000.0;
+                (amplitude * (2.0 * std::f32::consts::PI * 440.0 * t).sin() * 32767.0) as i16
+            })
+            .collect()
+    }
+
+    #[test]
+    fn silence_is_not_voiced() {
+        assert!(!chunk_is_voiced(&vec![0i16; 320]));
+        // Low-level hiss around -70 dBFS stays below the gate.
+        assert!(!chunk_is_voiced(&tone(0.0003, 320)));
+    }
+
+    #[test]
+    fn speech_level_tone_is_voiced() {
+        // Quiet speech around -35 dBFS.
+        assert!(chunk_is_voiced(&tone(0.018, 320)));
+        assert!(chunk_is_voiced(&tone(0.3, 320)));
+    }
+
+    #[test]
+    fn meter_level_is_log_scaled() {
+        assert_eq!(meter_level(0.0), 0.0);
+        assert_eq!(meter_level(1.0), 1.0);
+        // -20 dBFS sits two thirds up a -60 dB meter.
+        assert!((meter_level(0.1) - 2.0 / 3.0).abs() < 0.01);
+        // -60 dBFS is the floor.
+        assert!(meter_level(0.001) < 0.01);
+        assert!(meter_level(0.0001) == 0.0);
     }
 }

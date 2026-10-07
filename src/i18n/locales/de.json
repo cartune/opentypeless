@@ -259,7 +259,8 @@
       "audio_failed": "Mikrofehler",
       "output_failed": "Ausgabe-Fehler",
       "unknown": "Fehler",
-      "output_wayland_clipboard_copy_only": "Copied"
+      "output_wayland_clipboard_copy_only": "Copied",
+      "cancelled": "Cancelled"
     },
     "menu": {
       "hideWhenIdle": "Kapsel im Leerlauf ausblenden",
@@ -271,7 +272,8 @@
       "upgrade": "Upgrade",
       "exit": "Beenden"
     },
-    "timing": "{{stt}} · {{llm}}"
+    "timing": "{{stt}} · {{llm}}",
+    "noAudioHint": "No audio — check mic"
   },
   "settings": {
     "title": "Einstellungen",
@@ -473,7 +475,9 @@
     "mappingResetConfirm": "Delete all device-only app mappings?",
     "mappingResetConfirmAction": "Reset mappings",
     "mappingNoMappings": "No custom app mappings",
-    "dictationMode": "Diktiermodus"
+    "dictationMode": "Diktiermodus",
+    "escCancel": "Esc cancels the current recording",
+    "escCancelHint": "While recording, transcribing or polishing, a plain Esc press aborts the run and nothing is typed. Esc is passed through to apps when idle."
   },
   "contextFamilies": {
     "email": "Email",

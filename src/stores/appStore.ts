@@ -261,6 +261,7 @@ export interface AppConfig {
   history_max_entries: number
   ui_language: string
   capsule_auto_hide: boolean
+  esc_cancel_enabled: boolean
 }
 
 export type TestStatus = 'idle' | 'testing' | 'success' | 'error'
@@ -812,6 +813,7 @@ const defaultConfig: AppConfig = {
   history_max_entries: 5000,
   ui_language: 'en',
   capsule_auto_hide: true,
+  esc_cancel_enabled: true,
 }
 
 export const useAppStore = create<AppState>((set) => ({

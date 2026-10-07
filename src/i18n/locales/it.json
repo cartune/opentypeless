@@ -259,7 +259,8 @@
       "audio_failed": "Micro fallito",
       "output_failed": "Output fallito",
       "unknown": "Errore",
-      "output_wayland_clipboard_copy_only": "Copied"
+      "output_wayland_clipboard_copy_only": "Copied",
+      "cancelled": "Cancelled"
     },
     "menu": {
       "hideWhenIdle": "Nascondi capsula quando inattiva",
@@ -271,7 +272,8 @@
       "upgrade": "Aggiorna",
       "exit": "Esci"
     },
-    "timing": "{{stt}} · {{llm}}"
+    "timing": "{{stt}} · {{llm}}",
+    "noAudioHint": "No audio — check mic"
   },
   "settings": {
     "title": "Impostazioni",
@@ -473,7 +475,9 @@
     "mappingResetConfirm": "Delete all device-only app mappings?",
     "mappingResetConfirmAction": "Reset mappings",
     "mappingNoMappings": "No custom app mappings",
-    "dictationMode": "Modalita dettatura"
+    "dictationMode": "Modalita dettatura",
+    "escCancel": "Esc cancels the current recording",
+    "escCancelHint": "While recording, transcribing or polishing, a plain Esc press aborts the run and nothing is typed. Esc is passed through to apps when idle."
   },
   "contextFamilies": {
     "email": "Email",

@@ -12,6 +12,7 @@ export type CapsuleErrorKey =
   | 'stt_failed'
   | 'stt_quota_exceeded'
   | 'stt_no_speech_detected'
+  | 'cancelled'
   | 'output_fallback_clipboard'
   | 'output_wayland_unsupported'
   | 'output_wayland_clipboard_copy_only'
@@ -30,6 +31,7 @@ const structuredCapsuleErrorKeys = new Set<CapsuleErrorKey>([
   'stt_failed',
   'stt_quota_exceeded',
   'stt_no_speech_detected',
+  'cancelled',
   'output_fallback_clipboard',
   'output_wayland_unsupported',
   'output_wayland_clipboard_copy_only',

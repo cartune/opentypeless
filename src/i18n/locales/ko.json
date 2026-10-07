@@ -259,7 +259,8 @@
       "audio_failed": "마이크 실패",
       "output_failed": "출력 실패",
       "unknown": "오류",
-      "output_wayland_clipboard_copy_only": "Copied"
+      "output_wayland_clipboard_copy_only": "Copied",
+      "cancelled": "Cancelled"
     },
     "menu": {
       "hideWhenIdle": "유휴 시 캡슐 숨기기",
@@ -271,7 +272,8 @@
       "upgrade": "업그레이드",
       "exit": "종료"
     },
-    "timing": "{{stt}} · {{llm}}"
+    "timing": "{{stt}} · {{llm}}",
+    "noAudioHint": "No audio — check mic"
   },
   "settings": {
     "title": "설정",
@@ -473,7 +475,9 @@
     "mappingResetConfirm": "Delete all device-only app mappings?",
     "mappingResetConfirmAction": "Reset mappings",
     "mappingNoMappings": "No custom app mappings",
-    "dictationMode": "받아쓰기 모드"
+    "dictationMode": "받아쓰기 모드",
+    "escCancel": "Esc cancels the current recording",
+    "escCancelHint": "While recording, transcribing or polishing, a plain Esc press aborts the run and nothing is typed. Esc is passed through to apps when idle."
   },
   "contextFamilies": {
     "email": "Email",

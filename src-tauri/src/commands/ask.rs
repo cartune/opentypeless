@@ -282,7 +282,21 @@ pub enum PendingAskMessage {
 }
 
 fn emit_capsule_state(app: &tauri::AppHandle, state: PipelineState) {
+    crate::native_hotkey::set_cancel_armed(state != PipelineState::Idle);
     let _ = app.emit("pipeline:state", state);
+}
+
+/// Abort an Ask recording that is starting or in progress (Escape / cancel).
+pub fn abort_ask_flow(app: &tauri::AppHandle) {
+    let Some(state) = app.try_state::<AskDictationState>() else {
+        return;
+    };
+    let (session, _was_starting) = state.abort_starting_or_recording();
+    if let Some(mut session) = session {
+        session.handle.stop();
+    }
+    emit_capsule_state(app, PipelineState::Idle);
+    let _ = app.emit("pipeline:error", crate::error::cancelled_user_error());
 }
 
 pub(crate) fn show_answer_window(

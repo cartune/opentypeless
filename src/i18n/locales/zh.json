@@ -259,7 +259,8 @@
       "audio_failed": "麦克风失败",
       "output_failed": "输出失败",
       "unknown": "出错了",
-      "output_wayland_clipboard_copy_only": "已复制"
+      "output_wayland_clipboard_copy_only": "已复制",
+      "cancelled": "已取消"
     },
     "menu": {
       "hideWhenIdle": "空闲时隐藏胶囊",
@@ -271,7 +272,8 @@
       "upgrade": "升级",
       "exit": "退出"
     },
-    "timing": "{{stt}} · {{llm}}"
+    "timing": "{{stt}} · {{llm}}",
+    "noAudioHint": "没收到声音，检查麦克风"
   },
   "settings": {
     "title": "设置",
@@ -473,7 +475,9 @@
     "mappingResetConfirm": "删除所有仅保存在本机的应用映射？",
     "mappingResetConfirmAction": "重置映射",
     "mappingNoMappings": "暂无自定义应用映射",
-    "dictationMode": "听写触发方式"
+    "dictationMode": "听写触发方式",
+    "escCancel": "按 Esc 取消当前录音",
+    "escCancelHint": "录音、识别或润色过程中按 Esc 会中止本次操作，不会输出任何文字；空闲时 Esc 照常传给应用。"
   },
   "contextFamilies": {
     "email": "邮件",

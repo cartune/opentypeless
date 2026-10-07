@@ -5,10 +5,12 @@ import { abortRecording } from '../../lib/tauri'
 import { Waveform } from './Waveform'
 import { DurationTimer } from './DurationTimer'
 import { TranslateTargetChip } from './TranslateTargetChip'
+import { useNoAudioHint } from './useNoAudioHint'
 
 export function CapsuleRecording() {
   const { t } = useTranslation()
   const reduced = useReducedMotion()
+  const noAudio = useNoAudioHint()
 
   const handleCancel = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -31,7 +33,16 @@ export function CapsuleRecording() {
         animate={reduced ? undefined : { opacity: [1, 0.5, 1] }}
         transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
       />
-      <Waveform />
+      {noAudio ? (
+        <span
+          className="text-[10px] text-amber-200 whitespace-nowrap truncate"
+          data-testid="no-audio-hint"
+        >
+          {t('capsule.noAudioHint')}
+        </span>
+      ) : (
+        <Waveform />
+      )}
       <TranslateTargetChip />
       <div className="flex-1" />
       <DurationTimer />

@@ -68,6 +68,63 @@ pub trait SttProvider: Send + Sync {
     fn name(&self) -> &str;
 }
 
+/// Phrases Whisper-family models emit for silence or noise-only audio. They
+/// come from subtitle/credits text in the training data and never from the
+/// user, so a transcript that is essentially just one of them is dropped.
+const KNOWN_STT_HALLUCINATIONS: &[&str] = &[
+    "请不吝点赞",
+    "請不吝點贊",
+    "點贊 訂閱 轉發",
+    "点赞 订阅 转发",
+    "点赞订阅转发",
+    "打赏支持明镜",
+    "打賞支持明鏡",
+    "明镜与点点栏目",
+    "明鏡與點點欄目",
+    "字幕由",
+    "字幕提供",
+    "谢谢观看",
+    "謝謝觀看",
+    "感谢观看",
+    "感謝觀看",
+    "请订阅",
+    "請訂閱",
+    "下期再见",
+    "下期再見",
+    "thank you for watching",
+    "thanks for watching",
+    "subtitles by",
+    "subscribe to my channel",
+    "please subscribe",
+    "amara.org",
+];
+
+/// Returns true when the transcript is a known no-speech hallucination.
+/// Only short transcripts (<= 40 chars) qualify so a real sentence that merely mentions
+/// one of these phrases is kept.
+pub fn is_known_hallucination(text: &str) -> bool {
+    let normalized: String = text
+        .trim()
+        .to_lowercase()
+        .chars()
+        .filter(|c| !matches!(c, ',' | '，' | '。' | '.' | '!' | '！' | '、' | ' '))
+        .collect();
+    if normalized.is_empty() {
+        return false;
+    }
+    if normalized.chars().count() > 40 {
+        return false;
+    }
+    KNOWN_STT_HALLUCINATIONS.iter().any(|phrase| {
+        let phrase: String = phrase
+            .to_lowercase()
+            .chars()
+            .filter(|c| *c != ' ')
+            .collect();
+        normalized.contains(&phrase)
+    })
+}
+
 pub fn create_provider(
     provider_name: &str,
     custom_whisper_config: Option<WhisperCompatConfig>,
@@ -161,5 +218,39 @@ mod tests {
     fn unknown_stt_provider_returns_error() {
         let result = create_provider("not-a-provider", None, None);
         assert!(result.is_err());
+    }
+}
+
+#[cfg(test)]
+mod hallucination_tests {
+    use super::is_known_hallucination;
+
+    #[test]
+    fn detects_chinese_subtitle_credits() {
+        assert!(is_known_hallucination(
+            "请不吝点赞 订阅 转发 打赏支持明镜与点点栏目"
+        ));
+        assert!(is_known_hallucination(
+            "請不吝點贊、訂閱、轉發、打賞支持明鏡與點點欄目"
+        ));
+        assert!(is_known_hallucination("字幕由 Amara.org 社区提供"));
+        assert!(is_known_hallucination("謝謝觀看！"));
+    }
+
+    #[test]
+    fn detects_english_credits() {
+        assert!(is_known_hallucination("Thank you for watching."));
+        assert!(is_known_hallucination("Thanks for watching!"));
+    }
+
+    #[test]
+    fn keeps_real_speech() {
+        assert!(!is_known_hallucination("我們明天開會討論預算"));
+        assert!(!is_known_hallucination("Please send the report by Friday"));
+        assert!(!is_known_hallucination(""));
+        // Long real sentences that merely mention a phrase are kept.
+        assert!(!is_known_hallucination(
+            "影片最後記得提醒觀眾謝謝觀看，然後把贊助商的連結放在說明欄，再檢查一次字幕有沒有對齊時間軸，最後匯出一千零八十p的版本上傳"
+        ));
     }
 }

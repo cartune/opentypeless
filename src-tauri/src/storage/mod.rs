@@ -379,6 +379,8 @@ pub struct AppConfig {
     pub history_max_entries: u32,
     pub ui_language: String,
     pub capsule_auto_hide: bool,
+    /// Plain Escape cancels an active dictation/Ask run (macOS native monitor).
+    pub esc_cancel_enabled: bool,
 }
 
 impl Default for AppConfig {
@@ -436,6 +438,7 @@ impl Default for AppConfig {
             history_max_entries: DEFAULT_HISTORY_MAX_ENTRIES,
             ui_language: "en".to_string(),
             capsule_auto_hide: false,
+            esc_cancel_enabled: true,
         }
     }
 }
