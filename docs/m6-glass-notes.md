@@ -18,8 +18,11 @@ Date: 2026-10-08. Branch `m6-glass` (on top of `m7-noise`). Capsule only; settin
 - **Look** (`src/styles/globals.css` `.glass-capsule*`): translucent tint + rim highlight only; active
   states get a dark tint so white text stays readable on light desktops, errors a red tint. The solid
   `jelly-capsule*` styles are untouched and come back when the toggle is off.
-- **Config** `capsule_glass_enabled` (default **on**; Settings → 一般 → 進階 → "Liquid Glass 膠囊",
-  macOS only; in settings backup). Off restores exactly the previous padded solid capsule.
+- **Config** `capsule_glass_enabled` (default **off** for now: the overnight run could not observe the
+  rendering — the screen was asleep, screenshots came back black — so the native path is unverified.
+  Settings → 一般 → 進階 → "Liquid Glass 膠囊", macOS only; in settings backup). Off is exactly the
+  previous padded solid capsule; flip the default to `true` in `AppConfig::default` and
+  `appStore.ts` once it looks right.
 - Not done: `NSGlassEffectView` tint colour / `interactive` (macOS 27) — can be added via
   `LiquidGlassOptions` if the default Regular style looks too plain.
 

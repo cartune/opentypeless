@@ -848,7 +848,7 @@ const defaultConfig: AppConfig = {
   capsule_auto_hide: true,
   esc_cancel_enabled: true,
   noise_suppression_enabled: false,
-  capsule_glass_enabled: true,
+  capsule_glass_enabled: false,
   usage_pricing: [],
   correction_rules_exact_apply: true,
 }

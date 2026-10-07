@@ -39,8 +39,16 @@ pub async fn set_capsule_glass(
                 let _ = tx.send(apply_capsule_glass(&target, enabled, radius));
             })
             .map_err(|error| error.to_string())?;
-        rx.await
-            .map_err(|_| "capsule glass update was dropped".to_string())?
+        let result = rx
+            .await
+            .map_err(|_| "capsule glass update was dropped".to_string())?;
+        match &result {
+            Ok(mode) => {
+                tracing::info!("Capsule glass enabled={enabled} radius={radius} -> {mode:?}")
+            }
+            Err(error) => tracing::warn!("Capsule glass enabled={enabled} failed: {error}"),
+        }
+        result
     }
     #[cfg(not(target_os = "macos"))]
     {
