@@ -477,7 +477,14 @@
     "mappingNoMappings": "No custom app mappings",
     "dictationMode": "Dictation mode",
     "escCancel": "Esc cancels the current recording",
-    "escCancelHint": "While recording, transcribing or polishing, a plain Esc press aborts the run and nothing is typed. Esc is passed through to apps when idle."
+    "escCancelHint": "While recording, transcribing or polishing, a plain Esc press aborts the run and nothing is typed. Esc is passed through to apps when idle.",
+    "sttOpenaiModel": "OpenAI transcription model",
+    "sttOpenaiModelHint": "gpt-4o-mini-transcribe is fastest; gpt-4o-transcribe is most accurate; whisper-1 is the legacy model. Any model id can be typed.",
+    "sttUploadFormat": "Upload format",
+    "sttUploadFormatAuto": "Auto (Opus when supported)",
+    "sttUploadFormatOpus": "Ogg/Opus (small, 48 kbps)",
+    "sttUploadFormatWav": "WAV (uncompressed)",
+    "sttUploadFormatHint": "Opus uploads are about 6x smaller than WAV. If the endpoint rejects Opus the app retries once as WAV."
   },
   "contextFamilies": {
     "email": "Email",

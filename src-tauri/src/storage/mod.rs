@@ -338,6 +338,10 @@ pub struct AppConfig {
     pub stt_custom_model: String,
     pub stt_volcengine_resource_id: String,
     pub stt_aliyun_qwen_region: String,
+    /// OpenAI transcription model (`whisper-1`, `gpt-4o-mini-transcribe`, ...).
+    pub stt_openai_model: String,
+    /// `auto` | `wav` | `opus` for file-upload STT providers.
+    pub stt_upload_format: String,
     pub llm_provider: String,
     pub llm_api_key: String,
     pub llm_model: String,
@@ -397,6 +401,8 @@ impl Default for AppConfig {
                 .to_string(),
             stt_aliyun_qwen_region:
                 crate::stt::aliyun_qwen3_asr::ALIYUN_QWEN3_ASR_REGION_CHINA_MAINLAND.to_string(),
+            stt_openai_model: "whisper-1".to_string(),
+            stt_upload_format: "auto".to_string(),
             llm_provider: "openrouter".to_string(),
             llm_api_key: String::new(),
             llm_model: "google/gemini-2.5-flash".to_string(),
@@ -444,9 +450,15 @@ impl Default for AppConfig {
 }
 
 impl AppConfig {
+    /// Defaults for a fresh install of this fork: OpenAI for both STT and LLM.
     pub fn new_install_default() -> Self {
         Self {
             capsule_auto_hide: true,
+            stt_provider: "openai-whisper".to_string(),
+            stt_openai_model: "gpt-4o-mini-transcribe".to_string(),
+            llm_provider: "openai".to_string(),
+            llm_model: "gpt-4.1-mini".to_string(),
+            llm_base_url: "https://api.openai.com/v1".to_string(),
             ..Self::default()
         }
     }
@@ -567,6 +579,15 @@ impl AppConfig {
         ) {
             self.stt_aliyun_qwen_region =
                 crate::stt::aliyun_qwen3_asr::ALIYUN_QWEN3_ASR_REGION_CHINA_MAINLAND.to_string();
+        }
+        self.stt_upload_format =
+            crate::stt::UploadFormat::from_config_value(&self.stt_upload_format)
+                .as_config_value()
+                .to_string();
+        if self.stt_openai_model.trim().is_empty() {
+            self.stt_openai_model = "whisper-1".to_string();
+        } else {
+            self.stt_openai_model = self.stt_openai_model.trim().to_string();
         }
         self.polish_style = normalize_polish_style(&self.polish_style).to_string();
         self.polish_custom_prompt = sanitize_polish_custom_prompt(&self.polish_custom_prompt);

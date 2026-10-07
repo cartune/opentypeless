@@ -670,14 +670,19 @@ fn build_ask_stt_config(
     config: &storage::AppConfig,
     api_key: String,
     operation_id: String,
+    dictionary: &[String],
 ) -> SttConfig {
+    let model_override = crate::pipeline::stt_model_override_for(config);
     SttConfig {
         api_key,
-        language: if config.stt_language == "multi" {
-            None
-        } else {
-            Some(config.stt_language.clone())
-        },
+        language: stt::config::normalize_stt_language(
+            &config.stt_provider,
+            model_override.as_deref().unwrap_or(""),
+            &config.stt_language,
+        ),
+        prompt: stt::prompt::build_stt_prompt(Some(config.stt_language.as_str()), dictionary),
+        model_override,
+        upload_format: stt::UploadFormat::from_config_value(&config.stt_upload_format),
         smart_format: true,
         sample_rate: 16000,
         resource_id: if config.stt_provider == stt::volcengine::VOLCENGINE_DOUBAO_PROVIDER {
@@ -1075,7 +1080,9 @@ pub(crate) async fn start_reserved_ask_dictation(
             None
         };
         let operation_id = synthetic_operation_id();
-        let stt_config = build_ask_stt_config(&config, stt_api_key, operation_id.clone());
+        let dictionary_words = app.state::<storage::DictionaryStore>().words().await;
+        let stt_config =
+            build_ask_stt_config(&config, stt_api_key, operation_id.clone(), &dictionary_words);
         let managed_cloud_session_token =
             (config.stt_provider == "cloud").then(|| stt_config.api_key.clone());
         if let Some(session_token) = managed_cloud_session_token.clone() {
@@ -1919,6 +1926,7 @@ mod tests {
             &config,
             "session-token".to_string(),
             "operation-1".to_string(),
+            &[],
         );
 
         assert_eq!(stt_config.api_key, "session-token");

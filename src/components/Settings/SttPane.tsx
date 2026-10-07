@@ -5,6 +5,8 @@ import { hasManagedCloudAccess, useAuthStore } from '../../stores/authStore'
 import {
   STT_PROVIDERS,
   LANGUAGES,
+  OPENAI_STT_MODEL_SUGGESTIONS,
+  STT_UPLOAD_FORMATS,
   APPLE_SPEECH_PROVIDER,
   CUSTOM_WHISPER_PROVIDER,
   CUSTOM_STT_DEFAULTS,
@@ -58,6 +60,7 @@ export function SttPane() {
   const isCustomWhisper = config.stt_provider === CUSTOM_WHISPER_PROVIDER
   const isVolcengineDoubao = config.stt_provider === 'volcengine-doubao'
   const isAliyunQwen3 = config.stt_provider === 'aliyun-qwen3-asr'
+  const isOpenAiWhisper = config.stt_provider === 'openai-whisper'
   const credentialProvider = isCustomWhisper ? CUSTOM_WHISPER_PROVIDER : config.stt_provider
   const legacyApiKey = isCustomWhisper ? config.stt_custom_api_key : config.stt_api_key
   const volcengineResourceId =
@@ -623,6 +626,33 @@ export function SttPane() {
         </>
       )}
 
+      {isOpenAiWhisper && (
+        <FormField label={t('settings.sttOpenaiModel')}>
+          <input
+            type="text"
+            list="openai-stt-model-suggestions"
+            aria-label={t('settings.sttOpenaiModel')}
+            value={config.stt_openai_model ?? ''}
+            onChange={(e) => {
+              updateConfig({ stt_openai_model: e.target.value })
+              setSttTestStatus('idle')
+              setSttLatencyMs(null)
+              setTestErrorMessage(null)
+            }}
+            placeholder="gpt-4o-mini-transcribe"
+            className="w-full px-3 py-2.5 bg-bg-secondary border border-border rounded-[10px] text-[13px] text-text-primary outline-none focus:border-border-focus transition-colors font-mono"
+          />
+          <datalist id="openai-stt-model-suggestions">
+            {OPENAI_STT_MODEL_SUGGESTIONS.map((model) => (
+              <option key={model} value={model} />
+            ))}
+          </datalist>
+          <p className="text-[11px] text-text-tertiary mt-1.5">
+            {t('settings.sttOpenaiModelHint')}
+          </p>
+        </FormField>
+      )}
+
       <FormField label={t('settings.sttLanguage')}>
         <select
           value={config.stt_language}
@@ -636,6 +666,30 @@ export function SttPane() {
           ))}
         </select>
       </FormField>
+
+      {isOpenAiWhisper && (
+        <FormField label={t('settings.sttUploadFormat')}>
+          <select
+            aria-label={t('settings.sttUploadFormat')}
+            value={config.stt_upload_format ?? 'auto'}
+            onChange={(e) =>
+              updateConfig({
+                stt_upload_format: e.target.value as typeof config.stt_upload_format,
+              })
+            }
+            className="w-full px-3 py-2.5 bg-bg-secondary border border-border rounded-[10px] text-[13px] text-text-primary outline-none focus:border-border-focus transition-colors"
+          >
+            {STT_UPLOAD_FORMATS.map((format) => (
+              <option key={format.value} value={format.value}>
+                {t(format.labelKey)}
+              </option>
+            ))}
+          </select>
+          <p className="text-[11px] text-text-tertiary mt-1.5">
+            {t('settings.sttUploadFormatHint')}
+          </p>
+        </FormField>
+      )}
 
       <FormField label={t('settings.maxRecordingDuration')}>
         {recordingLimit ? (

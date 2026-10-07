@@ -477,7 +477,14 @@
     "mappingNoMappings": "暂无自定义应用映射",
     "dictationMode": "听写触发方式",
     "escCancel": "按 Esc 取消当前录音",
-    "escCancelHint": "录音、识别或润色过程中按 Esc 会中止本次操作，不会输出任何文字；空闲时 Esc 照常传给应用。"
+    "escCancelHint": "录音、识别或润色过程中按 Esc 会中止本次操作，不会输出任何文字；空闲时 Esc 照常传给应用。",
+    "sttOpenaiModel": "OpenAI 语音识别模型",
+    "sttOpenaiModelHint": "gpt-4o-mini-transcribe 最快；gpt-4o-transcribe 最准确；whisper-1 为旧模型。可直接输入任意模型 ID。",
+    "sttUploadFormat": "上传格式",
+    "sttUploadFormatAuto": "自动（支持时使用 Opus）",
+    "sttUploadFormatOpus": "Ogg/Opus（小文件，48 kbps）",
+    "sttUploadFormatWav": "WAV（未压缩）",
+    "sttUploadFormatHint": "Opus 比 WAV 小约 6 倍；若端点拒绝 Opus，会自动以 WAV 重试一次。"
   },
   "contextFamilies": {
     "email": "邮件",

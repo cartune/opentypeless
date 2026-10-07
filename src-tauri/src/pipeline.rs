@@ -306,6 +306,15 @@ pub(crate) fn should_skip_stt_for_silence(voiced_chunks: u32) -> bool {
     voiced_chunks < MIN_VOICED_CHUNKS_FOR_STT
 }
 
+/// The model override to send for the configured STT provider, if any.
+pub(crate) fn stt_model_override_for(config: &storage::AppConfig) -> Option<String> {
+    if config.stt_provider != "openai-whisper" {
+        return None;
+    }
+    let model = config.stt_openai_model.trim();
+    (!model.is_empty()).then(|| model.to_string())
+}
+
 /// Best-effort model label for the configured STT provider, for history rows.
 fn stt_model_label(config: &storage::AppConfig) -> Option<String> {
     match config.stt_provider.as_str() {
@@ -316,7 +325,8 @@ fn stt_model_label(config: &storage::AppConfig) -> Option<String> {
         "deepgram" => Some("nova-3".to_string()),
         "assemblyai" => Some("universal-3-5-pro".to_string()),
         "cloud" => Some("cloud".to_string()),
-        provider => stt::config::get_whisper_config(provider).map(|cfg| cfg.model.to_string()),
+        provider => stt_model_override_for(config)
+            .or_else(|| stt::config::get_whisper_config(provider).map(|cfg| cfg.model.to_string())),
     }
 }
 
@@ -1260,7 +1270,7 @@ impl PipelineHandle {
         *self
             .preloaded_dictionary
             .lock()
-            .unwrap_or_else(|e| e.into_inner()) = Some(dict_words);
+            .unwrap_or_else(|e| e.into_inner()) = Some(dict_words.clone());
         *self
             .preloaded_correction_rules
             .lock()
@@ -1379,13 +1389,20 @@ impl PipelineHandle {
             .lock()
             .unwrap_or_else(|e| e.into_inner()) = Some(cloud_operation_id.clone());
 
+        let stt_model_override = stt_model_override_for(&config_data);
+        let stt_language = stt::config::normalize_stt_language(
+            &config_data.stt_provider,
+            stt_model_override.as_deref().unwrap_or(""),
+            &config_data.stt_language,
+        );
+        let stt_prompt =
+            stt::prompt::build_stt_prompt(Some(config_data.stt_language.as_str()), &dict_words);
         let stt_config = SttConfig {
             api_key: stt_api_key,
-            language: if config_data.stt_language == "multi" {
-                None
-            } else {
-                Some(config_data.stt_language.clone())
-            },
+            language: stt_language,
+            prompt: stt_prompt,
+            model_override: stt_model_override,
+            upload_format: stt::UploadFormat::from_config_value(&config_data.stt_upload_format),
             smart_format: true,
             sample_rate: 16000,
             resource_id: if config_data.stt_provider == stt::volcengine::VOLCENGINE_DOUBAO_PROVIDER
@@ -2619,10 +2636,14 @@ impl PipelineHandle {
                     already_copied: false,
                     popup_fallback_enabled,
                 };
+                let final_output = llm::post_process::post_process_final_text(
+                    &response.polished_text,
+                    &llm::post_process::PostProcessOptions::default(),
+                );
                 let execution = crate::voice_intent::executor::execute_voice_intent(
                     crate::voice_intent::executor::VoiceExecutionRequest {
                         intent: &voice_intent,
-                        generated_output: &response.polished_text,
+                        generated_output: &final_output,
                         target_guard: &app_ctx.target_guard,
                         selected_text_available,
                         restore_target_before_insert: provider_plan.restore_target_before_insert,
@@ -2653,7 +2674,7 @@ impl PipelineHandle {
                     ),
                 };
                 PolishTextOutcome::with_execution(
-                    response.polished_text,
+                    final_output,
                     elapsed,
                     execution,
                     history_status,

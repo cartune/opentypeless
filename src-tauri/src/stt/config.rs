@@ -20,6 +20,10 @@ pub struct SttProviderConfig {
     pub endpoint: &'static str,
     pub model: &'static str,
     pub extra_fields: &'static [(&'static str, &'static str)],
+    /// The endpoint decodes Ogg/Opus uploads (verified for OpenAI and Groq).
+    pub accepts_ogg_opus: bool,
+    /// The endpoint honours a free-text `prompt` field.
+    pub supports_prompt: bool,
 }
 
 /// Returns the endpoint, model name, and any extra form fields for a given
@@ -30,21 +34,29 @@ pub fn get_whisper_config(provider: &str) -> Option<SttProviderConfig> {
             endpoint: "https://open.bigmodel.cn/api/paas/v4/audio/transcriptions",
             model: "glm-asr-2512",
             extra_fields: &[("stream", "false")],
+            accepts_ogg_opus: false,
+            supports_prompt: false,
         }),
         "openai-whisper" => Some(SttProviderConfig {
             endpoint: "https://api.openai.com/v1/audio/transcriptions",
             model: "whisper-1",
             extra_fields: &[],
+            accepts_ogg_opus: true,
+            supports_prompt: true,
         }),
         "groq-whisper" => Some(SttProviderConfig {
             endpoint: "https://api.groq.com/openai/v1/audio/transcriptions",
             model: "whisper-large-v3-turbo",
             extra_fields: &[],
+            accepts_ogg_opus: true,
+            supports_prompt: true,
         }),
         "siliconflow" => Some(SttProviderConfig {
             endpoint: "https://api.siliconflow.cn/v1/audio/transcriptions",
             model: "FunAudioLLM/SenseVoiceSmall",
             extra_fields: &[],
+            accepts_ogg_opus: false,
+            supports_prompt: false,
         }),
         _ => None,
     }
@@ -93,6 +105,8 @@ pub fn build_custom_whisper_config(
         model: model.to_string(),
         extra_fields: vec![],
         api_key_required: false,
+        accepts_ogg_opus: false,
+        supports_prompt: true,
     })
 }
 
@@ -108,6 +122,57 @@ pub fn build_known_whisper_config(provider: &str) -> Option<WhisperCompatConfig>
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect(),
         api_key_required: true,
+        accepts_ogg_opus: cfg.accepts_ogg_opus,
+        supports_prompt: cfg.supports_prompt,
+    })
+}
+
+/// OpenAI transcription models that accept regional codes such as `zh-tw`.
+/// `whisper-1` only accepts ISO-639-1 (`zh`), verified against the live API.
+pub fn stt_model_accepts_regional_language(model: &str) -> bool {
+    model.trim().to_ascii_lowercase().starts_with("gpt-")
+}
+
+/// Reduce a language tag to its ISO-639-1 base (`zh-TW` -> `zh`).
+fn base_language(language: &str) -> String {
+    language
+        .split(['-', '_'])
+        .next()
+        .unwrap_or(language)
+        .to_ascii_lowercase()
+}
+
+/// Map the configured `stt_language` to what a provider/model combination
+/// actually accepts. `None` means "let the provider auto-detect".
+pub fn normalize_stt_language(provider: &str, model: &str, language: &str) -> Option<String> {
+    let language = language.trim();
+    if language.is_empty() || language.eq_ignore_ascii_case("multi") {
+        return None;
+    }
+    let lower = language.to_ascii_lowercase();
+    let is_regional = lower.contains('-') || lower.contains('_');
+    Some(match provider {
+        // Whisper-compatible HTTP uploads.
+        "openai-whisper" => {
+            if is_regional && !stt_model_accepts_regional_language(model) {
+                base_language(&lower)
+            } else {
+                lower
+            }
+        }
+        "groq-whisper" | "siliconflow" | "glm-asr" | CUSTOM_WHISPER_PROVIDER | "cloud" => {
+            base_language(&lower)
+        }
+        // Streaming providers with their own tag conventions.
+        "deepgram" | APPLE_SPEECH_PROVIDER => language.to_string(),
+        "volcengine-doubao" => {
+            if lower.starts_with("zh") {
+                "zh-CN".to_string()
+            } else {
+                base_language(&lower)
+            }
+        }
+        _ => base_language(&lower),
     })
 }
 
@@ -262,5 +327,77 @@ mod tests {
     fn test_build_custom_whisper_config_requires_model() {
         let err = build_custom_whisper_config("http://localhost:8000/v1", "  ").unwrap_err();
         assert!(err.contains("Model is required"));
+    }
+}
+
+#[cfg(test)]
+mod language_tests {
+    use super::*;
+
+    #[test]
+    fn multi_and_empty_mean_auto_detect() {
+        assert_eq!(
+            normalize_stt_language("openai-whisper", "whisper-1", "multi"),
+            None
+        );
+        assert_eq!(
+            normalize_stt_language("openai-whisper", "whisper-1", ""),
+            None
+        );
+    }
+
+    #[test]
+    fn whisper_1_only_gets_iso_639_1() {
+        assert_eq!(
+            normalize_stt_language("openai-whisper", "whisper-1", "zh-TW").as_deref(),
+            Some("zh")
+        );
+        assert_eq!(
+            normalize_stt_language("openai-whisper", "whisper-1", "en").as_deref(),
+            Some("en")
+        );
+    }
+
+    #[test]
+    fn gpt_transcribe_models_keep_regional_codes() {
+        for model in [
+            "gpt-4o-mini-transcribe",
+            "gpt-4o-transcribe",
+            "gpt-transcribe",
+        ] {
+            assert_eq!(
+                normalize_stt_language("openai-whisper", model, "zh-TW").as_deref(),
+                Some("zh-tw"),
+                "{model}"
+            );
+        }
+    }
+
+    #[test]
+    fn other_whisper_compat_providers_use_base_language() {
+        assert_eq!(
+            normalize_stt_language("groq-whisper", "whisper-large-v3-turbo", "zh-TW").as_deref(),
+            Some("zh")
+        );
+        assert_eq!(
+            normalize_stt_language("custom-whisper", "large-v3", "zh-TW").as_deref(),
+            Some("zh")
+        );
+    }
+
+    #[test]
+    fn streaming_providers_keep_or_remap_regional_codes() {
+        assert_eq!(
+            normalize_stt_language("deepgram", "nova-3", "zh-TW").as_deref(),
+            Some("zh-TW")
+        );
+        assert_eq!(
+            normalize_stt_language("apple-speech", "", "zh-TW").as_deref(),
+            Some("zh-TW")
+        );
+        assert_eq!(
+            normalize_stt_language("volcengine-doubao", "", "zh-TW").as_deref(),
+            Some("zh-CN")
+        );
     }
 }

@@ -95,6 +95,7 @@ async fn check_volcengine_doubao_connection(
         operation_id: None,
         managed_audio: None,
         provider_region: None,
+        ..stt::SttConfig::default()
     };
     provider.connect(&config).await.map_err(|e| e.to_string())?;
     let _ = provider.disconnect().await;
@@ -115,6 +116,7 @@ async fn check_aliyun_qwen3_connection(
         operation_id: None,
         managed_audio: None,
         provider_region: region,
+        ..stt::SttConfig::default()
     };
     provider
         .connect(&config)

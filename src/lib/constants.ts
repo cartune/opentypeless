@@ -187,7 +187,8 @@ export function llmProviderRequiresApiKey(provider: string): boolean {
 
 export const LANGUAGES: { value: string; label?: string; labelKey?: string }[] = [
   { value: 'multi', labelKey: 'settings.autoDetect' },
-  { value: 'zh', label: '中文' },
+  { value: 'zh-TW', label: '繁體中文（台灣）' },
+  { value: 'zh', label: '简体中文' },
   { value: 'en', label: 'English' },
   { value: 'ja', label: '日本語' },
   { value: 'ko', label: '한국어' },
@@ -231,3 +232,17 @@ export const TARGET_LANGUAGES: { value: string; label: string; labelKey?: string
   { value: 'id', label: 'Bahasa Indonesia' },
   { value: 'ms', label: 'Bahasa Melayu' },
 ]
+
+/** OpenAI transcription models offered as suggestions; any model id can be typed. */
+export const OPENAI_STT_MODEL_SUGGESTIONS = [
+  'gpt-4o-mini-transcribe',
+  'gpt-4o-transcribe',
+  'gpt-transcribe',
+  'whisper-1',
+] as const
+
+export const STT_UPLOAD_FORMATS = [
+  { value: 'auto', labelKey: 'settings.sttUploadFormatAuto' },
+  { value: 'opus', labelKey: 'settings.sttUploadFormatOpus' },
+  { value: 'wav', labelKey: 'settings.sttUploadFormatWav' },
+] as const

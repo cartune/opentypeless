@@ -2,7 +2,8 @@ use async_trait::async_trait;
 
 use crate::error::AppError;
 
-use super::{SttConfig, SttProvider, TranscriptEvent};
+use super::managed_audio::{ManagedAudioEncoderWorker, ManagedAudioEncodingConfig};
+use super::{SttConfig, SttProvider, TranscriptEvent, UploadFormat};
 
 /// Configuration for a Whisper-compatible HTTP file-upload STT provider.
 #[derive(Debug)]
@@ -14,6 +15,98 @@ pub struct WhisperCompatConfig {
     pub extra_fields: Vec<(String, String)>,
     /// Local OpenAI-compatible servers often do not require authentication.
     pub api_key_required: bool,
+    /// The endpoint decodes Ogg/Opus uploads; otherwise WAV is sent.
+    pub accepts_ogg_opus: bool,
+    /// The endpoint honours a free-text `prompt` field.
+    pub supports_prompt: bool,
+}
+
+/// Ogg byte cap for live Opus encoding of a file upload: far above any real
+/// recording (12.5 min at 48 kbit/s is ~4.5 MB) but below the 25 MB API limit.
+const OPUS_UPLOAD_MAX_BYTES: u64 = 20 * 1024 * 1024;
+
+/// Decide whether a recording should be uploaded as Ogg/Opus.
+pub fn should_upload_opus(format: UploadFormat, accepts_ogg_opus: bool) -> bool {
+    match format {
+        UploadFormat::Wav => false,
+        UploadFormat::Opus | UploadFormat::Auto => accepts_ogg_opus,
+    }
+}
+
+/// The fields of one transcription request, independent of reqwest so the
+/// decision logic can be unit tested.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TranscriptionRequestFields {
+    pub model: String,
+    pub language: Option<String>,
+    pub prompt: Option<String>,
+    pub file_name: &'static str,
+    pub mime_type: &'static str,
+}
+
+pub fn transcription_request_fields(
+    provider: &WhisperCompatConfig,
+    config: &SttConfig,
+    opus: bool,
+) -> TranscriptionRequestFields {
+    let model = config
+        .model_override
+        .as_deref()
+        .map(str::trim)
+        .filter(|m| !m.is_empty())
+        .unwrap_or(provider.model.as_str())
+        .to_string();
+    let language = config
+        .language
+        .as_deref()
+        .filter(|lang| *lang != "multi" && !lang.trim().is_empty())
+        .map(|lang| lang.to_string());
+    let prompt = if provider.supports_prompt {
+        config
+            .prompt
+            .as_deref()
+            .map(str::trim)
+            .filter(|p| !p.is_empty())
+            .map(|p| p.to_string())
+    } else {
+        None
+    };
+    let (file_name, mime_type) = if opus {
+        ("audio.ogg", "audio/ogg")
+    } else {
+        ("audio.wav", "audio/wav")
+    };
+    TranscriptionRequestFields {
+        model,
+        language,
+        prompt,
+        file_name,
+        mime_type,
+    }
+}
+
+/// A 4xx that looks like the endpoint rejected the container/codec rather
+/// than the request itself. Used to retry an Opus upload as WAV once.
+pub fn is_unsupported_format_rejection(status: u16, body: &str) -> bool {
+    if !(400..500).contains(&status) || status == 401 || status == 403 || status == 429 {
+        return false;
+    }
+    let body = body.to_ascii_lowercase();
+    if body.contains("language") {
+        return false;
+    }
+    [
+        "format",
+        "codec",
+        "decode",
+        "unsupported",
+        "invalid file",
+        "file type",
+        "ogg",
+        "opus",
+    ]
+    .iter()
+    .any(|needle| body.contains(needle))
 }
 
 /// Max audio buffer: ~24 MB PCM ≈ 12.5 min at 16kHz 16-bit mono.
@@ -27,6 +120,9 @@ pub struct WhisperCompatProvider {
     stt_config: Option<SttConfig>,
     audio_buffer: Vec<u8>,
     client: reqwest::Client,
+    /// Live Ogg/Opus encoder fed during recording so stop() only finalizes.
+    opus_worker: Option<ManagedAudioEncoderWorker>,
+    opus_failed: bool,
 }
 
 impl WhisperCompatProvider {
@@ -36,6 +132,8 @@ impl WhisperCompatProvider {
             stt_config: None,
             audio_buffer: Vec::new(),
             client: reqwest::Client::new(),
+            opus_worker: None,
+            opus_failed: false,
         }
     }
 
@@ -45,6 +143,64 @@ impl WhisperCompatProvider {
             stt_config: None,
             audio_buffer: Vec::new(),
             client,
+            opus_worker: None,
+            opus_failed: false,
+        }
+    }
+
+    fn opus_encoding_config() -> ManagedAudioEncodingConfig {
+        ManagedAudioEncodingConfig {
+            preferred_wav_max_bytes: 0,
+            max_audio_bytes: OPUS_UPLOAD_MAX_BYTES,
+            ..ManagedAudioEncodingConfig::default()
+        }
+    }
+
+    fn start_opus_worker(&mut self, config: &SttConfig) {
+        self.opus_worker = None;
+        self.opus_failed = false;
+        if !should_upload_opus(config.upload_format, self.provider_config.accepts_ogg_opus) {
+            return;
+        }
+        if config.sample_rate != 16_000 {
+            tracing::warn!(
+                "{}: Opus upload requires 16 kHz input; using WAV",
+                self.provider_config.provider_name
+            );
+            return;
+        }
+        match ManagedAudioEncoderWorker::start(
+            super::cloud::stream_serial(config.operation_id.as_deref()),
+            Self::opus_encoding_config(),
+        ) {
+            Ok(worker) => self.opus_worker = Some(worker),
+            Err(error) => {
+                tracing::warn!(
+                    "{}: Opus encoder failed to start; using WAV: {}",
+                    self.provider_config.provider_name,
+                    error
+                );
+                self.opus_failed = true;
+            }
+        }
+    }
+
+    /// Finalize the live Opus stream, or `None` when WAV must be used.
+    async fn finish_opus(&mut self) -> Option<Vec<u8>> {
+        let worker = self.opus_worker.take()?;
+        if self.opus_failed {
+            return None;
+        }
+        match worker.finish().await {
+            Ok(encoded) => Some(encoded.bytes),
+            Err(error) => {
+                tracing::warn!(
+                    "{}: Opus finalize failed; falling back to WAV: {}",
+                    self.provider_config.provider_name,
+                    error
+                );
+                None
+            }
         }
     }
 
@@ -87,9 +243,15 @@ impl SttProvider for WhisperCompatProvider {
         }
         self.stt_config = Some(config.clone());
         self.audio_buffer.clear();
+        self.start_opus_worker(config);
         tracing::info!(
-            "{} provider ready (buffering mode)",
-            self.provider_config.provider_name
+            "{} provider ready (buffering mode, upload={})",
+            self.provider_config.provider_name,
+            if self.opus_worker.is_some() {
+                "ogg/opus"
+            } else {
+                "wav"
+            }
         );
         Ok(())
     }
@@ -102,6 +264,17 @@ impl SttProvider for WhisperCompatProvider {
             )));
         }
         self.audio_buffer.extend_from_slice(chunk);
+        if let Some(worker) = self.opus_worker.as_ref() {
+            if let Err(error) = worker.try_send_pcm(chunk) {
+                tracing::warn!(
+                    "{}: Opus worker fell behind; retaining PCM for a WAV upload: {}",
+                    self.provider_config.provider_name,
+                    error
+                );
+                self.opus_failed = true;
+                self.opus_worker.take();
+            }
+        }
         Ok(())
     }
 
@@ -118,6 +291,7 @@ impl SttProvider for WhisperCompatProvider {
         };
 
         if self.audio_buffer.is_empty() {
+            self.opus_worker.take();
             tracing::info!(
                 "{}: no audio buffered, skipping",
                 self.provider_config.provider_name
@@ -125,31 +299,53 @@ impl SttProvider for WhisperCompatProvider {
             return Ok(None);
         }
 
-        let audio_len_secs = self.audio_buffer.len() as f64 / (config.sample_rate as f64 * 2.0);
-        let wav_data = Self::build_wav(&self.audio_buffer, config.sample_rate);
-        self.audio_buffer.clear();
+        let pcm = std::mem::take(&mut self.audio_buffer);
+        let audio_len_secs = pcm.len() as f64 / (config.sample_rate as f64 * 2.0);
+        let encode_start = std::time::Instant::now();
+        let mut opus_data = self.finish_opus().await;
+        let mut wav_data = if opus_data.is_none() {
+            Some(Self::build_wav(&pcm, config.sample_rate))
+        } else {
+            None
+        };
+        let mut fields =
+            transcription_request_fields(&self.provider_config, &config, opus_data.is_some());
         tracing::info!(
-            "{}: sending {:.1}s of audio for transcription",
+            "{}: sending {:.1}s of audio as {} ({} bytes, encode {}ms, model {})",
             self.provider_config.provider_name,
-            audio_len_secs
+            audio_len_secs,
+            fields.mime_type,
+            opus_data
+                .as_ref()
+                .or(wav_data.as_ref())
+                .map(Vec::len)
+                .unwrap_or(0),
+            encode_start.elapsed().as_millis(),
+            fields.model
         );
 
         let mut attempt = 0u32;
         loop {
-            let file_part = reqwest::multipart::Part::bytes(wav_data.clone())
-                .file_name("audio.wav")
-                .mime_str("audio/wav")
+            let payload = match opus_data.as_ref() {
+                Some(bytes) => bytes.clone(),
+                None => wav_data
+                    .get_or_insert_with(|| Self::build_wav(&pcm, config.sample_rate))
+                    .clone(),
+            };
+            let file_part = reqwest::multipart::Part::bytes(payload)
+                .file_name(fields.file_name)
+                .mime_str(fields.mime_type)
                 .map_err(|e| AppError::Config(e.to_string()))?;
 
             let mut form = reqwest::multipart::Form::new()
-                .text("model", self.provider_config.model.to_string())
+                .text("model", fields.model.clone())
                 .part("file", file_part);
 
-            // Language hint (OpenAI/Groq support `language` field, others use `prompt`)
-            if let Some(ref lang) = config.language {
-                if lang != "multi" {
-                    form = form.text("language", lang.clone());
-                }
+            if let Some(lang) = fields.language.clone() {
+                form = form.text("language", lang);
+            }
+            if let Some(prompt) = fields.prompt.clone() {
+                form = form.text("prompt", prompt);
             }
 
             // Provider-specific extra fields
@@ -186,6 +382,18 @@ impl SttProvider for WhisperCompatProvider {
                         );
 
                         return Ok(if text.is_empty() { None } else { Some(text) });
+                    } else if opus_data.is_some()
+                        && is_unsupported_format_rejection(status.as_u16(), &body)
+                    {
+                        tracing::warn!(
+                            "{}: endpoint rejected Ogg/Opus ({}); retrying once as WAV",
+                            self.provider_config.provider_name,
+                            status
+                        );
+                        opus_data = None;
+                        fields =
+                            transcription_request_fields(&self.provider_config, &config, false);
+                        continue;
                     } else if status.as_u16() >= 500 && attempt < 2 {
                         let truncate_at = body
                             .char_indices()
@@ -262,6 +470,8 @@ mod tests {
             model: "test-model".to_string(),
             extra_fields: vec![],
             api_key_required: false,
+            accepts_ogg_opus: false,
+            supports_prompt: true,
         });
 
         let result = provider
@@ -274,6 +484,7 @@ mod tests {
                 operation_id: None,
                 managed_audio: None,
                 provider_region: None,
+                ..SttConfig::default()
             })
             .await;
 
@@ -288,6 +499,8 @@ mod tests {
             model: "test-model".to_string(),
             extra_fields: vec![],
             api_key_required: true,
+            accepts_ogg_opus: false,
+            supports_prompt: true,
         });
 
         let result = tokio::time::timeout(
@@ -297,5 +510,83 @@ mod tests {
         .await;
 
         assert!(result.is_err());
+    }
+}
+
+#[cfg(test)]
+mod upload_tests {
+    use super::*;
+
+    fn provider(accepts_ogg_opus: bool, supports_prompt: bool) -> WhisperCompatConfig {
+        WhisperCompatConfig {
+            provider_name: "test".to_string(),
+            endpoint: "https://example.invalid/v1/audio/transcriptions".to_string(),
+            model: "whisper-1".to_string(),
+            extra_fields: vec![],
+            api_key_required: true,
+            accepts_ogg_opus,
+            supports_prompt,
+        }
+    }
+
+    #[test]
+    fn opus_only_when_provider_accepts_it() {
+        assert!(should_upload_opus(UploadFormat::Auto, true));
+        assert!(!should_upload_opus(UploadFormat::Auto, false));
+        assert!(!should_upload_opus(UploadFormat::Wav, true));
+        assert!(should_upload_opus(UploadFormat::Opus, true));
+        assert!(!should_upload_opus(UploadFormat::Opus, false));
+    }
+
+    #[test]
+    fn request_fields_use_override_model_language_and_prompt() {
+        let config = SttConfig {
+            language: Some("zh-tw".to_string()),
+            prompt: Some("以下是繁體中文。".to_string()),
+            model_override: Some("gpt-4o-mini-transcribe".to_string()),
+            ..SttConfig::default()
+        };
+        let fields = transcription_request_fields(&provider(true, true), &config, true);
+        assert_eq!(fields.model, "gpt-4o-mini-transcribe");
+        assert_eq!(fields.language.as_deref(), Some("zh-tw"));
+        assert_eq!(fields.prompt.as_deref(), Some("以下是繁體中文。"));
+        assert_eq!(fields.file_name, "audio.ogg");
+        assert_eq!(fields.mime_type, "audio/ogg");
+    }
+
+    #[test]
+    fn request_fields_fall_back_to_provider_model_and_wav() {
+        let config = SttConfig {
+            language: Some("multi".to_string()),
+            prompt: Some("hint".to_string()),
+            model_override: Some("   ".to_string()),
+            ..SttConfig::default()
+        };
+        let fields = transcription_request_fields(&provider(false, false), &config, false);
+        assert_eq!(fields.model, "whisper-1");
+        assert_eq!(fields.language, None);
+        assert_eq!(fields.prompt, None, "prompt dropped when unsupported");
+        assert_eq!(fields.file_name, "audio.wav");
+    }
+
+    #[test]
+    fn format_rejections_are_detected_but_auth_errors_are_not() {
+        assert!(is_unsupported_format_rejection(
+            400,
+            "Unsupported file format: ogg"
+        ));
+        assert!(is_unsupported_format_rejection(
+            415,
+            "could not decode audio"
+        ));
+        assert!(!is_unsupported_format_rejection(
+            401,
+            "invalid api key format"
+        ));
+        assert!(!is_unsupported_format_rejection(
+            400,
+            "Invalid language 'zh-tw'. Language parameter must be specified in ISO-639-1 format."
+        ));
+        assert!(!is_unsupported_format_rejection(500, "format"));
     }
 }

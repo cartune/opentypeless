@@ -20,6 +20,8 @@ vi.mock('react-i18next', () => ({
         'settings.connectionFailed': 'Connection failed',
         'settings.storedLocally': 'Stored locally',
         'settings.sttLanguage': 'STT Language',
+        'settings.sttOpenaiModel': 'OpenAI transcription model',
+        'settings.sttUploadFormat': 'Upload format',
         'settings.maxRecordingDuration': 'Single recording duration',
         'recordingLimits.auto': 'Auto (recommended, up to {{duration}})',
         'recordingLimits.custom': 'Custom',
@@ -102,6 +104,8 @@ const mockAppStore = {
     stt_custom_model: 'Systran/faster-whisper-large-v3',
     stt_volcengine_resource_id: 'volc.seedasr.sauc.duration',
     stt_aliyun_qwen_region: 'china-mainland' as 'china-mainland' | 'international',
+    stt_openai_model: 'whisper-1',
+    stt_upload_format: 'auto' as 'auto' | 'wav' | 'opus',
     recording_limit_mode: 'auto' as 'auto' | 'custom',
     custom_recording_limit_seconds: 600,
     max_recording_seconds: 600,
@@ -167,6 +171,8 @@ describe('SttPane', () => {
       stt_custom_model: 'Systran/faster-whisper-large-v3',
       stt_volcengine_resource_id: 'volc.seedasr.sauc.duration',
       stt_aliyun_qwen_region: 'china-mainland',
+      stt_openai_model: 'whisper-1',
+      stt_upload_format: 'auto',
       recording_limit_mode: 'auto',
       custom_recording_limit_seconds: 600,
       max_recording_seconds: 600,
@@ -223,6 +229,25 @@ describe('SttPane', () => {
   })
 
   describe('Provider selection', () => {
+    it('shows the OpenAI model and upload format controls only for the OpenAI provider', () => {
+      render(<SttPane />)
+      expect(screen.queryByLabelText('OpenAI transcription model')).toBeNull()
+      expect(screen.queryByLabelText('Upload format')).toBeNull()
+      cleanup()
+
+      mockAppStore.config = { ...mockAppStore.config, stt_provider: 'openai-whisper' }
+      render(<SttPane />)
+      const model = screen.getByLabelText('OpenAI transcription model') as HTMLInputElement
+      expect(model.value).toBe('whisper-1')
+      fireEvent.change(model, { target: { value: 'gpt-4o-mini-transcribe' } })
+      expect(mockAppStore.updateConfig).toHaveBeenCalledWith({
+        stt_openai_model: 'gpt-4o-mini-transcribe',
+      })
+      const format = screen.getByLabelText('Upload format') as HTMLSelectElement
+      fireEvent.change(format, { target: { value: 'wav' } })
+      expect(mockAppStore.updateConfig).toHaveBeenCalledWith({ stt_upload_format: 'wav' })
+    })
+
     it('renders provider dropdown with current value', () => {
       render(<SttPane />)
       const selects = screen.getAllByRole('combobox')

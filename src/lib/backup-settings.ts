@@ -51,6 +51,8 @@ type SafeScalarKey =
   | 'ui_language'
   | 'capsule_auto_hide'
   | 'esc_cancel_enabled'
+  | 'stt_openai_model'
+  | 'stt_upload_format'
 
 export type BackupSettings = Partial<Pick<AppConfig, SafeScalarKey>> & {
   voice_routing_flags?: VoiceRoutingFlags
@@ -181,6 +183,8 @@ export function createBackupSettings(config: AppConfig): BackupSettings {
     ui_language: config.ui_language,
     capsule_auto_hide: config.capsule_auto_hide,
     esc_cancel_enabled: config.esc_cancel_enabled,
+    stt_openai_model: config.stt_openai_model,
+    stt_upload_format: config.stt_upload_format,
   }
 
   if (config.voice_routing_flags) {
@@ -236,6 +240,8 @@ const SAFE_SCALAR_KEYS: readonly SafeScalarKey[] = [
   'ui_language',
   'capsule_auto_hide',
   'esc_cancel_enabled',
+  'stt_openai_model',
+  'stt_upload_format',
 ]
 
 function isRecord(value: unknown): value is Record<string, unknown> {

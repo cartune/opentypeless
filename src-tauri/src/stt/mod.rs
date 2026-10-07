@@ -6,6 +6,7 @@ pub mod cloud;
 pub mod config;
 pub mod deepgram;
 pub mod managed_audio;
+pub mod prompt;
 pub mod volcengine;
 pub mod whisper_compat;
 
@@ -15,6 +16,35 @@ use serde::{Deserialize, Serialize};
 use crate::error::AppError;
 
 use whisper_compat::{WhisperCompatConfig, WhisperCompatProvider};
+
+/// How file-upload STT providers should package the recording.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum UploadFormat {
+    /// Ogg/Opus when the provider accepts it, WAV otherwise.
+    #[default]
+    Auto,
+    Wav,
+    Opus,
+}
+
+impl UploadFormat {
+    pub fn from_config_value(value: &str) -> Self {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "wav" => Self::Wav,
+            "opus" | "ogg" => Self::Opus,
+            _ => Self::Auto,
+        }
+    }
+
+    pub fn as_config_value(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::Wav => "wav",
+            Self::Opus => "opus",
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SttConfig {
@@ -26,6 +56,12 @@ pub struct SttConfig {
     pub operation_id: Option<String>,
     pub managed_audio: Option<managed_audio::ManagedAudioEncodingConfig>,
     pub provider_region: Option<String>,
+    /// Vocabulary / script hint for providers that accept a text prompt
+    /// (Whisper-family `prompt`). Built by `prompt::build_stt_prompt`.
+    pub prompt: Option<String>,
+    /// Overrides the provider's default model (e.g. `gpt-4o-mini-transcribe`).
+    pub model_override: Option<String>,
+    pub upload_format: UploadFormat,
 }
 
 impl Default for SttConfig {
@@ -39,6 +75,9 @@ impl Default for SttConfig {
             operation_id: None,
             managed_audio: None,
             provider_region: None,
+            prompt: None,
+            model_override: None,
+            upload_format: UploadFormat::Auto,
         }
     }
 }

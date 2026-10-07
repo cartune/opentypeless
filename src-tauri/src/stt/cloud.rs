@@ -131,7 +131,7 @@ struct CloudAudioPayload {
     mime_type: &'static str,
 }
 
-fn stream_serial(operation_id: Option<&str>) -> u32 {
+pub(crate) fn stream_serial(operation_id: Option<&str>) -> u32 {
     let mut hash = 0x811c_9dc5u32;
     for byte in operation_id.unwrap_or("opentypeless-cloud-stt").bytes() {
         hash ^= u32::from(byte);
@@ -563,6 +563,7 @@ mod tests {
             operation_id: Some("operation-1".to_string()),
             managed_audio: Some(managed_config()),
             provider_region: None,
+            ..SttConfig::default()
         }
     }
 
