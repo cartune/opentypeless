@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "OpenTypeless",
+    "name": "Typelazy",
     "tagline": "Saisie vocale IA"
   },
   "nav": {
@@ -61,7 +61,7 @@
     "openLlmSettings": "Réglages"
   },
   "home": {
-    "welcome": "Bienvenue dans OpenTypeless",
+    "welcome": "Bienvenue dans Typelazy",
     "description": "Maintenez {{hotkey}} pour démarrer l'enregistrement vocal. Votre parole sera transcrite et éventuellement améliorée par l'IA.",
     "totalRecordings": "Enregistrements totaux",
     "today": "Aujourd'hui",
@@ -127,11 +127,11 @@
     },
     "steps": {
       "welcome": "Bienvenue",
-      "welcomeSub": "Configurez OpenTypeless en quelques étapes",
+      "welcomeSub": "Configurez Typelazy en quelques étapes",
       "signIn": "Connexion",
       "signInSub": "Connectez votre compte pour commencer",
       "chooseMode": "Choisir le mode",
-      "chooseModeSub": "Sélectionnez comment vous souhaitez utiliser OpenTypeless",
+      "chooseModeSub": "Sélectionnez comment vous souhaitez utiliser Typelazy",
       "speechRecognition": "Reconnaissance vocale",
       "speechRecognitionSub": "Configurez votre service STT",
       "aiPolish": "Amélioration IA",
@@ -196,7 +196,7 @@
       "appWritingModesSub": "Modifiez dans Scenes les modes par defaut pour e-mail, chat, documents et autres formats."
     },
     "permissions": {
-      "subtitle": "OpenTypeless demande l’accès seulement quand une fonction en a besoin.",
+      "subtitle": "Typelazy demande l’accès seulement quand une fonction en a besoin.",
       "microphone": "Microphone",
       "microphoneDesc": "Capturer votre voix.",
       "textOutput": "Sortie texte",
@@ -363,7 +363,7 @@
     "test": "Tester",
     "connectionSuccess": "Connexion réussie",
     "connectionFailed": "Échec de la connexion",
-    "storedLocally": "Stockée localement sur votre appareil. Jamais envoyée aux serveurs OpenTypeless.",
+    "storedLocally": "Stockée localement sur votre appareil. Jamais envoyée aux serveurs Typelazy.",
     "credentialSaveFailed": "Impossible d’enregistrer la clé API dans le coffre système. {{details}}",
     "sttLanguage": "Langue",
     "model": "Modèle",
@@ -484,7 +484,15 @@
     "sttUploadFormatAuto": "Auto (Opus when supported)",
     "sttUploadFormatOpus": "Ogg/Opus (small, 48 kbps)",
     "sttUploadFormatWav": "WAV (uncompressed)",
-    "sttUploadFormatHint": "Opus uploads are about 6x smaller than WAV. If the endpoint rejects Opus the app retries once as WAV."
+    "sttUploadFormatHint": "Opus uploads are about 6x smaller than WAV. If the endpoint rejects Opus the app retries once as WAV.",
+    "chineseScript": "Chinese output script",
+    "chineseScriptAuto": "Auto (Traditional when the STT or UI language is 繁體中文)",
+    "chineseScriptTraditional": "Traditional Chinese (台灣用語)",
+    "chineseScriptSimplified": "Simplified Chinese",
+    "chineseScriptPreserve": "Keep as spoken",
+    "chineseScriptHint": "Traditional output is enforced twice: the AI is instructed to write Traditional, and the final text is converted with OpenCC (s2twp) before it is typed.",
+    "correctionExactApply": "Apply correction rules exactly",
+    "correctionExactApplyHint": "Besides hinting the AI, replace each rule’s pattern literally in the final text (case-insensitive for Latin text)."
   },
   "contextFamilies": {
     "email": "Email",
@@ -539,7 +547,8 @@
     "importTooLarge": "Le fichier dépasse 1 Mio",
     "importFailed": "Impossible d'importer le dictionnaire",
     "importComplete": "{{count}} entrées importées",
-    "exportFailed": "Impossible d'exporter le dictionnaire"
+    "exportFailed": "Impossible d'exporter le dictionnaire",
+    "howItWorks": "Words are sent to speech recognition as vocabulary hints and to the AI as required spellings. Add a “sounds like” pronunciation for terms that are often misheard. Correction rules replace a misheard phrase with the right one."
   },
   "scenes": {
     "signInToBrowse": "Connectez-vous pour parcourir les packs de scènes.",

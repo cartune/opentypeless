@@ -31,6 +31,9 @@ use tracing_subscriber::EnvFilter;
 use std::sync::{Arc, Mutex};
 
 /// Default cloud API base URL. Override with the `API_BASE_URL` environment variable.
+/// Display name shown in the tray tooltip and window title (fork name).
+pub const APP_DISPLAY_NAME: &str = "Typelazy";
+
 pub const DEFAULT_API_BASE_URL: &str = "https://www.opentypeless.com";
 pub const CLIENT_VERSION_HEADER: &str = "X-OpenTypeless-Version";
 const HTTP_POOL_IDLE_TIMEOUT_SECS: u64 = 10 * 60;
@@ -1006,7 +1009,7 @@ pub fn run() {
                         .clone(),
                 )
                 .menu(&tray_menu)
-                .tooltip("OpenTypeless")
+                .tooltip(APP_DISPLAY_NAME)
                 .on_menu_event(move |app, event| match event.id.as_ref() {
                     "quit" => {
                         app.exit(0);

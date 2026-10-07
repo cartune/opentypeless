@@ -73,7 +73,7 @@ describe('appStore', () => {
       expect(config.polish_enabled).toBe(true)
       expect(config.polish_style).toBe('clean')
       expect(config.polish_custom_prompt).toBe('')
-      expect(config.polish_chinese_script).toBe('preserve')
+      expect(config.polish_chinese_script).toBe('auto')
       expect(config.custom_scenes).toEqual([])
       expect(config.active_scene).toBeNull()
       expect(config.translation).toEqual({ targets: ['en'], active_target: 'en' })

@@ -96,9 +96,24 @@ export function GeneralPane() {
     !accessibilityTrusted &&
     hotkeyRegistrationError?.includes('Accessibility permission may be denied'),
   )
-  const dictationSpecialOptions = isMac ? [{ value: 'Fn', label: 'Fn' }] : []
-  const askSpecialOptions = isMac ? [{ value: 'Fn+Space', label: 'Fn + Space' }] : []
-  const translateSpecialOptions = isMac ? [{ value: 'Fn+LeftShift', label: 'Fn + Left Shift' }] : []
+  const dictationSpecialOptions = isMac
+    ? [
+        { value: 'Fn', label: 'Fn' },
+        { value: 'Option', label: 'Option (⌥)' },
+      ]
+    : []
+  const askSpecialOptions = isMac
+    ? [
+        { value: 'Fn+Space', label: 'Fn + Space' },
+        { value: 'Option+Space', label: 'Option + Space' },
+      ]
+    : []
+  const translateSpecialOptions = isMac
+    ? [
+        { value: 'Fn+LeftShift', label: 'Fn + Left Shift' },
+        { value: 'Option+LeftShift', label: 'Option + Left Shift' },
+      ]
+    : []
   const dictationBindings = config.hotkeys.dictationBindings?.length
     ? config.hotkeys.dictationBindings
     : [config.hotkeys.dictation]

@@ -1,7 +1,8 @@
 // App metadata
 export const UI_LANGUAGES = [
   { value: 'en', label: 'English' },
-  { value: 'zh', label: '中文' },
+  { value: 'zh-TW', label: '繁體中文' },
+  { value: 'zh', label: '简体中文' },
   { value: 'ja', label: '日本語' },
   { value: 'ko', label: '한국어' },
   { value: 'fr', label: 'Français' },
@@ -12,7 +13,7 @@ export const UI_LANGUAGES = [
   { value: 'it', label: 'Italiano' },
 ] as const
 
-export const APP_NAME = 'OpenTypeless'
+export const APP_NAME = 'Typelazy'
 export const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? 'v1.1.61'
 export const CLIENT_VERSION_HEADER = 'X-OpenTypeless-Version'
 export const APP_VERSION_HEADER_VALUE = APP_VERSION.replace(/^v/i, '')

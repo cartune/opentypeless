@@ -24,7 +24,7 @@ Vite 前端熱更新；Rust 改動會重編（約 1-2 分鐘）。這是真的 a
 ```bash
 npm run tauri build -- --debug --bundles app \
   --config '{"bundle":{"createUpdaterArtifacts":false,"macOS":{"signingIdentity":"OpenTypeless Dev"}}}'
-open src-tauri/target/debug/bundle/macos/OpenTypeless.app
+open "src-tauri/target/debug/bundle/macos/Typelazy.app"
 ```
 
 `signingIdentity` 用 `--config` 覆蓋而不是寫進 `tauri.conf.json`，因為 CI 和其他機器沒有這張憑證。
@@ -35,7 +35,7 @@ open src-tauri/target/debug/bundle/macos/OpenTypeless.app
 npm run tauri build -- --bundles app,dmg --config '{"bundle":{"createUpdaterArtifacts":false}}'
 ```
 
-產物在 `src-tauri/target/release/bundle/`。沒有 Apple 簽章的 app 第一次打開要在系統設定允許，或 `xattr -dr com.apple.quarantine OpenTypeless.app`。
+產物在 `src-tauri/target/release/bundle/`。沒有 Apple 簽章的 app 第一次打開要在系統設定允許，或 `xattr -dr com.apple.quarantine Typelazy.app`。
 
 ## 自動化閘門（每個 milestone 合併前）
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../stores/appStore'
-import type { PolishStyle } from '../../stores/appStore'
+import type { PolishStyle, PolishChineseScript } from '../../stores/appStore'
 import { hasManagedCloudAccess, useAuthStore } from '../../stores/authStore'
 import { LLM_PROVIDERS, LLM_DEFAULT_CONFIG, llmProviderRequiresApiKey } from '../../lib/constants'
 import {
@@ -521,6 +521,25 @@ export function LlmPane() {
             <option value="structured">{t('settings.polishStyleStructured')}</option>
             <option value="professional">{t('settings.polishStyleProfessional')}</option>
           </select>
+        </FormField>
+      )}
+
+      {config.polish_enabled && (
+        <FormField label={t('settings.chineseScript')}>
+          <select
+            aria-label={t('settings.chineseScript')}
+            value={config.polish_chinese_script}
+            onChange={(e) =>
+              updateConfig({ polish_chinese_script: e.target.value as PolishChineseScript })
+            }
+            className="w-full px-3 py-2.5 bg-bg-secondary border border-border rounded-[10px] text-[13px] text-text-primary outline-none focus:border-border-focus transition-colors"
+          >
+            <option value="auto">{t('settings.chineseScriptAuto')}</option>
+            <option value="traditional">{t('settings.chineseScriptTraditional')}</option>
+            <option value="simplified">{t('settings.chineseScriptSimplified')}</option>
+            <option value="preserve">{t('settings.chineseScriptPreserve')}</option>
+          </select>
+          <p className="text-[11px] text-text-tertiary mt-1.5">{t('settings.chineseScriptHint')}</p>
         </FormField>
       )}
 

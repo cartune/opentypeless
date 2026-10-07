@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "OpenTypeless",
+    "name": "Typelazy",
     "tagline": "AI音声入力"
   },
   "nav": {
@@ -61,7 +61,7 @@
     "openLlmSettings": "設定"
   },
   "home": {
-    "welcome": "OpenTypelessへようこそ",
+    "welcome": "Typelazyへようこそ",
     "description": "{{hotkey}}を長押しして音声録音を開始します。音声が文字起こしされ、AIによる整形が行われます。",
     "totalRecordings": "総録音回数",
     "today": "今日",
@@ -127,11 +127,11 @@
     },
     "steps": {
       "welcome": "ようこそ",
-      "welcomeSub": "いくつかのステップでOpenTypelessを設定しましょう",
+      "welcomeSub": "いくつかのステップでTypelazyを設定しましょう",
       "signIn": "サインイン",
       "signInSub": "アカウントに接続して始めましょう",
       "chooseMode": "モードを選択",
-      "chooseModeSub": "OpenTypelessの使用方法を選択してください",
+      "chooseModeSub": "Typelazyの使用方法を選択してください",
       "speechRecognition": "音声認識",
       "speechRecognitionSub": "STTサービスを設定します",
       "aiPolish": "AI整形",
@@ -196,7 +196,7 @@
       "appWritingModesSub": "Scenesでメール、チャット、ドキュメントなどの既定の書き方を編集できます。"
     },
     "permissions": {
-      "subtitle": "OpenTypelessは機能に必要なときだけアクセスを求めます。",
+      "subtitle": "Typelazyは機能に必要なときだけアクセスを求めます。",
       "microphone": "マイク",
       "microphoneDesc": "音声を録音します。",
       "textOutput": "テキスト出力",
@@ -363,7 +363,7 @@
     "test": "テスト",
     "connectionSuccess": "接続に成功しました",
     "connectionFailed": "接続に失敗しました",
-    "storedLocally": "お使いのデバイスにローカル保存されます。OpenTypelessサーバーには送信されません。",
+    "storedLocally": "お使いのデバイスにローカル保存されます。Typelazyサーバーには送信されません。",
     "credentialSaveFailed": "APIキーをOSの資格情報ストアに保存できませんでした。{{details}}",
     "sttLanguage": "言語",
     "model": "モデル",
@@ -484,7 +484,15 @@
     "sttUploadFormatAuto": "Auto (Opus when supported)",
     "sttUploadFormatOpus": "Ogg/Opus (small, 48 kbps)",
     "sttUploadFormatWav": "WAV (uncompressed)",
-    "sttUploadFormatHint": "Opus uploads are about 6x smaller than WAV. If the endpoint rejects Opus the app retries once as WAV."
+    "sttUploadFormatHint": "Opus uploads are about 6x smaller than WAV. If the endpoint rejects Opus the app retries once as WAV.",
+    "chineseScript": "Chinese output script",
+    "chineseScriptAuto": "Auto (Traditional when the STT or UI language is 繁體中文)",
+    "chineseScriptTraditional": "Traditional Chinese (台灣用語)",
+    "chineseScriptSimplified": "Simplified Chinese",
+    "chineseScriptPreserve": "Keep as spoken",
+    "chineseScriptHint": "Traditional output is enforced twice: the AI is instructed to write Traditional, and the final text is converted with OpenCC (s2twp) before it is typed.",
+    "correctionExactApply": "Apply correction rules exactly",
+    "correctionExactApplyHint": "Besides hinting the AI, replace each rule’s pattern literally in the final text (case-insensitive for Latin text)."
   },
   "contextFamilies": {
     "email": "Email",
@@ -539,7 +547,8 @@
     "importTooLarge": "辞書ファイルが 1 MiB を超えています",
     "importFailed": "辞書のインポートに失敗しました",
     "importComplete": "{{count}} 件をインポートしました",
-    "exportFailed": "辞書のエクスポートに失敗しました"
+    "exportFailed": "辞書のエクスポートに失敗しました",
+    "howItWorks": "Words are sent to speech recognition as vocabulary hints and to the AI as required spellings. Add a “sounds like” pronunciation for terms that are often misheard. Correction rules replace a misheard phrase with the right one."
   },
   "scenes": {
     "signInToBrowse": "シーンパックを閲覧するにはサインインしてください。",

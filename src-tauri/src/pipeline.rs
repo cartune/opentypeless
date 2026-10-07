@@ -1078,16 +1078,17 @@ impl PipelineHandle {
 
         // Update tray tooltip + menu to reflect pipeline state
         if let Some(tray_handle) = self.app_handle.try_state::<crate::TrayHandle>() {
-            let tooltip = match new_state {
-                PipelineState::Preparing => "OpenTypeless - Preparing...",
-                PipelineState::Recording => "OpenTypeless - Recording...",
-                PipelineState::Transcribing => "OpenTypeless - Transcribing...",
-                PipelineState::Polishing => "OpenTypeless - Polishing...",
-                PipelineState::Outputting => "OpenTypeless - Outputting...",
-                PipelineState::AskRecording => "OpenTypeless - Ask...",
-                PipelineState::AskThinking => "OpenTypeless - Answering...",
-                PipelineState::Idle => "OpenTypeless",
+            let suffix = match new_state {
+                PipelineState::Preparing => " - Preparing...",
+                PipelineState::Recording => " - Recording...",
+                PipelineState::Transcribing => " - Transcribing...",
+                PipelineState::Polishing => " - Polishing...",
+                PipelineState::Outputting => " - Outputting...",
+                PipelineState::AskRecording => " - Ask...",
+                PipelineState::AskThinking => " - Answering...",
+                PipelineState::Idle => "",
             };
+            let tooltip = format!("{}{}", crate::APP_DISPLAY_NAME, suffix);
             if let Ok(t) = tray_handle.tray.lock() {
                 let _ = t.set_tooltip(Some(tooltip));
             }
@@ -1944,7 +1945,10 @@ impl PipelineHandle {
         // Update tray for transcribing state
         if let Some(tray_handle) = self.app_handle.try_state::<crate::TrayHandle>() {
             if let Ok(t) = tray_handle.tray.lock() {
-                let _ = t.set_tooltip(Some("OpenTypeless - Transcribing..."));
+                let _ = t.set_tooltip(Some(format!(
+                    "{} - Transcribing...",
+                    crate::APP_DISPLAY_NAME
+                )));
             }
         }
         crate::refresh_tray(&self.app_handle);

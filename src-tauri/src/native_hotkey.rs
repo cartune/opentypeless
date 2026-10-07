@@ -23,6 +23,11 @@ pub enum NativeHotkeyTrigger {
     RightAlt,
     RightAltSpace,
     RightAltLeftShift,
+    /// Either Option (Alt) key on macOS, used as a modifier-only hotkey the
+    /// way Typeless does. Left and right Option are treated the same.
+    Option,
+    OptionSpace,
+    OptionLeftShift,
 }
 
 impl NativeHotkeyTrigger {
@@ -34,6 +39,9 @@ impl NativeHotkeyTrigger {
             Self::RightAlt => "RightAlt",
             Self::RightAltSpace => "RightAlt+Space",
             Self::RightAltLeftShift => "RightAlt+LeftShift",
+            Self::Option => "Option",
+            Self::OptionSpace => "Option+Space",
+            Self::OptionLeftShift => "Option+LeftShift",
         }
     }
 
@@ -42,15 +50,18 @@ impl NativeHotkeyTrigger {
         match self {
             Self::Fn | Self::FnSpace | Self::FnLeftShift => Self::Fn,
             Self::RightAlt | Self::RightAltSpace | Self::RightAltLeftShift => Self::RightAlt,
+            Self::Option | Self::OptionSpace | Self::OptionLeftShift => Self::Option,
         }
     }
 
     #[cfg(any(target_os = "macos", target_os = "windows", test))]
     fn combo_key(self) -> Option<NativeComboKey> {
         match self {
-            Self::FnSpace | Self::RightAltSpace => Some(NativeComboKey::Space),
-            Self::FnLeftShift | Self::RightAltLeftShift => Some(NativeComboKey::LeftShift),
-            Self::Fn | Self::RightAlt => None,
+            Self::FnSpace | Self::RightAltSpace | Self::OptionSpace => Some(NativeComboKey::Space),
+            Self::FnLeftShift | Self::RightAltLeftShift | Self::OptionLeftShift => {
+                Some(NativeComboKey::LeftShift)
+            }
+            Self::Fn | Self::RightAlt | Self::Option => None,
         }
     }
 
@@ -61,6 +72,8 @@ impl NativeHotkeyTrigger {
             (Self::Fn, NativeComboKey::LeftShift) => Some(Self::FnLeftShift),
             (Self::RightAlt, NativeComboKey::Space) => Some(Self::RightAltSpace),
             (Self::RightAlt, NativeComboKey::LeftShift) => Some(Self::RightAltLeftShift),
+            (Self::Option, NativeComboKey::Space) => Some(Self::OptionSpace),
+            (Self::Option, NativeComboKey::LeftShift) => Some(Self::OptionLeftShift),
             _ => None,
         }
     }
@@ -164,7 +177,8 @@ impl NativeMonitoredBinding {
     }
 }
 
-#[cfg(any(target_os = "macos", target_os = "windows", test))]
+#[cfg(any(target_os = "windows", test))]
+#[cfg_attr(test, allow(dead_code))]
 fn monitored_bindings_for_base(
     bindings: Vec<NativeHotkeyBinding>,
     base: NativeHotkeyTrigger,
@@ -172,6 +186,18 @@ fn monitored_bindings_for_base(
     bindings
         .into_iter()
         .filter(|binding| binding.trigger.base() == base)
+        .map(NativeMonitoredBinding::new)
+        .collect()
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn monitored_bindings_for_bases(
+    bindings: Vec<NativeHotkeyBinding>,
+    bases: &[NativeHotkeyTrigger],
+) -> Vec<NativeMonitoredBinding> {
+    bindings
+        .into_iter()
+        .filter(|binding| bases.contains(&binding.trigger.base()))
         .map(NativeMonitoredBinding::new)
         .collect()
 }
@@ -333,7 +359,7 @@ fn dispatch_native_combo_edge(
 mod platform {
     use super::{
         activate_pending_hold_base, dispatch_native_base_edge, dispatch_native_combo_edge,
-        monitored_bindings_for_base, NativeComboKey, NativeComboState, NativeHotkeyHandler,
+        monitored_bindings_for_bases, NativeComboKey, NativeComboState, NativeHotkeyHandler,
         NativeHotkeyTrigger, NativeMonitoredBinding,
     };
     use std::ffi::c_void;
@@ -391,6 +417,8 @@ mod platform {
     const SPACE_KEYCODE: i64 = 49;
     const LEFT_SHIFT_KEYCODE: i64 = 56;
     const ESCAPE_KEYCODE: i64 = 53;
+    const LEFT_OPTION_KEYCODE: i64 = 58;
+    const RIGHT_OPTION_KEYCODE: i64 = 61;
 
     type CgEventTapCallBack = extern "C" fn(
         proxy: *mut c_void,
@@ -474,9 +502,12 @@ mod platform {
             escape_cancel: bool,
             handler: NativeHotkeyHandler,
         ) -> Result<Self, String> {
-            let bindings = monitored_bindings_for_base(bindings, NativeHotkeyTrigger::Fn);
+            let bindings = monitored_bindings_for_bases(
+                bindings,
+                &[NativeHotkeyTrigger::Fn, NativeHotkeyTrigger::Option],
+            );
             if bindings.is_empty() && !escape_cancel {
-                return Err("macOS native hotkeys currently support Fn only".to_string());
+                return Err("macOS native hotkeys currently support Fn and Option only".to_string());
             }
 
             let handles = Arc::new(MacShutdownHandles::new());
@@ -532,7 +563,10 @@ mod platform {
         bindings: Arc<Vec<NativeMonitoredBinding>>,
         handler: NativeHotkeyHandler,
         handles: Arc<MacShutdownHandles>,
+        /// Combo state for the Fn base key.
         state: Arc<Mutex<NativeComboState>>,
+        /// Combo state for the Option base key (left or right).
+        option_state: Arc<Mutex<NativeComboState>>,
         escape_cancel: bool,
         /// Set when an Escape key-down was swallowed so the matching key-up is
         /// swallowed too and the frontmost app never sees half a key press.
@@ -547,17 +581,25 @@ mod platform {
         handles: Arc<MacShutdownHandles>,
         status_tx: mpsc::Sender<Result<(), String>>,
     ) {
-        let hold_base = hold_dictation
-            && bindings.iter().any(|binding| {
-                binding.binding.trigger == NativeHotkeyTrigger::Fn
-                    && binding.binding.role == crate::hotkey::HotkeyRole::Dictation
-            });
+        let hold_for = |base: NativeHotkeyTrigger| {
+            hold_dictation
+                && bindings.iter().any(|binding| {
+                    binding.binding.trigger == base
+                        && binding.binding.role == crate::hotkey::HotkeyRole::Dictation
+                })
+        };
+        let hold_fn = hold_for(NativeHotkeyTrigger::Fn);
+        let hold_option = hold_for(NativeHotkeyTrigger::Option);
         let context = Box::into_raw(Box::new(CallbackContext {
             bindings: Arc::new(bindings),
             handler,
             handles: Arc::clone(&handles),
             state: Arc::new(Mutex::new(NativeComboState {
-                hold_base,
+                hold_base: hold_fn,
+                ..NativeComboState::default()
+            })),
+            option_state: Arc::new(Mutex::new(NativeComboState {
+                hold_base: hold_option,
                 ..NativeComboState::default()
             })),
             escape_cancel,
@@ -657,6 +699,18 @@ mod platform {
                     &context.handler,
                 );
                 drop(state);
+                let mut option_state = context
+                    .option_state
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
+                let _ = dispatch_native_base_edge(
+                    &mut option_state,
+                    &context.bindings,
+                    NativeHotkeyTrigger::Option,
+                    false,
+                    &context.handler,
+                );
+                drop(option_state);
                 if let Some(tap) = context
                     .handles
                     .tap
@@ -706,60 +760,85 @@ mod platform {
         true
     }
 
+    /// Shared press/release handling for a modifier-only base key (Fn or Option).
+    fn handle_base_edge(
+        context: &CallbackContext,
+        base: NativeHotkeyTrigger,
+        state_arc: &Arc<Mutex<NativeComboState>>,
+        pressed: bool,
+    ) {
+        let mut state = state_arc.lock().unwrap_or_else(|e| e.into_inner());
+        let was_pressed = state.base_pressed;
+        let _ = dispatch_native_base_edge(
+            &mut state,
+            &context.bindings,
+            base,
+            pressed,
+            &context.handler,
+        );
+        if pressed && !was_pressed && state.hold_base && state.pending_base_press {
+            let generation = state.edge_generation;
+            let state = Arc::clone(state_arc);
+            let bindings = Arc::clone(&context.bindings);
+            let handler = Arc::clone(&context.handler);
+            let handles = Arc::clone(&context.handles);
+            if let Err(error) = thread::Builder::new()
+                .name("opentypeless-base-hold-delay".to_string())
+                .spawn(move || {
+                    thread::sleep(HOLD_COMBO_GRACE_PERIOD);
+                    if handles.cancelled.load(Ordering::SeqCst) {
+                        return;
+                    }
+                    let mut state = state.lock().unwrap_or_else(|e| e.into_inner());
+                    let _ = activate_pending_hold_base(
+                        &mut state, &bindings, base, generation, &handler,
+                    );
+                })
+            {
+                tracing::warn!(
+                    "Failed to schedule {} hold hotkey: {error}",
+                    base.canonical()
+                );
+            }
+        }
+    }
+
     fn handle_flags_changed(context: &CallbackContext, event: CgEventRef) {
         let keycode = unsafe { CGEventGetIntegerValueField(event, KEYBOARD_EVENT_KEYCODE) };
         let flags = unsafe { CGEventGetFlags(event) };
         if keycode == FN_KEYCODE {
             let pressed = (flags & FLAG_MASK_SECONDARY_FN) != 0;
-            let mut state = context.state.lock().unwrap_or_else(|e| e.into_inner());
-            let was_pressed = state.base_pressed;
-            let _ = dispatch_native_base_edge(
-                &mut state,
-                &context.bindings,
-                NativeHotkeyTrigger::Fn,
+            handle_base_edge(context, NativeHotkeyTrigger::Fn, &context.state, pressed);
+            return;
+        }
+
+        if keycode == LEFT_OPTION_KEYCODE || keycode == RIGHT_OPTION_KEYCODE {
+            let pressed = (flags & FLAG_MASK_ALTERNATE) != 0;
+            handle_base_edge(
+                context,
+                NativeHotkeyTrigger::Option,
+                &context.option_state,
                 pressed,
-                &context.handler,
             );
-            if pressed && !was_pressed && state.hold_base && state.pending_base_press {
-                let generation = state.edge_generation;
-                let state = Arc::clone(&context.state);
-                let bindings = Arc::clone(&context.bindings);
-                let handler = Arc::clone(&context.handler);
-                let handles = Arc::clone(&context.handles);
-                if let Err(error) = thread::Builder::new()
-                    .name("opentypeless-fn-hold-delay".to_string())
-                    .spawn(move || {
-                        thread::sleep(HOLD_COMBO_GRACE_PERIOD);
-                        if handles.cancelled.load(Ordering::SeqCst) {
-                            return;
-                        }
-                        let mut state = state.lock().unwrap_or_else(|e| e.into_inner());
-                        let _ = activate_pending_hold_base(
-                            &mut state,
-                            &bindings,
-                            NativeHotkeyTrigger::Fn,
-                            generation,
-                            &handler,
-                        );
-                    })
-                {
-                    tracing::warn!("Failed to schedule Fn hold hotkey: {error}");
-                }
-            }
             return;
         }
 
         if keycode == LEFT_SHIFT_KEYCODE {
             let pressed = (flags & FLAG_MASK_SHIFT) != 0;
-            let mut state = context.state.lock().unwrap_or_else(|e| e.into_inner());
-            let _ = dispatch_native_combo_edge(
-                &mut state,
-                &context.bindings,
-                NativeHotkeyTrigger::Fn,
-                NativeComboKey::LeftShift,
-                pressed,
-                &context.handler,
-            );
+            for (base, state_arc) in [
+                (NativeHotkeyTrigger::Fn, &context.state),
+                (NativeHotkeyTrigger::Option, &context.option_state),
+            ] {
+                let mut state = state_arc.lock().unwrap_or_else(|e| e.into_inner());
+                let _ = dispatch_native_combo_edge(
+                    &mut state,
+                    &context.bindings,
+                    base,
+                    NativeComboKey::LeftShift,
+                    pressed,
+                    &context.handler,
+                );
+            }
         }
     }
 
@@ -771,15 +850,20 @@ mod platform {
         if keycode != SPACE_KEYCODE {
             return false;
         }
-        let mut state = context.state.lock().unwrap_or_else(|e| e.into_inner());
-        let _ = dispatch_native_combo_edge(
-            &mut state,
-            &context.bindings,
-            NativeHotkeyTrigger::Fn,
-            NativeComboKey::Space,
-            pressed,
-            &context.handler,
-        );
+        for (base, state_arc) in [
+            (NativeHotkeyTrigger::Fn, &context.state),
+            (NativeHotkeyTrigger::Option, &context.option_state),
+        ] {
+            let mut state = state_arc.lock().unwrap_or_else(|e| e.into_inner());
+            let _ = dispatch_native_combo_edge(
+                &mut state,
+                &context.bindings,
+                base,
+                NativeComboKey::Space,
+                pressed,
+                &context.handler,
+            );
+        }
         false
     }
 }
@@ -1419,5 +1503,52 @@ mod tests {
                 (crate::hotkey::HotkeyRole::Ask, ShortcutState::Released),
             ]
         );
+    }
+}
+
+#[cfg(test)]
+mod option_trigger_tests {
+    use super::*;
+
+    #[test]
+    fn option_triggers_share_the_option_base() {
+        assert_eq!(
+            NativeHotkeyTrigger::OptionSpace.base(),
+            NativeHotkeyTrigger::Option
+        );
+        assert_eq!(
+            NativeHotkeyTrigger::from_base_combo(
+                NativeHotkeyTrigger::Option,
+                NativeComboKey::Space
+            ),
+            Some(NativeHotkeyTrigger::OptionSpace)
+        );
+        assert_eq!(NativeHotkeyTrigger::Option.canonical(), "Option");
+    }
+
+    #[test]
+    fn bases_filter_keeps_fn_and_option_only() {
+        let bindings = vec![
+            NativeHotkeyBinding {
+                role: crate::hotkey::HotkeyRole::Dictation,
+                index: 0,
+                trigger: NativeHotkeyTrigger::Option,
+            },
+            NativeHotkeyBinding {
+                role: crate::hotkey::HotkeyRole::Ask,
+                index: 0,
+                trigger: NativeHotkeyTrigger::FnSpace,
+            },
+            NativeHotkeyBinding {
+                role: crate::hotkey::HotkeyRole::Dictation,
+                index: 1,
+                trigger: NativeHotkeyTrigger::RightAlt,
+            },
+        ];
+        let kept = monitored_bindings_for_bases(
+            bindings,
+            &[NativeHotkeyTrigger::Fn, NativeHotkeyTrigger::Option],
+        );
+        assert_eq!(kept.len(), 2);
     }
 }

@@ -51,6 +51,7 @@ type SafeScalarKey =
   | 'ui_language'
   | 'capsule_auto_hide'
   | 'esc_cancel_enabled'
+  | 'correction_rules_exact_apply'
   | 'stt_openai_model'
   | 'stt_upload_format'
 
@@ -183,6 +184,7 @@ export function createBackupSettings(config: AppConfig): BackupSettings {
     ui_language: config.ui_language,
     capsule_auto_hide: config.capsule_auto_hide,
     esc_cancel_enabled: config.esc_cancel_enabled,
+    correction_rules_exact_apply: config.correction_rules_exact_apply,
     stt_openai_model: config.stt_openai_model,
     stt_upload_format: config.stt_upload_format,
   }
@@ -240,6 +242,7 @@ const SAFE_SCALAR_KEYS: readonly SafeScalarKey[] = [
   'ui_language',
   'capsule_auto_hide',
   'esc_cancel_enabled',
+  'correction_rules_exact_apply',
   'stt_openai_model',
   'stt_upload_format',
 ]

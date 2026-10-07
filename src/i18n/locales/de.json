@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "OpenTypeless",
+    "name": "Typelazy",
     "tagline": "AI-Spracheingabe"
   },
   "nav": {
@@ -61,7 +61,7 @@
     "openLlmSettings": "Einstellungen"
   },
   "home": {
-    "welcome": "Willkommen bei OpenTypeless",
+    "welcome": "Willkommen bei Typelazy",
     "description": "Halten Sie {{hotkey}} gedrückt, um die Sprachaufnahme zu starten. Ihre Sprache wird transkribiert und optional durch KI geglättet.",
     "totalRecordings": "Gesamtaufnahmen",
     "today": "Heute",
@@ -127,11 +127,11 @@
     },
     "steps": {
       "welcome": "Willkommen",
-      "welcomeSub": "Richten Sie OpenTypeless in wenigen Schritten ein",
+      "welcomeSub": "Richten Sie Typelazy in wenigen Schritten ein",
       "signIn": "Anmelden",
       "signInSub": "Verbinden Sie Ihr Konto, um loszulegen",
       "chooseMode": "Modus wählen",
-      "chooseModeSub": "Wählen Sie, wie Sie OpenTypeless verwenden möchten",
+      "chooseModeSub": "Wählen Sie, wie Sie Typelazy verwenden möchten",
       "speechRecognition": "Spracherkennung",
       "speechRecognitionSub": "Konfigurieren Sie Ihren STT-Dienst",
       "aiPolish": "KI-Glättung",
@@ -196,7 +196,7 @@
       "appWritingModesSub": "Bearbeite Standardmodi fuer E-Mail, Chat, Dokumente und weitere Schreibweisen in Szenen."
     },
     "permissions": {
-      "subtitle": "OpenTypeless fragt nur nach Zugriff, wenn eine Funktion ihn braucht.",
+      "subtitle": "Typelazy fragt nur nach Zugriff, wenn eine Funktion ihn braucht.",
       "microphone": "Mikrofon",
       "microphoneDesc": "Ihre Stimme aufnehmen.",
       "textOutput": "Textausgabe",
@@ -363,7 +363,7 @@
     "test": "Testen",
     "connectionSuccess": "Verbindung erfolgreich",
     "connectionFailed": "Verbindung fehlgeschlagen",
-    "storedLocally": "Lokal auf Ihrem Gerät gespeichert. Wird niemals an OpenTypeless-Server gesendet.",
+    "storedLocally": "Lokal auf Ihrem Gerät gespeichert. Wird niemals an Typelazy-Server gesendet.",
     "credentialSaveFailed": "API-Schlüssel konnte nicht im OS-Tresor gespeichert werden. {{details}}",
     "sttLanguage": "Sprache",
     "model": "Modell",
@@ -484,7 +484,15 @@
     "sttUploadFormatAuto": "Auto (Opus when supported)",
     "sttUploadFormatOpus": "Ogg/Opus (small, 48 kbps)",
     "sttUploadFormatWav": "WAV (uncompressed)",
-    "sttUploadFormatHint": "Opus uploads are about 6x smaller than WAV. If the endpoint rejects Opus the app retries once as WAV."
+    "sttUploadFormatHint": "Opus uploads are about 6x smaller than WAV. If the endpoint rejects Opus the app retries once as WAV.",
+    "chineseScript": "Chinese output script",
+    "chineseScriptAuto": "Auto (Traditional when the STT or UI language is 繁體中文)",
+    "chineseScriptTraditional": "Traditional Chinese (台灣用語)",
+    "chineseScriptSimplified": "Simplified Chinese",
+    "chineseScriptPreserve": "Keep as spoken",
+    "chineseScriptHint": "Traditional output is enforced twice: the AI is instructed to write Traditional, and the final text is converted with OpenCC (s2twp) before it is typed.",
+    "correctionExactApply": "Apply correction rules exactly",
+    "correctionExactApplyHint": "Besides hinting the AI, replace each rule’s pattern literally in the final text (case-insensitive for Latin text)."
   },
   "contextFamilies": {
     "email": "Email",
@@ -539,7 +547,8 @@
     "importTooLarge": "Wörterbuchdatei überschreitet 1 MiB",
     "importFailed": "Wörterbuch konnte nicht importiert werden",
     "importComplete": "{{count}} Einträge importiert",
-    "exportFailed": "Wörterbuch konnte nicht exportiert werden"
+    "exportFailed": "Wörterbuch konnte nicht exportiert werden",
+    "howItWorks": "Words are sent to speech recognition as vocabulary hints and to the AI as required spellings. Add a “sounds like” pronunciation for terms that are often misheard. Correction rules replace a misheard phrase with the right one."
   },
   "scenes": {
     "signInToBrowse": "Melden Sie sich an, um Szenen-Pakete zu durchsuchen.",

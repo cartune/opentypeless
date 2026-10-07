@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "OpenTypeless",
+    "name": "Typelazy",
     "tagline": "Голосовой ввод с ИИ"
   },
   "nav": {
@@ -61,7 +61,7 @@
     "openLlmSettings": "Настройки"
   },
   "home": {
-    "welcome": "Добро пожаловать в OpenTypeless",
+    "welcome": "Добро пожаловать в Typelazy",
     "description": "Удерживайте {{hotkey}}, чтобы начать запись голоса. Ваша речь будет распознана и при необходимости обработана ИИ.",
     "totalRecordings": "Всего записей",
     "today": "Сегодня",
@@ -127,11 +127,11 @@
     },
     "steps": {
       "welcome": "Добро пожаловать",
-      "welcomeSub": "Настройте OpenTypeless за несколько шагов",
+      "welcomeSub": "Настройте Typelazy за несколько шагов",
       "signIn": "Войти",
       "signInSub": "Подключите аккаунт для начала работы",
       "chooseMode": "Выберите режим",
-      "chooseModeSub": "Выберите, как вы хотите использовать OpenTypeless",
+      "chooseModeSub": "Выберите, как вы хотите использовать Typelazy",
       "speechRecognition": "Распознавание речи",
       "speechRecognitionSub": "Настройте службу STT",
       "aiPolish": "Обработка ИИ",
@@ -196,7 +196,7 @@
       "appWritingModesSub": "В Scenes можно изменить режимы по умолчанию для почты, чатов, документов и других форматов."
     },
     "permissions": {
-      "subtitle": "OpenTypeless запрашивает доступ только когда он нужен функции.",
+      "subtitle": "Typelazy запрашивает доступ только когда он нужен функции.",
       "microphone": "Микрофон",
       "microphoneDesc": "Записывать ваш голос.",
       "textOutput": "Вывод текста",
@@ -363,7 +363,7 @@
     "test": "Проверить",
     "connectionSuccess": "Подключение успешно",
     "connectionFailed": "Не удалось подключиться",
-    "storedLocally": "Хранится локально на вашем устройстве. Никогда не передаётся на серверы OpenTypeless.",
+    "storedLocally": "Хранится локально на вашем устройстве. Никогда не передаётся на серверы Typelazy.",
     "credentialSaveFailed": "Не удалось сохранить API-ключ в системном хранилище. {{details}}",
     "sttLanguage": "Язык",
     "model": "Модель",
@@ -484,7 +484,15 @@
     "sttUploadFormatAuto": "Auto (Opus when supported)",
     "sttUploadFormatOpus": "Ogg/Opus (small, 48 kbps)",
     "sttUploadFormatWav": "WAV (uncompressed)",
-    "sttUploadFormatHint": "Opus uploads are about 6x smaller than WAV. If the endpoint rejects Opus the app retries once as WAV."
+    "sttUploadFormatHint": "Opus uploads are about 6x smaller than WAV. If the endpoint rejects Opus the app retries once as WAV.",
+    "chineseScript": "Chinese output script",
+    "chineseScriptAuto": "Auto (Traditional when the STT or UI language is 繁體中文)",
+    "chineseScriptTraditional": "Traditional Chinese (台灣用語)",
+    "chineseScriptSimplified": "Simplified Chinese",
+    "chineseScriptPreserve": "Keep as spoken",
+    "chineseScriptHint": "Traditional output is enforced twice: the AI is instructed to write Traditional, and the final text is converted with OpenCC (s2twp) before it is typed.",
+    "correctionExactApply": "Apply correction rules exactly",
+    "correctionExactApplyHint": "Besides hinting the AI, replace each rule’s pattern literally in the final text (case-insensitive for Latin text)."
   },
   "contextFamilies": {
     "email": "Email",
@@ -539,7 +547,8 @@
     "importTooLarge": "Файл словаря превышает 1 МиБ",
     "importFailed": "Не удалось импортировать словарь",
     "importComplete": "Импортировано записей: {{count}}",
-    "exportFailed": "Не удалось экспортировать словарь"
+    "exportFailed": "Не удалось экспортировать словарь",
+    "howItWorks": "Words are sent to speech recognition as vocabulary hints and to the AI as required spellings. Add a “sounds like” pronunciation for terms that are often misheard. Correction rules replace a misheard phrase with the right one."
   },
   "scenes": {
     "signInToBrowse": "Войдите, чтобы просмотреть наборы сцен.",

@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "OpenTypeless",
+    "name": "Typelazy",
     "tagline": "AI 음성 입력"
   },
   "nav": {
@@ -61,7 +61,7 @@
     "openLlmSettings": "설정"
   },
   "home": {
-    "welcome": "OpenTypeless에 오신 것을 환영합니다",
+    "welcome": "Typelazy에 오신 것을 환영합니다",
     "description": "{{hotkey}}을(를) 누른 채 음성 녹음을 시작하세요. 음성이 텍스트로 변환되며, 선택적으로 AI가 다듬어 줍니다.",
     "totalRecordings": "총 녹음 수",
     "today": "오늘",
@@ -127,11 +127,11 @@
     },
     "steps": {
       "welcome": "환영합니다",
-      "welcomeSub": "몇 단계만으로 OpenTypeless를 설정하세요",
+      "welcomeSub": "몇 단계만으로 Typelazy를 설정하세요",
       "signIn": "로그인",
       "signInSub": "계정을 연결하여 시작하세요",
       "chooseMode": "모드 선택",
-      "chooseModeSub": "OpenTypeless 사용 방식을 선택하세요",
+      "chooseModeSub": "Typelazy 사용 방식을 선택하세요",
       "speechRecognition": "음성 인식",
       "speechRecognitionSub": "STT 서비스를 설정하세요",
       "aiPolish": "AI 다듬기",
@@ -196,7 +196,7 @@
       "appWritingModesSub": "Scenes에서 이메일, 채팅, 문서 등 기본 글쓰기 방식을 편집하세요."
     },
     "permissions": {
-      "subtitle": "OpenTypeless는 기능에 필요할 때만 접근 권한을 요청합니다.",
+      "subtitle": "Typelazy는 기능에 필요할 때만 접근 권한을 요청합니다.",
       "microphone": "마이크",
       "microphoneDesc": "음성을 녹음합니다.",
       "textOutput": "텍스트 출력",
@@ -363,7 +363,7 @@
     "test": "테스트",
     "connectionSuccess": "연결에 성공했습니다",
     "connectionFailed": "연결에 실패했습니다",
-    "storedLocally": "기기에 로컬로 저장됩니다. OpenTypeless 서버로 전송되지 않습니다.",
+    "storedLocally": "기기에 로컬로 저장됩니다. Typelazy 서버로 전송되지 않습니다.",
     "credentialSaveFailed": "API 키를 OS 자격 증명 저장소에 저장하지 못했습니다. {{details}}",
     "sttLanguage": "언어",
     "model": "모델",
@@ -484,7 +484,15 @@
     "sttUploadFormatAuto": "Auto (Opus when supported)",
     "sttUploadFormatOpus": "Ogg/Opus (small, 48 kbps)",
     "sttUploadFormatWav": "WAV (uncompressed)",
-    "sttUploadFormatHint": "Opus uploads are about 6x smaller than WAV. If the endpoint rejects Opus the app retries once as WAV."
+    "sttUploadFormatHint": "Opus uploads are about 6x smaller than WAV. If the endpoint rejects Opus the app retries once as WAV.",
+    "chineseScript": "Chinese output script",
+    "chineseScriptAuto": "Auto (Traditional when the STT or UI language is 繁體中文)",
+    "chineseScriptTraditional": "Traditional Chinese (台灣用語)",
+    "chineseScriptSimplified": "Simplified Chinese",
+    "chineseScriptPreserve": "Keep as spoken",
+    "chineseScriptHint": "Traditional output is enforced twice: the AI is instructed to write Traditional, and the final text is converted with OpenCC (s2twp) before it is typed.",
+    "correctionExactApply": "Apply correction rules exactly",
+    "correctionExactApplyHint": "Besides hinting the AI, replace each rule’s pattern literally in the final text (case-insensitive for Latin text)."
   },
   "contextFamilies": {
     "email": "Email",
@@ -539,7 +547,8 @@
     "importTooLarge": "사전 파일이 1 MiB를 초과합니다",
     "importFailed": "사전을 가져오지 못했습니다",
     "importComplete": "{{count}}개 항목을 가져왔습니다",
-    "exportFailed": "사전을 내보내지 못했습니다"
+    "exportFailed": "사전을 내보내지 못했습니다",
+    "howItWorks": "Words are sent to speech recognition as vocabulary hints and to the AI as required spellings. Add a “sounds like” pronunciation for terms that are often misheard. Correction rules replace a misheard phrase with the right one."
   },
   "scenes": {
     "signInToBrowse": "씬 팩을 둘러보려면 로그인하세요.",

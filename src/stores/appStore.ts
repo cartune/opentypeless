@@ -53,7 +53,7 @@ export type InsertionStrategy =
 export type InsertStatus = 'inserted' | 'copiedFallback' | 'failed' | 'partiallyInserted'
 export type HotkeyMode = 'hold' | 'toggle'
 export type Theme = 'light' | 'dark' | 'system'
-export type PolishChineseScript = 'preserve' | 'simplified' | 'traditional'
+export type PolishChineseScript = 'auto' | 'preserve' | 'simplified' | 'traditional'
 export type PolishStyle = 'minimal' | 'clean' | 'structured' | 'professional'
 export type SceneSource = 'custom' | 'builtin' | 'cloud'
 export type ContextFamily =
@@ -264,6 +264,7 @@ export interface AppConfig {
   ui_language: string
   capsule_auto_hide: boolean
   esc_cancel_enabled: boolean
+  correction_rules_exact_apply: boolean
 }
 
 export type TestStatus = 'idle' | 'testing' | 'success' | 'error'
@@ -484,6 +485,9 @@ function normalizePrimary(value: string): string | null {
     altright: 'RightAlt',
     alt_right: 'RightAlt',
     'alt-right': 'RightAlt',
+    option: 'Option',
+    leftoption: 'Option',
+    rightoption: 'Option',
   }
   if (nativePrimary[lower]) return nativePrimary[lower]
   if (named[lower]) return named[lower]
@@ -773,7 +777,7 @@ const defaultConfig: AppConfig = {
   },
   polish_style: 'clean',
   polish_custom_prompt: '',
-  polish_chinese_script: 'preserve',
+  polish_chinese_script: 'auto',
   custom_scenes: [],
   system_scene_overrides: [],
   active_scene: null,
@@ -818,6 +822,7 @@ const defaultConfig: AppConfig = {
   ui_language: 'en',
   capsule_auto_hide: true,
   esc_cancel_enabled: true,
+  correction_rules_exact_apply: true,
 }
 
 export const useAppStore = create<AppState>((set) => ({

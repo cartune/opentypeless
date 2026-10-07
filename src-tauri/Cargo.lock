@@ -3372,6 +3372,7 @@ dependencies = [
  "url",
  "uuid",
  "windows-sys 0.59.0",
+ "zhhz",
 ]
 
 [[package]]
@@ -7299,6 +7300,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "zhhz"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "792bab37bb3235bec4655690863ca150bca3f65251ed968f11ee700874ce921f"
+dependencies = [
+ "anyhow",
+ "memchr",
+ "serde_json",
 ]
 
 [[package]]

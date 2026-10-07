@@ -459,6 +459,9 @@ pub fn native_trigger_supported_on_platform(trigger: NativeHotkeyTrigger, platfo
             NativeHotkeyTrigger::Fn
                 | NativeHotkeyTrigger::FnSpace
                 | NativeHotkeyTrigger::FnLeftShift
+                | NativeHotkeyTrigger::Option
+                | NativeHotkeyTrigger::OptionSpace
+                | NativeHotkeyTrigger::OptionLeftShift
         ),
         "windows" => matches!(
             trigger,
@@ -479,6 +482,7 @@ pub fn native_trigger_from_binding(
             "rightalt" | "right_alt" | "right-alt" | "altright" | "alt_right" | "alt-right" => {
                 Some(NativeHotkeyTrigger::RightAlt)
             }
+            "option" | "alt" | "leftoption" | "rightoption" => Some(NativeHotkeyTrigger::Option),
             _ => None,
         };
     }
@@ -502,6 +506,10 @@ pub fn native_trigger_from_binding(
             "rightalt" | "right_alt" | "right-alt" | "altright" | "alt_right" | "alt-right",
             "leftshift" | "left_shift" | "left-shift",
         ) => Some(NativeHotkeyTrigger::RightAltLeftShift),
+        ("option" | "alt", "space") => Some(NativeHotkeyTrigger::OptionSpace),
+        ("option" | "alt", "leftshift" | "left_shift" | "left-shift") => {
+            Some(NativeHotkeyTrigger::OptionLeftShift)
+        }
         _ => None,
     }
 }
@@ -1851,5 +1859,60 @@ mod cancel_tests {
             cancel_shortcut_action(ShortcutState::Pressed, true, PipelineState::AskRecording),
             CancelAction::AbortAsk
         );
+    }
+}
+
+#[cfg(test)]
+mod option_hotkey_tests {
+    use super::*;
+
+    #[test]
+    fn bare_option_registers_natively_on_macos() {
+        let dictation = storage::ShortcutBinding::from_hotkey("Option").unwrap();
+        let config = storage::HotkeyConfig {
+            dictation_bindings: vec![dictation.clone()],
+            ask_bindings: Vec::new(),
+            translate_bindings: Vec::new(),
+            dictation,
+            ask: None,
+            translate: None,
+            edit_selection: None,
+            switch_scene: None,
+            open_app: None,
+            dictation_mode: "toggle".to_string(),
+        };
+        let plan = hotkey_registration_plan_from_config_for_platform(&config, "macos").unwrap();
+        assert!(plan.global.is_empty());
+        assert!(plan.native.iter().any(|entry| {
+            entry.role == HotkeyRole::Dictation
+                && entry.trigger == crate::native_hotkey::NativeHotkeyTrigger::Option
+        }));
+    }
+
+    #[test]
+    fn option_space_maps_to_the_option_combo() {
+        let ask = storage::ShortcutBinding::from_hotkey("Option+Space").unwrap();
+        assert_eq!(
+            native_trigger_from_binding(&ask),
+            Some(crate::native_hotkey::NativeHotkeyTrigger::OptionSpace)
+        );
+    }
+
+    #[test]
+    fn bare_option_is_rejected_on_windows() {
+        let dictation = storage::ShortcutBinding::from_hotkey("Option").unwrap();
+        let config = storage::HotkeyConfig {
+            dictation_bindings: vec![dictation.clone()],
+            ask_bindings: Vec::new(),
+            translate_bindings: Vec::new(),
+            dictation,
+            ask: None,
+            translate: None,
+            edit_selection: None,
+            switch_scene: None,
+            open_app: None,
+            dictation_mode: "hold".to_string(),
+        };
+        assert!(hotkey_registration_plan_from_config_for_platform(&config, "windows").is_err());
     }
 }

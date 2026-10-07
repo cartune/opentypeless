@@ -884,6 +884,9 @@ fn normalize_hotkey_primary(value: &str) -> Option<String> {
         "rightalt" | "right_alt" | "right-alt" | "altright" | "alt_right" | "alt-right" => {
             "RightAlt".to_string()
         }
+        "option" | "leftoption" | "rightoption" | "left_option" | "right_option" => {
+            "Option".to_string()
+        }
         "slash" | "/" => "/".to_string(),
         "backslash" | "\\" => "\\".to_string(),
         "period" | "." | "。" => ".".to_string(),
