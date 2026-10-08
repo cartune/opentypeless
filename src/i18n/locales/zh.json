@@ -528,6 +528,10 @@
     "usageModelPlaceholder": "模型名称",
     "noiseSuppression": "背景降噪（RNNoise）",
     "noiseSuppressionHint": "在发送语音识别前先滤掉稳定的背景噪音（风扇、空调、键盘底噪），音量指示也不会把噪音算成声音。完全在本机运行；如果识别常混入环境音，可以开启试试。",
+    "audioDucking": "听写时压低背景音量",
+    "audioDuckingLevel": "听写时保留的音量",
+    "audioDuckingLevelOption": "保留 {{percent}}%",
+    "audioDuckingHint": "开始录音时把 Mac 的输出音量降到当前的这个比例，停止后自动恢复。通话、音乐等背景声会变小，不容易混进识别结果。输出设备没有音量控制（如 HDMI）时不会动作。",
     "capsuleGlass": "Liquid Glass 胶囊",
     "capsuleGlassHint": "胶囊改用系统原生的半透明玻璃背景（macOS 26 的 Liquid Glass；旧版 macOS 用模糊效果）。关闭可回到原本的实色胶囊。"
   },

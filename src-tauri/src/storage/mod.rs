@@ -393,6 +393,11 @@ pub struct AppConfig {
     /// Run RNNoise on microphone input before STT (off by default until
     /// verified on real hardware; see docs/m7-noise-notes.md).
     pub noise_suppression_enabled: bool,
+    /// Lower the system output volume while the microphone is open so a call
+    /// or music does not drown out dictation (macOS only).
+    pub audio_ducking_enabled: bool,
+    /// Percentage of the current output volume to keep while recording.
+    pub audio_ducking_level: u8,
     /// User-editable BYOK price table used only for the cost estimate shown in
     /// the app. Empty means "use the built-in defaults" on the frontend.
     pub usage_pricing: Vec<UsagePrice>,
@@ -509,6 +514,8 @@ impl Default for AppConfig {
             capsule_auto_hide: false,
             esc_cancel_enabled: true,
             noise_suppression_enabled: false,
+            audio_ducking_enabled: true,
+            audio_ducking_level: crate::audio::ducking::DEFAULT_DUCK_LEVEL,
             capsule_glass_enabled: false,
             usage_pricing: Vec::new(),
             correction_rules_exact_apply: true,
@@ -666,6 +673,8 @@ impl AppConfig {
     }
 
     pub(crate) fn normalize_values(&mut self) {
+        self.audio_ducking_level =
+            crate::audio::ducking::clamp_duck_level(self.audio_ducking_level);
         if !matches!(
             self.stt_aliyun_qwen_region.as_str(),
             crate::stt::aliyun_qwen3_asr::ALIYUN_QWEN3_ASR_REGION_CHINA_MAINLAND

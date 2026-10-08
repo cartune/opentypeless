@@ -286,6 +286,10 @@ export interface AppConfig {
   capsule_glass_enabled: boolean
   /** Run RNNoise on microphone input before speech recognition. */
   noise_suppression_enabled: boolean
+  /** Lower the system output volume while the microphone is open (macOS). */
+  audio_ducking_enabled: boolean
+  /** Percentage of the current output volume kept while recording (10–100). */
+  audio_ducking_level: number
   /** User overrides for the BYOK price table; empty = built-in defaults. */
   usage_pricing: UsagePrice[]
   correction_rules_exact_apply: boolean
@@ -853,6 +857,8 @@ const defaultConfig: AppConfig = {
   capsule_auto_hide: true,
   esc_cancel_enabled: true,
   noise_suppression_enabled: false,
+  audio_ducking_enabled: true,
+  audio_ducking_level: 75,
   capsule_glass_enabled: false,
   usage_pricing: [],
   correction_rules_exact_apply: true,

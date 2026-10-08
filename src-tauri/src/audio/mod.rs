@@ -1,5 +1,6 @@
 pub mod capture;
 pub mod dsp;
+pub mod ducking;
 
 pub use capture::{AudioCaptureHandle, AudioConfig, CaptureState};
 

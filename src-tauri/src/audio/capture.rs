@@ -71,6 +71,9 @@ pub struct AudioConfig {
     pub chunk_duration_ms: u32,
     /// Run RNNoise on the input before resampling to the target rate.
     pub noise_suppression: bool,
+    /// Lower the system output volume to this percentage of itself while the
+    /// microphone is open. `None` leaves the output alone.
+    pub output_ducking: Option<u8>,
 }
 
 impl Default for AudioConfig {
@@ -80,15 +83,20 @@ impl Default for AudioConfig {
             channels: 1,
             chunk_duration_ms: 20,
             noise_suppression: false,
+            output_ducking: None,
         }
     }
 }
 
 impl AudioConfig {
-    /// Default capture config with the user's noise-suppression preference applied.
+    /// Default capture config with the user's noise-suppression and output
+    /// ducking preferences applied.
     pub fn for_app_config(config: &crate::storage::AppConfig) -> Self {
         Self {
             noise_suppression: config.noise_suppression_enabled,
+            output_ducking: config
+                .audio_ducking_enabled
+                .then_some(config.audio_ducking_level),
             ..Self::default()
         }
     }
@@ -112,11 +120,16 @@ pub struct AudioCaptureHandle {
     volume: Arc<Mutex<f32>>,
     state: Arc<Mutex<CaptureState>>,
     voiced_chunks: Arc<AtomicU32>,
+    /// Restores the system output volume when capture ends (any path).
+    duck: Option<super::ducking::OutputDuckGuard>,
 }
 
 impl AudioCaptureHandle {
     /// Start audio capture on a dedicated thread. Returns a handle and a receiver for audio chunks.
     pub fn start(config: AudioConfig) -> Result<(Self, mpsc::Receiver<Vec<u8>>)> {
+        let duck = config
+            .output_ducking
+            .map(super::ducking::OutputDuckGuard::duck);
         let (audio_tx, audio_rx) = mpsc::channel::<Vec<u8>>(audio_channel_capacity(&config));
         let (stop_tx, stop_rx) = std::sync::mpsc::channel::<()>();
         let volume = Arc::new(Mutex::new(0.0f32));
@@ -155,6 +168,7 @@ impl AudioCaptureHandle {
                 volume,
                 state,
                 voiced_chunks,
+                duck,
             },
             audio_rx,
         ))
@@ -174,6 +188,8 @@ impl AudioCaptureHandle {
     pub fn stop(&mut self) {
         // Signal the capture thread to stop
         self.stop_tx = None;
+        // Give the output volume back the moment the key is released.
+        self.duck = None;
         *self.volume.lock().unwrap_or_else(|e| e.into_inner()) = 0.0;
         *self.state.lock().unwrap_or_else(|e| e.into_inner()) = CaptureState::Idle;
     }

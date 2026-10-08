@@ -528,6 +528,10 @@
     "usageModelPlaceholder": "model name",
     "noiseSuppression": "Noise suppression (RNNoise)",
     "noiseSuppressionHint": "Removes steady background noise (fans, air-con, keyboard hum) before the audio is sent to speech recognition, and keeps it out of the level meter. Runs on-device; try it if transcripts pick up room noise.",
+    "audioDucking": "Lower other audio while dictating",
+    "audioDuckingLevel": "Volume kept while dictating",
+    "audioDuckingLevelOption": "Keep {{percent}}%",
+    "audioDuckingHint": "Turns the Mac’s output volume down to this share of its current level the moment recording starts, and puts it back when you stop. Calls and music in the background get quieter so they do not leak into the transcript. Skipped if the output device has no volume control.",
     "capsuleGlass": "Liquid Glass capsule",
     "capsuleGlassHint": "Draws the capsule on a native translucent glass backdrop (macOS 26 Liquid Glass; blur on older macOS). Turn off to get the solid capsule back."
   },

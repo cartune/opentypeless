@@ -56,6 +56,8 @@ type SafeScalarKey =
   | 'stt_openai_model'
   | 'stt_upload_format'
   | 'noise_suppression_enabled'
+  | 'audio_ducking_enabled'
+  | 'audio_ducking_level'
   | 'capsule_glass_enabled'
 
 export type BackupSettings = Partial<Pick<AppConfig, SafeScalarKey>> & {
@@ -192,6 +194,8 @@ export function createBackupSettings(config: AppConfig): BackupSettings {
     stt_openai_model: config.stt_openai_model,
     stt_upload_format: config.stt_upload_format,
     noise_suppression_enabled: config.noise_suppression_enabled,
+    audio_ducking_enabled: config.audio_ducking_enabled,
+    audio_ducking_level: config.audio_ducking_level,
     capsule_glass_enabled: config.capsule_glass_enabled,
   }
 
@@ -264,6 +268,8 @@ const SAFE_SCALAR_KEYS: readonly SafeScalarKey[] = [
   'stt_openai_model',
   'stt_upload_format',
   'noise_suppression_enabled',
+  'audio_ducking_enabled',
+  'audio_ducking_level',
   'capsule_glass_enabled',
 ]
 

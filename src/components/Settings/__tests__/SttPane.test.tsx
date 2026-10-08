@@ -22,6 +22,8 @@ vi.mock('react-i18next', () => ({
         'settings.sttLanguage': 'STT Language',
         'settings.sttOpenaiModel': 'OpenAI transcription model',
         'settings.sttUploadFormat': 'Upload format',
+        'settings.audioDuckingLevel': 'Volume kept while dictating',
+        'settings.audioDuckingLevelOption': 'Keep {{percent}}%',
         'settings.maxRecordingDuration': 'Single recording duration',
         'recordingLimits.auto': 'Auto (recommended, up to {{duration}})',
         'recordingLimits.custom': 'Custom',
@@ -109,6 +111,9 @@ const mockAppStore = {
     recording_limit_mode: 'auto' as 'auto' | 'custom',
     custom_recording_limit_seconds: 600,
     max_recording_seconds: 600,
+    noise_suppression_enabled: false,
+    audio_ducking_enabled: true,
+    audio_ducking_level: 75,
   },
   updateConfig: vi.fn(),
   sttTestStatus: 'idle' as 'idle' | 'testing' | 'success' | 'error',
@@ -133,6 +138,7 @@ const mockAuthStore = {
 }
 
 vi.mock('../../../stores/appStore', () => ({
+  isMacPlatform: () => true,
   useAppStore: (selector: any) => {
     if (typeof selector === 'function') {
       return selector(mockAppStore)
@@ -176,6 +182,9 @@ describe('SttPane', () => {
       recording_limit_mode: 'auto',
       custom_recording_limit_seconds: 600,
       max_recording_seconds: 600,
+      noise_suppression_enabled: false,
+      audio_ducking_enabled: true,
+      audio_ducking_level: 75,
     }
     mockAppStore.sttTestStatus = 'idle'
     mockAppStore.sttLatencyMs = null
@@ -246,6 +255,20 @@ describe('SttPane', () => {
       const format = screen.getByLabelText('Upload format') as HTMLSelectElement
       fireEvent.change(format, { target: { value: 'wav' } })
       expect(mockAppStore.updateConfig).toHaveBeenCalledWith({ stt_upload_format: 'wav' })
+    })
+
+    it('lets the user pick how much output volume to keep while dictating', () => {
+      mockAppStore.config = {
+        ...mockAppStore.config,
+        audio_ducking_enabled: true,
+        audio_ducking_level: 75,
+      }
+      render(<SttPane />)
+      const level = screen.getByLabelText('Volume kept while dictating') as HTMLSelectElement
+      expect(level.value).toBe('75')
+      expect(level.disabled).toBe(false)
+      fireEvent.change(level, { target: { value: '60' } })
+      expect(mockAppStore.updateConfig).toHaveBeenCalledWith({ audio_ducking_level: 60 })
     })
 
     it('renders provider dropdown with current value', () => {

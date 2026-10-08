@@ -70,6 +70,7 @@ windows-sys = { version = "0.59", features = [
 keyring = { version = "3.6.3", default-features = false, features = ["apple-native"] }
 block2 = "0.5"
 objc2 = { version = "0.5", features = ["exception"] }
+objc2-core-audio = { version = "0.3.2", default-features = false, features = ["std", "AudioHardware"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 keyring = { version = "3.6.3", default-features = false, features = ["linux-native-sync-persistent", "crypto-rust"] }

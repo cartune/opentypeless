@@ -3394,6 +3394,7 @@ dependencies = [
  "libloading 0.8.9",
  "nnnoiseless",
  "objc2 0.5.2",
+ "objc2-core-audio",
  "ogg",
  "opusic-c",
  "plist",

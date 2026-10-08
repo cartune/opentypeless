@@ -24,6 +24,9 @@ import {
 } from '../../lib/tauri'
 import { FormField } from './shared/FormField'
 import { Toggle } from './shared/Toggle'
+
+/** Share of the current output volume kept while dictating. */
+const AUDIO_DUCKING_LEVELS = [50, 60, 70, 75, 80, 90] as const
 import { CheckCircle2, XCircle, Loader2, Crown } from 'lucide-react'
 
 const RECORDING_LIMIT_PRESETS = [30, 60, 120, 300, 600, 1800, 3600]
@@ -700,6 +703,34 @@ export function SttPane() {
         />
         <p className="text-[11px] text-text-tertiary">{t('settings.noiseSuppressionHint')}</p>
       </div>
+
+      {isMacPlatform() && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-3">
+            <Toggle
+              checked={config.audio_ducking_enabled}
+              onChange={(checked) => updateConfig({ audio_ducking_enabled: checked })}
+              label={t('settings.audioDucking')}
+            />
+            <select
+              aria-label={t('settings.audioDuckingLevel')}
+              value={String(config.audio_ducking_level)}
+              disabled={!config.audio_ducking_enabled}
+              onChange={(event) =>
+                updateConfig({ audio_ducking_level: Number(event.target.value) })
+              }
+              className="px-2 py-1.5 bg-bg-secondary border border-border rounded-[8px] text-[12px] text-text-primary outline-none focus:border-border-focus transition-colors disabled:opacity-50"
+            >
+              {AUDIO_DUCKING_LEVELS.map((level) => (
+                <option key={level} value={String(level)}>
+                  {t('settings.audioDuckingLevelOption', { percent: level })}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className="text-[11px] text-text-tertiary">{t('settings.audioDuckingHint')}</p>
+        </div>
+      )}
 
       <FormField label={t('settings.maxRecordingDuration')}>
         {recordingLimit ? (
