@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useReducedMotion } from 'framer-motion'
 import { useAppStore } from '../../stores/appStore'
+import { SiriWaveform } from './SiriWaveform'
 import {
   WAVEFORM_BAR_COUNT,
   WAVEFORM_MAX_HEIGHT,
@@ -8,7 +9,25 @@ import {
   nextWaveformHeights,
 } from './waveformLevels'
 
+/** True when a 2D canvas is available (not in jsdom) and motion is allowed. */
+function canvasSupported(): boolean {
+  if (typeof document === 'undefined') return false
+  try {
+    return Boolean(document.createElement('canvas').getContext('2d'))
+  } catch {
+    return false
+  }
+}
+
 export function Waveform() {
+  const reducedMotion = useReducedMotion()
+  if (!reducedMotion && canvasSupported()) {
+    return <SiriWaveform />
+  }
+  return <BarWaveform />
+}
+
+function BarWaveform() {
   const barsRef = useRef<(HTMLDivElement | null)[]>([])
   const heightsRef = useRef<number[]>(Array(WAVEFORM_BAR_COUNT).fill(WAVEFORM_MIN_HEIGHT))
   const rafRef = useRef<number>(0)

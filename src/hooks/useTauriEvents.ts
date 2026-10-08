@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import { useTranslation } from 'react-i18next'
 import i18n from '../i18n'
+import type { AudioMeter } from '../components/Capsule/waveformLevels'
 import { useAppStore, type AskSelectionCaptured } from '../stores/appStore'
 import { useAuthStore } from '../stores/authStore'
 import type {
@@ -90,6 +91,7 @@ export function useTauriEvents() {
     }
 
     addListener<number>('audio:volume', setAudioVolume)
+    addListener<AudioMeter>('audio:meter', (meter) => useAppStore.getState().setAudioMeter(meter))
     addListener<string>('stt:partial', setPartialTranscript)
     addListener<string>('stt:final', setFinalTranscript)
     addListener<string>('llm:chunk', appendPolishedChunk)

@@ -4,6 +4,7 @@ import {
   WAVEFORM_MIN_HEIGHT,
   WAVEFORM_MAX_HEIGHT,
   isSilentLevel,
+  nextWaveAmplitudes,
   nextWaveformHeights,
 } from '../waveformLevels'
 
@@ -39,5 +40,33 @@ describe('isSilentLevel', () => {
     expect(isSilentLevel(0)).toBe(true)
     expect(isSilentLevel(0.1)).toBe(true)
     expect(isSilentLevel(0.5)).toBe(false)
+  })
+})
+
+describe('nextWaveAmplitudes', () => {
+  const silence = { level: 0, bands: [0, 0, 0, 0, 0] }
+
+  it('flattens every layer on silence', () => {
+    const next = nextWaveAmplitudes([0.8, 0.8, 0.8, 0.8], silence)
+    next.forEach((a) => expect(a).toBeLessThan(0.8))
+    let settled = next
+    for (let i = 0; i < 40; i++) settled = nextWaveAmplitudes(settled, silence)
+    settled.forEach((a) => expect(a).toBeLessThan(0.01))
+  })
+
+  it('moves the low layer for low bands and the high layer for high bands', () => {
+    const low = nextWaveAmplitudes([0, 0, 0, 0], { level: 0.8, bands: [0.9, 0.6, 0, 0, 0] })
+    expect(low[0]).toBeGreaterThan(low[2])
+    const high = nextWaveAmplitudes([0, 0, 0, 0], { level: 0.8, bands: [0, 0, 0, 0.9, 0.7] })
+    expect(high[2]).toBeGreaterThan(high[0])
+  })
+
+  it('attacks faster than it releases and never exceeds 1', () => {
+    const loud = { level: 1, bands: [1, 1, 1, 1, 1] }
+    const up = nextWaveAmplitudes([0, 0, 0, 0], loud)
+    const down = nextWaveAmplitudes([1, 1, 1, 1], silence)
+    expect(up[3]).toBeGreaterThan(1 - down[3])
+    up.forEach((a) => expect(a).toBeLessThanOrEqual(1))
+    expect(nextWaveAmplitudes([0, 0, 0, 0], { level: NaN, bands: [NaN] })).toEqual([0, 0, 0, 0])
   })
 })
