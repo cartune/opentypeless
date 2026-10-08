@@ -140,6 +140,8 @@ export interface CapsuleVisibilityInput {
   translationTargetMenuOpen?: boolean
   capsuleExpanded: boolean
   hasError: boolean
+  /** A brief non-error notice (e.g. "cancelled") keeps the capsule visible. */
+  hasNotice?: boolean
   pipelineState: PipelineState
 }
 
@@ -149,6 +151,7 @@ export function getCapsuleVisibility({
   translationTargetMenuOpen = false,
   capsuleExpanded,
   hasError,
+  hasNotice = false,
   pipelineState,
 }: CapsuleVisibilityInput): boolean {
   return (
@@ -157,6 +160,7 @@ export function getCapsuleVisibility({
     translationTargetMenuOpen ||
     capsuleExpanded ||
     hasError ||
+    hasNotice ||
     pipelineState !== 'idle'
   )
 }
@@ -165,17 +169,21 @@ export function getCapsuleFocusable(): boolean {
   return false
 }
 
+export const CAPSULE_NOTICE_SIZE: CapsuleSize = { width: 120, height: 36 }
+
 function getSizeForState(
   state: PipelineState,
   expanded: boolean,
   hasError: boolean,
   contextMenuOpen: boolean,
   translationTargetMenuOpen = false,
+  hasNotice = false,
 ): CapsuleSize {
   if (translationTargetMenuOpen) return { width: 360, height: 180 }
   if (contextMenuOpen) return { width: 220, height: 220 }
   if (hasError) return { width: 200, height: 36 }
   if (expanded) return { width: 220, height: 90 }
+  if (hasNotice && state === 'idle') return CAPSULE_NOTICE_SIZE
   switch (state) {
     case 'idle':
       return { width: 36, height: 36 }
@@ -199,6 +207,7 @@ export function useCapsuleResize() {
   const pipelineState = useAppStore((s) => s.pipelineState)
   const capsuleExpanded = useAppStore((s) => s.capsuleExpanded)
   const pipelineError = useAppStore((s) => s.pipelineError)
+  const pipelineNotice = useAppStore((s) => s.pipelineNotice)
   const contextMenuOpen = useAppStore((s) => s.contextMenuOpen)
   const translationTargetMenuOpen = useAppStore((s) => s.translationTargetMenuOpen)
   const setContextMenuReady = useAppStore((s) => s.setContextMenuReady)
@@ -211,6 +220,7 @@ export function useCapsuleResize() {
   const effectGeneration = useRef(0)
 
   const hasError = pipelineError !== null
+  const hasNotice = pipelineNotice !== null && !hasError
 
   useEffect(() => {
     const generation = ++effectGeneration.current
@@ -222,6 +232,7 @@ export function useCapsuleResize() {
       hasError,
       contextMenuOpen,
       translationTargetMenuOpen,
+      hasNotice,
     )
     const glass = shouldApplyCapsuleGlass({
       glassEnabled,
@@ -238,6 +249,7 @@ export function useCapsuleResize() {
       translationTargetMenuOpen,
       capsuleExpanded,
       hasError,
+      hasNotice,
       pipelineState,
     })
 
@@ -429,6 +441,7 @@ export function useCapsuleResize() {
     pipelineState,
     capsuleExpanded,
     hasError,
+    hasNotice,
     contextMenuOpen,
     translationTargetMenuOpen,
     capsuleAutoHide,
@@ -442,5 +455,6 @@ export function useCapsuleResize() {
     hasError,
     contextMenuOpen,
     translationTargetMenuOpen,
+    hasNotice,
   )
 }

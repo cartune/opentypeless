@@ -92,6 +92,19 @@ describe('getCapsuleVisibility', () => {
     ).toBe(true)
   })
 
+  it('keeps the idle capsule visible while a cancelled notice is showing', () => {
+    expect(
+      getCapsuleVisibility({
+        capsuleAutoHide: true,
+        contextMenuOpen: false,
+        capsuleExpanded: false,
+        hasError: false,
+        hasNotice: true,
+        pipelineState: 'idle',
+      }),
+    ).toBe(true)
+  })
+
   it('shows active capsule while recording', () => {
     expect(
       getCapsuleVisibility({

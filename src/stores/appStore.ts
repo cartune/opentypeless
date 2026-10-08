@@ -11,6 +11,8 @@ export type PipelineState =
   | 'ask_recording'
   | 'ask_thinking'
 
+export type PipelineNotice = 'cancelled'
+
 export type VoiceMode = 'dictate' | 'ask' | 'translate'
 
 export type SttProvider =
@@ -376,6 +378,9 @@ interface AppState {
   // Pipeline error
   pipelineError: string | null
   setPipelineError: (error: string | null) => void
+  // Non-error notices shown briefly in the capsule (e.g. user cancelled)
+  pipelineNotice: PipelineNotice | null
+  setPipelineNotice: (notice: PipelineNotice | null) => void
   askSelection: AskSelectionCaptured | null
   setAskSelection: (selection: AskSelectionCaptured | null) => void
 
@@ -923,6 +928,8 @@ export const useAppStore = create<AppState>((set) => ({
 
   pipelineError: null,
   setPipelineError: (pipelineError) => set({ pipelineError }),
+  pipelineNotice: null,
+  setPipelineNotice: (pipelineNotice) => set({ pipelineNotice }),
   askSelection: null,
   setAskSelection: (askSelection) => set({ askSelection }),
 

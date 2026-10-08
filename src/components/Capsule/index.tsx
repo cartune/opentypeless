@@ -11,6 +11,7 @@ import { CapsuleProcessing } from './CapsuleProcessing'
 import { CapsulePolishing } from './CapsulePolishing'
 import { CapsuleComplete } from './CapsuleComplete'
 import { CapsuleError } from './CapsuleError'
+import { CapsuleCancelled } from './CapsuleCancelled'
 import { CapsuleContextMenu } from './CapsuleContextMenu'
 import { CapsuleAskRecording } from './CapsuleAskRecording'
 import { CapsuleAskThinking } from './CapsuleAskThinking'
@@ -18,8 +19,9 @@ import { TranslateTargetMenu } from './TranslateTargetChip'
 
 const DRAG_THRESHOLD = 5
 
-function getCapsuleState(pipelineState: string, hasError: boolean) {
+function getCapsuleState(pipelineState: string, hasError: boolean, hasNotice = false) {
   if (hasError) return 'error'
+  if (hasNotice && pipelineState === 'idle') return 'cancelled'
   return pipelineState
 }
 
@@ -31,6 +33,8 @@ function getCapsuleShellSize(capsuleState: string) {
       return { width: 180, height: 36 }
     case 'outputting':
       return { width: 144, height: 36 }
+    case 'cancelled':
+      return { width: 120, height: 36 }
     case 'ask_recording':
     case 'ask_thinking':
       return { width: 168, height: 36 }
@@ -47,6 +51,7 @@ function getCapsuleShellSize(capsuleState: string) {
 export function Capsule() {
   const pipelineState = useAppStore((s) => s.pipelineState)
   const pipelineError = useAppStore((s) => s.pipelineError)
+  const pipelineNotice = useAppStore((s) => s.pipelineNotice)
   const contextMenuOpen = useAppStore((s) => s.contextMenuOpen)
   const setContextMenuOpen = useAppStore((s) => s.setContextMenuOpen)
   const contextMenuReady = useAppStore((s) => s.contextMenuReady)
@@ -63,7 +68,11 @@ export function Capsule() {
   useCapsuleResize()
 
   const hasError = pipelineError !== null
-  const capsuleState = getCapsuleState(pipelineState, hasError)
+  const hasNotice = pipelineNotice !== null
+  const capsuleState = getCapsuleState(pipelineState, hasError, hasNotice)
+  // Cancel is a quiet notice: neutral idle tone, then the content scales
+  // away from its centre and the pill snaps back to the idle dot.
+  const quiet = capsuleState === 'idle' || capsuleState === 'cancelled'
   const capsuleShellSize = getCapsuleShellSize(capsuleState)
   const glass = shouldApplyCapsuleGlass({
     glassEnabled,
@@ -74,14 +83,15 @@ export function Capsule() {
   const shellTone = glass
     ? capsuleState === 'error'
       ? 'glass-capsule glass-capsule-error text-white'
-      : capsuleState === 'idle'
+      : quiet
         ? 'glass-capsule text-neutral-800 dark:text-white'
         : 'glass-capsule glass-capsule-active text-white'
     : capsuleState === 'error'
       ? 'jelly-capsule-error'
-      : capsuleState === 'idle'
-        ? 'jelly-capsule text-neutral-700'
+      : quiet
+        ? 'jelly-capsule text-neutral-700 dark:text-neutral-200'
         : 'jelly-capsule-active text-white'
+  const layoutDuration = capsuleState === 'cancelled' || pipelineNotice !== null ? 0.14 : 0.2
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return
@@ -158,7 +168,7 @@ export function Capsule() {
       {/* Persistent outer shell — jelly capsule */}
       <motion.div
         layout
-        transition={{ layout: { duration: 0.2, ease: [0.2, 0, 0, 1] } }}
+        transition={{ layout: { duration: layoutDuration, ease: [0.2, 0, 0, 1] } }}
         className={`absolute ${glass ? 'left-0' : 'left-3'} rounded-full pointer-events-auto shrink-0 ${shellTone}`}
         data-glass={glass ? 'true' : 'false'}
         style={capsuleShellSize}
@@ -170,9 +180,14 @@ export function Capsule() {
           <motion.div
             key={capsuleState}
             className="absolute inset-0"
+            style={{ transformOrigin: 'center' }}
             initial={{ opacity: 0, filter: 'blur(2px)' }}
-            animate={{ opacity: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, filter: 'blur(2px)' }}
+            animate={{ opacity: 1, filter: 'blur(0px)', scale: 1 }}
+            exit={
+              capsuleState === 'cancelled'
+                ? { opacity: 0, scale: 0.5 }
+                : { opacity: 0, filter: 'blur(2px)' }
+            }
             transition={{ duration: 0.12, ease: [0.2, 0, 0, 1] }}
           >
             {capsuleState === 'idle' && <CapsuleIdle />}
@@ -184,6 +199,7 @@ export function Capsule() {
             {capsuleState === 'ask_recording' && <CapsuleAskRecording />}
             {capsuleState === 'ask_thinking' && <CapsuleAskThinking />}
             {capsuleState === 'error' && <CapsuleError />}
+            {capsuleState === 'cancelled' && <CapsuleCancelled />}
           </motion.div>
         </AnimatePresence>
       </motion.div>

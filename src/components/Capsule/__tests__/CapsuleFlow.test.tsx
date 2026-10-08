@@ -1,5 +1,5 @@
 import React from 'react'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { invoke } from '@tauri-apps/api/core'
 import { useAppStore } from '../../../stores/appStore'
@@ -63,6 +63,32 @@ describe('Capsule flow states', () => {
       activeVoiceMode: null,
       partialTranscript: '',
     })
+  })
+
+  it('shows a quiet cancelled notice instead of the red error pill, then collapses', () => {
+    vi.useFakeTimers()
+    try {
+      useAppStore.setState({ pipelineState: 'idle', pipelineNotice: 'cancelled' })
+
+      const { container } = render(<Capsule />)
+
+      expect(screen.getByText('capsule.errors.cancelled')).toBeInTheDocument()
+      expect(container.querySelector('.jelly-capsule-error')).toBeNull()
+      expect(container.querySelector('.glass-capsule-error')).toBeNull()
+      const shell = container.querySelector('.jelly-capsule') as HTMLElement
+      expect(shell).toBeTruthy()
+      expect(shell.style.width).toBe('120px')
+
+      act(() => {
+        vi.advanceTimersByTime(700)
+      })
+
+      expect(useAppStore.getState().pipelineNotice).toBeNull()
+      expect(screen.queryByText('capsule.errors.cancelled')).not.toBeInTheDocument()
+      expect((container.querySelector('.jelly-capsule') as HTMLElement).style.width).toBe('36px')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('renders preparing state', () => {

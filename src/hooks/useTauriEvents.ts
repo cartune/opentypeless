@@ -112,8 +112,9 @@ export function useTauriEvents() {
         setRecordingDeadline(null)
       }
       if (state === 'preparing' || state === 'recording' || state === 'ask_recording') {
-        // Clear any previous error when starting a new pipeline run
+        // Clear any previous error or notice when starting a new pipeline run
         setPipelineError(null)
+        useAppStore.getState().setPipelineNotice(null)
         useCloudServiceStore.getState().clearIncident()
       }
       if (state === 'idle') {
@@ -157,6 +158,11 @@ export function useTauriEvents() {
     addListener<ContextProfileSummary>('pipeline:context', setLastContext)
     addListener<PipelineErrorPayload>('pipeline:error', (payload) => {
       const capsuleErrorKey = capsuleErrorKeyFromPayload(payload)
+      if (capsuleErrorKey === 'cancelled') {
+        // A user cancel is not a failure: show a quiet notice, never the red pill.
+        useAppStore.getState().setPipelineNotice('cancelled')
+        return
+      }
       setPipelineError(t(`capsule.errors.${capsuleErrorKey}`))
       if (capsuleErrorKey === 'accessibility_required') {
         setAccessibilityTrusted(false)
