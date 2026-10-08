@@ -945,7 +945,15 @@ mod real_mic_tests {
     #[test]
     #[ignore]
     fn capture_real_mic_peak() {
-        let (mut handle, mut rx) = AudioCaptureHandle::start(AudioConfig::default()).unwrap();
+        // MIC_DUCK=75 forces ducking, MIC_SHARING=always forces the vpio path.
+        let config = AudioConfig {
+            output_ducking: std::env::var("MIC_DUCK").ok().and_then(|v| v.parse().ok()),
+            mic_sharing: MicSharingMode::from_config(
+                &std::env::var("MIC_SHARING").unwrap_or_else(|_| "auto".to_string()),
+            ),
+            ..AudioConfig::default()
+        };
+        let (mut handle, mut rx) = AudioCaptureHandle::start(config).unwrap();
         let runtime = tokio::runtime::Runtime::new().unwrap();
         runtime.block_on(async {
             handle.wait_until_ready().await.unwrap();
