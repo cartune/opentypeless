@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useAppStore, type PipelineState } from '../stores/appStore'
-import { setCapsuleGlass } from '../lib/tauri'
+import { animateCapsuleFrame, setCapsuleGlass, type CapsuleGlassTint } from '../lib/tauri'
 
 interface CapsuleSize {
   width: number
@@ -170,6 +170,96 @@ export function getCapsuleFocusable(): boolean {
 }
 
 export const CAPSULE_NOTICE_SIZE: CapsuleSize = { width: 120, height: 36 }
+/** Pill size (before padding) the window shrinks to when it scales away. */
+export const CAPSULE_COLLAPSED_SIZE: CapsuleSize = { width: 6, height: 6 }
+
+export interface CapsuleLayoutInput {
+  contextMenuOpen: boolean
+  translationTargetMenuOpen?: boolean
+  capsuleExpanded: boolean
+}
+
+/** True while the window is just the pill (no menu or expanded view). */
+export function isPillLayout({
+  contextMenuOpen,
+  translationTargetMenuOpen = false,
+  capsuleExpanded,
+}: CapsuleLayoutInput): boolean {
+  return !contextMenuOpen && !translationTargetMenuOpen && !capsuleExpanded
+}
+
+export type CapsuleFrameKind = 'show' | 'grow' | 'shrink' | 'cancel' | 'collapse' | 'pop'
+
+export interface CapsuleFrameTransition {
+  durationMs: number
+  overshoot: boolean
+}
+
+/**
+ * Timing for each native pill transition. Appearing and growing spring a
+ * little past the target; the cancel shrink springs too so it reads as a
+ * bounce rather than a snap; collapsing to the centre is a plain ease-out.
+ */
+export function getCapsuleFrameTransition(
+  kind: CapsuleFrameKind,
+  reducedMotion = false,
+): CapsuleFrameTransition {
+  if (reducedMotion) return { durationMs: 0, overshoot: false }
+  switch (kind) {
+    case 'show':
+      return { durationMs: 320, overshoot: true }
+    case 'grow':
+      return { durationMs: 280, overshoot: true }
+    case 'cancel':
+      return { durationMs: 260, overshoot: true }
+    case 'pop':
+      return { durationMs: 280, overshoot: true }
+    case 'collapse':
+      return { durationMs: 200, overshoot: false }
+    case 'shrink':
+    default:
+      return { durationMs: 220, overshoot: false }
+  }
+}
+
+/** Which native transition a pill→pill change needs. */
+export function getCapsulePillFrameKind(input: {
+  collapsing: boolean
+  shouldShow: boolean
+  wasShown: boolean
+  wasCollapsed: boolean
+  isNotice: boolean
+  previousWidth: number
+  nextWidth: number
+}): CapsuleFrameKind | 'hide' | 'none' {
+  if (input.collapsing) return 'collapse'
+  if (!input.shouldShow) return input.wasShown && !input.wasCollapsed ? 'hide' : 'none'
+  if (!input.wasShown) return 'show'
+  if (input.wasCollapsed) return 'pop'
+  if (input.isNotice) return 'cancel'
+  return input.nextWidth > input.previousWidth ? 'grow' : 'shrink'
+}
+
+/** Glass tint for the current UI theme: dark UI gets smoked glass, light gets frosted. */
+export function getCapsuleGlassTint(darkTheme: boolean): CapsuleGlassTint {
+  return darkTheme ? 'dark' : 'light'
+}
+
+function isDarkTheme(): boolean {
+  return typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+}
+
+function prefersReducedMotion(): boolean {
+  try {
+    return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false
+  } catch {
+    return false
+  }
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 function getSizeForState(
   state: PipelineState,
@@ -190,6 +280,8 @@ function getSizeForState(
     case 'preparing':
       return { width: 180, height: 36 }
     case 'recording':
+      // Dot + waveform + timer + close button need the extra room.
+      return { width: 236, height: 36 }
     case 'transcribing':
     case 'polishing':
       return { width: 200, height: 36 }
@@ -208,17 +300,23 @@ export function useCapsuleResize() {
   const capsuleExpanded = useAppStore((s) => s.capsuleExpanded)
   const pipelineError = useAppStore((s) => s.pipelineError)
   const pipelineNotice = useAppStore((s) => s.pipelineNotice)
+  const capsuleCollapsing = useAppStore((s) => s.capsuleCollapsing)
   const contextMenuOpen = useAppStore((s) => s.contextMenuOpen)
   const translationTargetMenuOpen = useAppStore((s) => s.translationTargetMenuOpen)
   const setContextMenuReady = useAppStore((s) => s.setContextMenuReady)
   const capsuleAutoHide = useAppStore((s) => s.config.capsule_auto_hide)
   const glassEnabled = useAppStore((s) => s.config.capsule_glass_enabled)
   const glassStyle = useAppStore((s) => s.config.capsule_glass_style)
+  const theme = useAppStore((s) => s.config.theme)
   const initialized = useRef(false)
   const prevWindowSize = useRef<{ width: number; height: number } | null>(null)
   const prevPadding = useRef(CAPSULE_WINDOW_PADDING)
   const glassApplied = useRef(false)
+  const glassAppliedKey = useRef('')
   const effectGeneration = useRef(0)
+  const shown = useRef(false)
+  const collapsed = useRef(false)
+  const prevPill = useRef(true)
 
   const hasError = pipelineError !== null
   const hasNotice = pipelineNotice !== null && !hasError
@@ -244,6 +342,8 @@ export function useCapsuleResize() {
     const padding = getCapsuleWindowPadding(glass)
     const windowWidth = size.width + padding
     const windowHeight = size.height + padding
+    const pill = isPillLayout({ contextMenuOpen, translationTargetMenuOpen, capsuleExpanded })
+    const collapsing = capsuleCollapsing && pill
     const shouldShow = getCapsuleVisibility({
       capsuleAutoHide,
       contextMenuOpen,
@@ -279,9 +379,12 @@ export function useCapsuleResize() {
             if (!isCurrent()) return
           }
           const applyGlassIfNeeded = async () => {
-            if (glass && !glassApplied.current) {
-              await setCapsuleGlass(true, CAPSULE_GLASS_RADIUS, glassStyle).catch(() => {})
+            const tint = getCapsuleGlassTint(isDarkTheme())
+            const key = `${glassStyle}:${tint}`
+            if (glass && (!glassApplied.current || glassAppliedKey.current !== key)) {
+              await setCapsuleGlass(true, CAPSULE_GLASS_RADIUS, glassStyle, tint).catch(() => {})
               glassApplied.current = true
+              glassAppliedKey.current = key
             }
           }
 
@@ -331,6 +434,72 @@ export function useCapsuleResize() {
             if (!isCurrent()) return
             prevWindowSize.current = { width: windowWidth, height: windowHeight }
             prevPadding.current = padding
+            prevPill.current = pill
+            shown.current = shouldShow
+            return
+          }
+
+          // Pill → pill: animate the window natively around its centre, so the
+          // capsule grows out of the middle, springs when it shrinks, and
+          // scales away to a point instead of being clipped by the resize.
+          if (pill && prevPill.current && padding === prevPadding.current) {
+            const reduced = prefersReducedMotion()
+            const kind = getCapsulePillFrameKind({
+              collapsing,
+              shouldShow,
+              wasShown: shown.current,
+              wasCollapsed: collapsed.current,
+              isNotice: hasNotice && pipelineState === 'idle',
+              previousWidth: prevWindowSize.current?.width ?? windowWidth,
+              nextWidth: windowWidth,
+            })
+            const collapsedWindow = {
+              width: CAPSULE_COLLAPSED_SIZE.width + padding,
+              height: CAPSULE_COLLAPSED_SIZE.height + padding,
+            }
+            if (kind === 'collapse' || kind === 'hide') {
+              const transition = getCapsuleFrameTransition('collapse', reduced)
+              await animateCapsuleFrame({ ...collapsedWindow, ...transition, alpha: 0 }).catch(
+                () => {},
+              )
+              if (!isCurrent()) return
+              collapsed.current = true
+              if (kind === 'hide') {
+                await sleep(transition.durationMs)
+                if (!isCurrent()) return
+              }
+            } else if (kind !== 'none') {
+              if (kind === 'show') {
+                // Start from a point at the centre, show, then spring open.
+                await animateCapsuleFrame({ ...collapsedWindow, durationMs: 0, alpha: 0 }).catch(
+                  () => {},
+                )
+                if (!isCurrent()) return
+                await win.show().catch(() => {})
+                if (!isCurrent()) return
+                shown.current = true
+              }
+              await animateCapsuleFrame({
+                width: windowWidth,
+                height: windowHeight,
+                ...getCapsuleFrameTransition(kind, reduced),
+                alpha: 1,
+              }).catch(() => {})
+              if (!isCurrent()) return
+              collapsed.current = false
+            }
+            prevWindowSize.current = { width: windowWidth, height: windowHeight }
+            prevPadding.current = padding
+            prevPill.current = pill
+            await applyGlassIfNeeded()
+            if (!isCurrent()) return
+            if (shouldShow) {
+              await win.show().catch(() => {})
+            } else {
+              await win.hide().catch(() => {})
+            }
+            if (!isCurrent()) return
+            shown.current = shouldShow
             return
           }
 
@@ -415,6 +584,19 @@ export function useCapsuleResize() {
           if (!isCurrent()) return
           prevWindowSize.current = { width: windowWidth, height: windowHeight }
           prevPadding.current = padding
+          prevPill.current = pill
+          if (collapsed.current) {
+            // A menu opened from the collapsed point: restore full alpha.
+            await animateCapsuleFrame({
+              width: windowWidth,
+              height: windowHeight,
+              anchor: 'left',
+              durationMs: 0,
+              alpha: 1,
+            }).catch(() => {})
+            if (!isCurrent()) return
+            collapsed.current = false
+          }
           await applyGlassIfNeeded()
           if (!isCurrent()) return
 
@@ -431,6 +613,7 @@ export function useCapsuleResize() {
             await win.hide().catch(() => {})
           }
           if (!isCurrent()) return
+          shown.current = shouldShow
         },
       )
       .catch(() => {})
@@ -443,11 +626,13 @@ export function useCapsuleResize() {
     capsuleExpanded,
     hasError,
     hasNotice,
+    capsuleCollapsing,
     contextMenuOpen,
     translationTargetMenuOpen,
     capsuleAutoHide,
     glassEnabled,
     glassStyle,
+    theme,
     setContextMenuReady,
   ])
 

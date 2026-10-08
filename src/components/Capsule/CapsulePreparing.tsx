@@ -23,11 +23,11 @@ export function CapsulePreparing() {
   return (
     <motion.div className="relative z-10 flex items-center gap-2 h-9 px-3">
       <motion.span
-        className="w-2 h-2 rounded-full bg-white/75 flex-shrink-0"
+        className="w-2 h-2 rounded-full bg-current opacity-75 flex-shrink-0"
         animate={reduced ? undefined : { opacity: [0.45, 1, 0.45], scale: [0.92, 1, 0.92] }}
         transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}
       />
-      <p className="text-[11px] text-white/90 leading-snug truncate flex-1 min-w-0">
+      <p className="text-[11px] text-current opacity-90 leading-snug truncate flex-1 min-w-0">
         {t('capsule.preparing')}
       </p>
       <button
@@ -35,7 +35,7 @@ export function CapsulePreparing() {
         onPointerUp={stopPointerPropagation}
         onClick={handleCancel}
         aria-label={t('capsule.cancelRecording')}
-        className="flex-shrink-0 p-1 rounded-full text-white/70 hover:text-white hover:bg-white/15 transition-colors bg-transparent border-none cursor-pointer"
+        className="flex-shrink-0 p-1 rounded-full text-current opacity-70 hover:opacity-100 hover:bg-black/10 dark:hover:bg-current opacity-15 transition-colors bg-transparent border-none cursor-pointer"
       >
         <X size={12} />
       </button>

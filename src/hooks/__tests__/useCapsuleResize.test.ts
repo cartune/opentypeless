@@ -2,15 +2,19 @@ import { createElement } from 'react'
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  CAPSULE_COLLAPSED_SIZE,
   CAPSULE_GLASS_RADIUS,
   CAPSULE_WINDOW_PADDING,
   getCapsuleBottomCenterPosition,
   getCapsuleFocusable,
+  getCapsuleFrameTransition,
   getCapsuleLeftAnchoredX,
+  getCapsulePillFrameKind,
   getCapsuleRecoveryPosition,
   getCapsuleVisibility,
   getCapsuleWindowPadding,
   isCapsuleVisibleOnAnyMonitor,
+  isPillLayout,
   shouldApplyCapsuleGlass,
   useCapsuleResize,
 } from '../useCapsuleResize'
@@ -18,11 +22,13 @@ import { useAppStore } from '../../stores/appStore'
 
 const tauriMocks = vi.hoisted(() => ({
   setCapsuleGlass: vi.fn(),
+  animateCapsuleFrame: vi.fn(),
 }))
 
 vi.mock('../../lib/tauri', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/tauri')>()),
   setCapsuleGlass: tauriMocks.setCapsuleGlass,
+  animateCapsuleFrame: tauriMocks.animateCapsuleFrame,
 }))
 
 const windowApiMocks = vi.hoisted(() => ({
@@ -371,6 +377,7 @@ describe('useCapsuleResize async updates', () => {
     }))
 
     tauriMocks.setCapsuleGlass.mockReset().mockResolvedValue('liquid_glass')
+    tauriMocks.animateCapsuleFrame.mockReset().mockResolvedValue(undefined)
     windowApiMocks.getCurrentWindow.mockReset().mockReturnValue({
       setFocusable: windowApiMocks.setFocusable,
       setSize: windowApiMocks.setSize,
@@ -432,8 +439,9 @@ describe('useCapsuleResize async updates', () => {
       useAppStore.setState({ contextMenuOpen: false })
     })
 
+    // The menu resize never completed, so the window is still the idle pill:
+    // back to idle is a pill→pill change with nothing to animate (hidden).
     await waitFor(() => {
-      expect(windowApiMocks.setPosition).toHaveBeenCalledTimes(1)
       expect(windowApiMocks.hide).toHaveBeenCalledTimes(1)
     })
 
@@ -442,26 +450,96 @@ describe('useCapsuleResize async updates', () => {
       await delayedFirstMonitor
     })
 
-    expect(windowApiMocks.setSize.mock.calls.map(([size]) => [size.width, size.height])).toEqual([
-      [60, 60],
-    ])
-    expect(windowApiMocks.setPosition).toHaveBeenCalledTimes(1)
+    // The superseded menu resize must not land after the fact.
+    expect(windowApiMocks.setSize).not.toHaveBeenCalled()
+    expect(windowApiMocks.setPosition).not.toHaveBeenCalled()
+    expect(tauriMocks.animateCapsuleFrame).not.toHaveBeenCalled()
     expect(windowApiMocks.show).not.toHaveBeenCalled()
     expect(windowApiMocks.hide).toHaveBeenCalledTimes(1)
     expect(useAppStore.getState().contextMenuReady).toBe(false)
 
-    windowApiMocks.outerPosition.mockResolvedValue({ x: 100, y: 100 })
-    windowApiMocks.outerSize.mockResolvedValue(null)
     windowApiMocks.setPosition.mockClear()
+    windowApiMocks.setSize.mockClear()
+    windowApiMocks.show.mockClear()
 
     act(() => {
       useAppStore.setState({ pipelineState: 'recording' })
     })
 
+    // Idle (hidden) → recording is a pill→pill change: the window starts as
+    // an invisible point at its centre, is shown, then springs open natively.
     await waitFor(() => {
-      expect(windowApiMocks.setPosition).toHaveBeenCalledWith(expect.objectContaining({ y: 100 }))
+      expect(tauriMocks.animateCapsuleFrame).toHaveBeenCalledTimes(2)
     })
+    expect(tauriMocks.animateCapsuleFrame.mock.calls[0][0]).toMatchObject({
+      width: CAPSULE_COLLAPSED_SIZE.width + CAPSULE_WINDOW_PADDING,
+      height: CAPSULE_COLLAPSED_SIZE.height + CAPSULE_WINDOW_PADDING,
+      durationMs: 0,
+      alpha: 0,
+    })
+    expect(tauriMocks.animateCapsuleFrame.mock.calls[1][0]).toMatchObject({
+      width: 236 + CAPSULE_WINDOW_PADDING,
+      height: 36 + CAPSULE_WINDOW_PADDING,
+      overshoot: true,
+      alpha: 1,
+    })
+    expect(tauriMocks.animateCapsuleFrame.mock.calls[1][0].durationMs).toBeGreaterThan(0)
+    expect(windowApiMocks.show.mock.invocationCallOrder[0]).toBeLessThan(
+      tauriMocks.animateCapsuleFrame.mock.invocationCallOrder[1],
+    )
+    expect(windowApiMocks.setSize).not.toHaveBeenCalled()
+    expect(windowApiMocks.setPosition).not.toHaveBeenCalled()
     expect(tauriMocks.setCapsuleGlass).not.toHaveBeenCalled()
+  })
+
+  it('cancels by springing to the notice, scaling away to the centre, then hiding', async () => {
+    useAppStore.setState((state) => ({
+      config: { ...state.config, capsule_auto_hide: true, capsule_glass_enabled: true },
+      pipelineState: 'recording',
+    }))
+    render(createElement(HookHarness))
+    await waitFor(() => {
+      expect(windowApiMocks.show).toHaveBeenCalled()
+    })
+    tauriMocks.animateCapsuleFrame.mockClear()
+    windowApiMocks.hide.mockClear()
+
+    act(() => {
+      useAppStore.setState({ pipelineState: 'idle', pipelineNotice: 'cancelled' })
+    })
+    await waitFor(() => {
+      expect(tauriMocks.animateCapsuleFrame).toHaveBeenCalledTimes(1)
+    })
+    // Glass: no padding, the window is the 120×36 notice pill, with a bounce.
+    expect(tauriMocks.animateCapsuleFrame.mock.calls[0][0]).toMatchObject({
+      width: 120,
+      height: 36,
+      overshoot: true,
+      alpha: 1,
+    })
+
+    act(() => {
+      useAppStore.setState({ capsuleCollapsing: true })
+    })
+    await waitFor(() => {
+      expect(tauriMocks.animateCapsuleFrame).toHaveBeenCalledTimes(2)
+    })
+    expect(tauriMocks.animateCapsuleFrame.mock.calls[1][0]).toMatchObject({
+      width: CAPSULE_COLLAPSED_SIZE.width,
+      height: CAPSULE_COLLAPSED_SIZE.height,
+      overshoot: false,
+      alpha: 0,
+    })
+    expect(windowApiMocks.hide).not.toHaveBeenCalled()
+
+    act(() => {
+      useAppStore.setState({ capsuleCollapsing: false, pipelineNotice: null })
+    })
+    await waitFor(() => {
+      expect(windowApiMocks.hide).toHaveBeenCalledTimes(1)
+    })
+    // Already collapsed: no second animation before hiding.
+    expect(tauriMocks.animateCapsuleFrame).toHaveBeenCalledTimes(2)
   })
 
   it('applies glass only while pill-sized and clears it before the window grows', async () => {
@@ -477,7 +555,12 @@ describe('useCapsuleResize async updates', () => {
     expect(windowApiMocks.setSize.mock.calls.map(([size]) => [size.width, size.height])).toEqual([
       [36, 36],
     ])
-    expect(tauriMocks.setCapsuleGlass).toHaveBeenCalledWith(true, CAPSULE_GLASS_RADIUS, 'clear')
+    expect(tauriMocks.setCapsuleGlass).toHaveBeenCalledWith(
+      true,
+      CAPSULE_GLASS_RADIUS,
+      'clear',
+      'light',
+    )
 
     tauriMocks.setCapsuleGlass.mockClear()
     windowApiMocks.setSize.mockClear()
@@ -512,7 +595,12 @@ describe('useCapsuleResize async updates', () => {
     })
 
     await waitFor(() => {
-      expect(tauriMocks.setCapsuleGlass).toHaveBeenCalledWith(true, CAPSULE_GLASS_RADIUS, 'clear')
+      expect(tauriMocks.setCapsuleGlass).toHaveBeenCalledWith(
+        true,
+        CAPSULE_GLASS_RADIUS,
+        'clear',
+        'light',
+      )
     })
     // Back to the pill: resize first, then re-apply the glass.
     expect(windowApiMocks.setSize.mock.invocationCallOrder[0]).toBeLessThan(
@@ -520,5 +608,52 @@ describe('useCapsuleResize async updates', () => {
     )
     expect(windowApiMocks.setSize.mock.calls[0][0]).toMatchObject({ width: 36, height: 36 })
     expect(windowApiMocks.setPosition).toHaveBeenCalledWith(expect.objectContaining({ x: 100 }))
+  })
+})
+
+describe('pill frame transitions', () => {
+  it('recognises the pill layout', () => {
+    expect(isPillLayout({ contextMenuOpen: false, capsuleExpanded: false })).toBe(true)
+    expect(isPillLayout({ contextMenuOpen: true, capsuleExpanded: false })).toBe(false)
+    expect(
+      isPillLayout({
+        contextMenuOpen: false,
+        translationTargetMenuOpen: true,
+        capsuleExpanded: false,
+      }),
+    ).toBe(false)
+    expect(isPillLayout({ contextMenuOpen: false, capsuleExpanded: true })).toBe(false)
+  })
+
+  it('picks the transition from what the window was doing', () => {
+    const base = {
+      collapsing: false,
+      shouldShow: true,
+      wasShown: true,
+      wasCollapsed: false,
+      isNotice: false,
+      previousWidth: 36,
+      nextWidth: 236,
+    }
+    expect(getCapsulePillFrameKind(base)).toBe('grow')
+    expect(getCapsulePillFrameKind({ ...base, previousWidth: 236, nextWidth: 144 })).toBe('shrink')
+    expect(getCapsulePillFrameKind({ ...base, isNotice: true, nextWidth: 120 })).toBe('cancel')
+    expect(getCapsulePillFrameKind({ ...base, wasShown: false })).toBe('show')
+    expect(getCapsulePillFrameKind({ ...base, wasCollapsed: true })).toBe('pop')
+    expect(getCapsulePillFrameKind({ ...base, collapsing: true })).toBe('collapse')
+    expect(getCapsulePillFrameKind({ ...base, shouldShow: false })).toBe('hide')
+    expect(getCapsulePillFrameKind({ ...base, shouldShow: false, wasCollapsed: true })).toBe('none')
+    expect(getCapsulePillFrameKind({ ...base, shouldShow: false, wasShown: false })).toBe('none')
+  })
+
+  it('springs when appearing, growing, cancelling and popping, but not when collapsing', () => {
+    for (const kind of ['show', 'grow', 'cancel', 'pop'] as const) {
+      const t = getCapsuleFrameTransition(kind)
+      expect(t.overshoot).toBe(true)
+      expect(t.durationMs).toBeGreaterThan(0)
+    }
+    expect(getCapsuleFrameTransition('collapse').overshoot).toBe(false)
+    expect(getCapsuleFrameTransition('shrink').overshoot).toBe(false)
+    expect(getCapsuleFrameTransition('grow', true)).toEqual({ durationMs: 0, overshoot: false })
   })
 })

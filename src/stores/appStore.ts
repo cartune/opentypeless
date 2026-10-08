@@ -393,6 +393,9 @@ interface AppState {
   // Non-error notices shown briefly in the capsule (e.g. user cancelled)
   pipelineNotice: PipelineNotice | null
   setPipelineNotice: (notice: PipelineNotice | null) => void
+  /** True while the capsule window is scaling away to its centre (after "cancelled"). */
+  capsuleCollapsing: boolean
+  setCapsuleCollapsing: (collapsing: boolean) => void
   askSelection: AskSelectionCaptured | null
   setAskSelection: (selection: AskSelectionCaptured | null) => void
 
@@ -868,7 +871,7 @@ const defaultConfig: AppConfig = {
   audio_ducking_enabled: true,
   audio_ducking_level: 75,
   mic_sharing_mode: 'auto',
-  capsule_glass_enabled: false,
+  capsule_glass_enabled: true,
   capsule_glass_style: 'clear',
   usage_pricing: [],
   correction_rules_exact_apply: true,
@@ -948,6 +951,8 @@ export const useAppStore = create<AppState>((set) => ({
   setPipelineError: (pipelineError) => set({ pipelineError }),
   pipelineNotice: null,
   setPipelineNotice: (pipelineNotice) => set({ pipelineNotice }),
+  capsuleCollapsing: false,
+  setCapsuleCollapsing: (capsuleCollapsing) => set({ capsuleCollapsing }),
   askSelection: null,
   setAskSelection: (askSelection) => set({ askSelection }),
 

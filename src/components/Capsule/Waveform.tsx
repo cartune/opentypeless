@@ -70,7 +70,7 @@ function BarWaveform() {
           ref={(el) => {
             barsRef.current[i] = el
           }}
-          className="w-[2px] rounded-full bg-white/80"
+          className="w-[2px] rounded-full bg-current opacity-80"
           style={{
             height: `${WAVEFORM_MIN_HEIGHT}px`,
             opacity: 0.45,

@@ -26,11 +26,11 @@ export function CapsuleAskRecording() {
   return (
     <div className="relative z-10 flex h-9 items-center gap-2 px-3">
       {commandMode ? (
-        <WandSparkles size={13} className="shrink-0 text-white/90" />
+        <WandSparkles size={13} className="shrink-0 text-current opacity-90" />
       ) : (
-        <MessageCircle size={13} className="shrink-0 text-white/90" />
+        <MessageCircle size={13} className="shrink-0 text-current opacity-90" />
       )}
-      <span className="whitespace-nowrap text-[11px] font-medium text-white">
+      <span className="whitespace-nowrap text-[11px] font-medium text-current">
         {commandMode ? t('capsule.commandMode') : t('ask.title')}
       </span>
       <CapsuleWorkIndicator tone="steady" />
@@ -41,7 +41,7 @@ export function CapsuleAskRecording() {
         onPointerUp={stopPointerPropagation}
         onClick={handleCancel}
         aria-label={t('capsule.cancelRecording')}
-        className="shrink-0 rounded-full border-none bg-transparent p-1 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
+        className="shrink-0 rounded-full border-none bg-transparent p-1 text-current opacity-70 transition-colors hover:bg-current opacity-15 hover:text-current"
       >
         <X size={12} />
       </button>

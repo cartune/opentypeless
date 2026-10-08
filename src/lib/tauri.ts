@@ -532,13 +532,48 @@ export type CapsuleGlassMode = 'liquid_glass' | 'vibrancy' | 'none'
 
 /** Apply or clear the native glass backdrop on the capsule window (macOS only; no-op elsewhere). */
 export type CapsuleGlassStyle = 'clear' | 'regular'
+/** Tint over the glass so it matches the UI theme: smoked for dark, frosted for light. */
+export type CapsuleGlassTint = 'dark' | 'light' | 'none'
 
 export async function setCapsuleGlass(
   enabled: boolean,
   radius = 18,
   style: CapsuleGlassStyle = 'clear',
+  tint: CapsuleGlassTint = 'none',
 ): Promise<CapsuleGlassMode> {
-  return invoke('set_capsule_glass', { enabled, radius, style })
+  return invoke('set_capsule_glass', { enabled, radius, style, tint })
+}
+
+export type CapsuleFrameAnchor = 'center' | 'left'
+
+export interface CapsuleFrameAnimation {
+  /** Logical window size to animate to. */
+  width: number
+  height: number
+  /** Edge that stays fixed; the vertical centre is always kept. */
+  anchor?: CapsuleFrameAnchor
+  /** 0 applies the frame immediately. */
+  durationMs?: number
+  /** Spring-like overshoot past the target. */
+  overshoot?: boolean
+  /** Window alpha 0..1 at the end of the animation. */
+  alpha?: number
+}
+
+/**
+ * Animate the capsule window frame natively. In glass mode the pill is the
+ * window itself, so growing, shrinking and collapsing have to happen on the
+ * NSWindow rather than in CSS. Resolves once scheduled, not when finished.
+ */
+export async function animateCapsuleFrame(frame: CapsuleFrameAnimation): Promise<void> {
+  return invoke('animate_capsule_frame', {
+    width: frame.width,
+    height: frame.height,
+    anchor: frame.anchor ?? 'center',
+    durationMs: frame.durationMs ?? 0,
+    overshoot: frame.overshoot ?? false,
+    alpha: frame.alpha ?? 1,
+  })
 }
 
 /** `since` is an ISO date prefix such as "2026-10-01" compared against history `created_at`. */

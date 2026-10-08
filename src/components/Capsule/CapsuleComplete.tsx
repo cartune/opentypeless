@@ -28,11 +28,11 @@ export function CapsuleComplete() {
         animate={{ scale: 1, opacity: 1 }}
         transition={spring.smooth}
       >
-        <Check size={14} className="text-white" />
+        <Check size={14} className="text-current" />
       </motion.div>
-      <span className="text-[11px] text-white font-medium">{t('capsule.done')}</span>
+      <span className="text-[11px] text-current font-medium">{t('capsule.done')}</span>
       {timing && (
-        <span className="text-[10px] text-white/60 tabular-nums whitespace-nowrap">
+        <span className="text-[10px] text-current opacity-60 tabular-nums whitespace-nowrap">
           {t('capsule.timing', { stt: timing.stt ?? '–', llm: timing.llm ?? '–' })}
         </span>
       )}

@@ -31,8 +31,8 @@ export function CapsuleError() {
       transition={{ duration: 0.3, ease: 'easeOut' }}
     >
       {/* White dot */}
-      <motion.div className="w-2 h-2 rounded-full bg-white/80 flex-shrink-0" />
-      <p className="text-[11px] text-white truncate flex-1">
+      <motion.div className="w-2 h-2 rounded-full bg-current opacity-80 flex-shrink-0" />
+      <p className="text-[11px] text-current truncate flex-1">
         {pipelineError || t('capsule.errors.unknown')}
       </p>
     </motion.div>

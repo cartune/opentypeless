@@ -2,7 +2,12 @@ import { useRef, useCallback, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAppStore } from '../../stores/appStore'
 import { useRecording } from '../../hooks/useRecording'
-import { shouldApplyCapsuleGlass, useCapsuleResize } from '../../hooks/useCapsuleResize'
+import {
+  CAPSULE_WINDOW_PADDING,
+  isPillLayout,
+  shouldApplyCapsuleGlass,
+  useCapsuleResize,
+} from '../../hooks/useCapsuleResize'
 import { stopAskFlow } from '../../lib/tauri'
 import { CapsuleIdle } from './CapsuleIdle'
 import { CapsulePreparing } from './CapsulePreparing'
@@ -25,6 +30,7 @@ function getCapsuleState(pipelineState: string, hasError: boolean, hasNotice = f
   return pipelineState
 }
 
+/** Shell size while a menu or the expanded view holds the window open. */
 function getCapsuleShellSize(capsuleState: string) {
   switch (capsuleState) {
     case 'idle':
@@ -39,6 +45,7 @@ function getCapsuleShellSize(capsuleState: string) {
     case 'ask_thinking':
       return { width: 168, height: 36 }
     case 'recording':
+      return { width: 236, height: 36 }
     case 'transcribing':
     case 'polishing':
     case 'error':
@@ -46,6 +53,17 @@ function getCapsuleShellSize(capsuleState: string) {
     default:
       return { width: 36, height: 36 }
   }
+}
+
+/**
+ * In pill states the shell simply fills the window (minus the transparent
+ * padding when glass is off): the native window animation gives the pill its
+ * shape, so CSS never fights it. Menus keep the fixed-size shell at the left.
+ */
+function getCapsuleShellStyle(pillLayout: boolean, glass: boolean, capsuleState: string) {
+  if (!pillLayout) return getCapsuleShellSize(capsuleState)
+  const size = glass ? '100%' : `calc(100% - ${CAPSULE_WINDOW_PADDING}px)`
+  return { width: size, height: size }
 }
 
 export function Capsule() {
@@ -73,25 +91,25 @@ export function Capsule() {
   // Cancel is a quiet notice: neutral idle tone, then the content scales
   // away from its centre and the pill snaps back to the idle dot.
   const quiet = capsuleState === 'idle' || capsuleState === 'cancelled'
-  const capsuleShellSize = getCapsuleShellSize(capsuleState)
+  const pillLayout = isPillLayout({ contextMenuOpen, translationTargetMenuOpen, capsuleExpanded })
   const glass = shouldApplyCapsuleGlass({
     glassEnabled,
     contextMenuOpen,
     translationTargetMenuOpen,
     capsuleExpanded,
   })
+  const capsuleShellStyle = getCapsuleShellStyle(pillLayout, glass, capsuleState)
   const shellTone = glass
     ? capsuleState === 'error'
       ? 'glass-capsule glass-capsule-error text-white'
       : quiet
         ? 'glass-capsule text-neutral-800 dark:text-white'
-        : 'glass-capsule glass-capsule-active text-white'
+        : 'glass-capsule glass-capsule-active text-neutral-900 dark:text-white'
     : capsuleState === 'error'
       ? 'jelly-capsule-error'
       : quiet
         ? 'jelly-capsule text-neutral-700 dark:text-neutral-200'
         : 'jelly-capsule-active text-white'
-  const layoutDuration = capsuleState === 'cancelled' || pipelineNotice !== null ? 0.14 : 0.2
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return
@@ -161,17 +179,17 @@ export function Capsule() {
 
   return (
     <div
-      className="w-full h-full flex items-center justify-start relative"
+      className={`w-full h-full flex items-center relative ${pillLayout ? 'justify-center' : 'justify-start'}`}
       style={{ background: 'transparent' }}
       onContextMenu={handleContextMenu}
     >
-      {/* Persistent outer shell — jelly capsule */}
+      {/* Persistent outer shell. Pill states fill the (natively animated)
+          window; menu states pin a fixed-size shell to the left. */}
       <motion.div
-        layout
-        transition={{ layout: { duration: layoutDuration, ease: [0.2, 0, 0, 1] } }}
-        className={`absolute ${glass ? 'left-0' : 'left-3'} rounded-full pointer-events-auto shrink-0 ${shellTone}`}
+        className={`${pillLayout ? 'relative' : 'absolute left-3'} rounded-full pointer-events-auto shrink-0 ${shellTone}`}
         data-glass={glass ? 'true' : 'false'}
-        style={capsuleShellSize}
+        data-layout={pillLayout ? 'pill' : 'menu'}
+        style={capsuleShellStyle}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -182,12 +200,8 @@ export function Capsule() {
             className="absolute inset-0"
             style={{ transformOrigin: 'center' }}
             initial={{ opacity: 0, filter: 'blur(2px)' }}
-            animate={{ opacity: 1, filter: 'blur(0px)', scale: 1 }}
-            exit={
-              capsuleState === 'cancelled'
-                ? { opacity: 0, scale: 0.5 }
-                : { opacity: 0, filter: 'blur(2px)' }
-            }
+            animate={{ opacity: 1, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, filter: 'blur(2px)' }}
             transition={{ duration: 0.12, ease: [0.2, 0, 0, 1] }}
           >
             {capsuleState === 'idle' && <CapsuleIdle />}

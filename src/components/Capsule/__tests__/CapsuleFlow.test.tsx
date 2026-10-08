@@ -8,15 +8,15 @@ import { Capsule } from '../index'
 
 vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  motion: new Proxy(
-    {},
-    {
-      get:
-        (_target, tag: string) =>
-        ({ children, ...props }: React.HTMLAttributes<HTMLElement>) =>
-          React.createElement(tag, props, children),
+  // Cache one component per tag: a fresh function per render would remount
+  // the subtree (and restart effects/timers) on every store update.
+  motion: new Proxy({} as Record<string, React.FC<React.HTMLAttributes<HTMLElement>>>, {
+    get: (target, tag: string) => {
+      target[tag] ??= ({ children, ...props }: React.HTMLAttributes<HTMLElement>) =>
+        React.createElement(tag, props, children)
+      return target[tag]
     },
-  ),
+  }),
   useReducedMotion: () => true,
 }))
 
@@ -54,6 +54,10 @@ afterEach(() => {
 
 describe('Capsule flow states', () => {
   beforeEach(() => {
+    // Most flow tests look at the solid (jelly) shell; glass is on by default.
+    useAppStore.setState((state) => ({
+      config: { ...state.config, capsule_glass_enabled: false },
+    }))
     useAppStore.setState({
       pipelineState: 'idle',
       pipelineError: null,
@@ -77,15 +81,24 @@ describe('Capsule flow states', () => {
       expect(container.querySelector('.glass-capsule-error')).toBeNull()
       const shell = container.querySelector('.jelly-capsule') as HTMLElement
       expect(shell).toBeTruthy()
-      expect(shell.style.width).toBe('120px')
+      // The window (animated natively) gives the pill its size; the shell fills it.
+      expect(shell.style.width).toBe('calc(100% - 24px)')
+      expect(shell.dataset.layout).toBe('pill')
 
       act(() => {
         vi.advanceTimersByTime(700)
       })
+      // After the hold the whole pill scales away to its centre…
+      expect(useAppStore.getState().pipelineNotice).toBe('cancelled')
+      expect(useAppStore.getState().capsuleCollapsing).toBe(true)
 
+      act(() => {
+        vi.advanceTimersByTime(200)
+      })
+      // …and only then does the capsule go idle.
+      expect(useAppStore.getState().capsuleCollapsing).toBe(false)
       expect(useAppStore.getState().pipelineNotice).toBeNull()
       expect(screen.queryByText('capsule.errors.cancelled')).not.toBeInTheDocument()
-      expect((container.querySelector('.jelly-capsule') as HTMLElement).style.width).toBe('36px')
     } finally {
       vi.useRealTimers()
     }
@@ -199,7 +212,7 @@ describe('Capsule flow states', () => {
     expect(useAppStore.getState().config.translation.active_target).toBe('ja')
   })
 
-  it('keeps the capsule shell at 200 by 36 and closes the target menu on Escape', async () => {
+  it('keeps the capsule shell filling the pill window and closes the target menu on Escape', async () => {
     useAppStore.setState({
       pipelineState: 'recording',
       activeVoiceMode: 'translate',
@@ -223,8 +236,8 @@ describe('Capsule flow states', () => {
     const shell = container.querySelector(
       '.jelly-capsule-active, .glass-capsule-active',
     ) as HTMLElement
-    expect(shell.style.width).toBe('200px')
-    expect(shell.style.height).toBe('36px')
+    expect(shell.style.width).toBe('calc(100% - 24px)')
+    expect(shell.style.height).toBe('calc(100% - 24px)')
   })
   it('uses the glass shell at the window edge when glass is on, and the jelly shell otherwise', () => {
     useAppStore.setState((state) => ({
@@ -234,8 +247,10 @@ describe('Capsule flow states', () => {
     const { container, unmount } = render(<Capsule />)
     const glassShell = container.querySelector('.glass-capsule-active') as HTMLElement
     expect(glassShell).toBeTruthy()
-    expect(glassShell.className).toContain('left-0')
+    // Glass: the pill is the whole window, so the shell fills it edge to edge.
+    expect(glassShell.style.width).toBe('100%')
     expect(glassShell.dataset.glass).toBe('true')
+    expect(glassShell.dataset.layout).toBe('pill')
     unmount()
 
     useAppStore.setState((state) => ({
@@ -244,7 +259,8 @@ describe('Capsule flow states', () => {
     const { container: solid } = render(<Capsule />)
     const jellyShell = solid.querySelector('.jelly-capsule-active') as HTMLElement
     expect(jellyShell).toBeTruthy()
-    expect(jellyShell.className).toContain('left-3')
+    expect(jellyShell.style.width).toBe('calc(100% - 24px)')
+    expect(jellyShell.dataset.layout).toBe('pill')
     expect(solid.querySelector('.glass-capsule')).toBeNull()
 
     // Menus grow the window, so the glass shell must give way to the padded layout.
@@ -254,5 +270,9 @@ describe('Capsule flow states', () => {
     }))
     const { container: menu } = render(<Capsule />)
     expect(menu.querySelector('.glass-capsule')).toBeNull()
+    const menuShell = menu.querySelector('[data-layout="menu"]') as HTMLElement
+    expect(menuShell.dataset.layout).toBe('menu')
+    expect(menuShell.className).toContain('left-3')
+    expect(menuShell.style.width).toBe('236px')
   })
 })

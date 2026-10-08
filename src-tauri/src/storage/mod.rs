@@ -524,7 +524,7 @@ impl Default for AppConfig {
             audio_ducking_enabled: true,
             audio_ducking_level: crate::audio::ducking::DEFAULT_DUCK_LEVEL,
             mic_sharing_mode: "auto".to_string(),
-            capsule_glass_enabled: false,
+            capsule_glass_enabled: true,
             capsule_glass_style: "clear".to_string(),
             usage_pricing: Vec::new(),
             correction_rules_exact_apply: true,

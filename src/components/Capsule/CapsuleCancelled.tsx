@@ -5,23 +5,35 @@ import { useAppStore } from '../../stores/appStore'
 
 /** How long the quiet "cancelled" pill stays before collapsing to the dot. */
 export const CAPSULE_CANCELLED_MS = 700
+/** How long the window takes to scale away to its centre afterwards. */
+export const CAPSULE_COLLAPSE_MS = 200
 
 export function CapsuleCancelled() {
   const { t } = useTranslation()
-  const setPipelineNotice = useAppStore((s) => s.setPipelineNotice)
+  const setCapsuleCollapsing = useAppStore((s) => s.setCapsuleCollapsing)
   const resetRecording = useAppStore((s) => s.resetRecording)
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setPipelineNotice(null)
-      // Only reset recording state if the pipeline is still idle; a new run
-      // started inside the notice window must not be clobbered.
-      if (useAppStore.getState().pipelineState === 'idle') {
-        resetRecording()
-      }
+    // Hold the notice, scale the whole pill away to its centre, then go idle.
+    let clear: ReturnType<typeof setTimeout> | null = null
+    const collapse = setTimeout(() => {
+      setCapsuleCollapsing(true)
+      clear = setTimeout(() => {
+        useAppStore.setState({ capsuleCollapsing: false, pipelineNotice: null })
+        // Only reset recording state if the pipeline is still idle; a new run
+        // started inside the notice window must not be clobbered.
+        if (useAppStore.getState().pipelineState === 'idle') {
+          resetRecording()
+        }
+      }, CAPSULE_COLLAPSE_MS)
     }, CAPSULE_CANCELLED_MS)
-    return () => clearTimeout(timer)
-  }, [resetRecording, setPipelineNotice])
+    return () => {
+      clearTimeout(collapse)
+      if (clear) clearTimeout(clear)
+      // A new run that interrupts the notice must not leave the window collapsed.
+      if (useAppStore.getState().capsuleCollapsing) setCapsuleCollapsing(false)
+    }
+  }, [resetRecording, setCapsuleCollapsing])
 
   return (
     <motion.div

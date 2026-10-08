@@ -23,7 +23,7 @@ export const LAYERS: Layer[] = [
     cycles: 1.4,
     speed: 0.11,
     gain: 1.0,
-    lineWidth: 2,
+    lineWidth: 1.1,
   },
   {
     colors: ['#ff2bd6', '#ff5ce6', '#c06bff'],
@@ -31,7 +31,7 @@ export const LAYERS: Layer[] = [
     cycles: 1.9,
     speed: -0.14,
     gain: 0.85,
-    lineWidth: 1.6,
+    lineWidth: 0.9,
   },
   {
     colors: ['#b8ff00', '#d9ff4d', '#ffe600'],
@@ -39,7 +39,7 @@ export const LAYERS: Layer[] = [
     cycles: 2.6,
     speed: 0.19,
     gain: 0.7,
-    lineWidth: 1.3,
+    lineWidth: 0.8,
   },
   {
     colors: ['#9d6bff', '#d7c8ff', '#9d6bff'],
@@ -47,13 +47,13 @@ export const LAYERS: Layer[] = [
     cycles: 1.1,
     speed: -0.08,
     gain: 0.6,
-    lineWidth: 1.2,
+    lineWidth: 0.8,
   },
 ]
 
 const STEPS = 48
 /** Glow radius in CSS px; the canvas is tiny so this is cheap per frame. */
-const GLOW_BLUR = 7
+const GLOW_BLUR = 5
 
 /** Vertical excursion of one layer at horizontal position `t` (0..1). */
 export function waveOffset(layer: Layer, t: number, amp: number, phase: number, half: number) {
@@ -120,7 +120,7 @@ export function drawSiriWave(
     }
     ctx.closePath()
     ctx.fillStyle = gradient
-    ctx.globalAlpha = 0.06 + 0.16 * amp
+    ctx.globalAlpha = 0.05 + 0.12 * amp
     ctx.fill()
 
     // Neon stroke with glow on both curves.
@@ -145,8 +145,8 @@ export function drawSiriWave(
   const mainAmp = Math.max(0, Math.min(1, amplitudes[0] ?? 0))
   ctx.shadowBlur = 0
   ctx.strokeStyle = '#ffffff'
-  ctx.lineWidth = 0.8
-  ctx.globalAlpha = 0.2 + 0.35 * mainAmp
+  ctx.lineWidth = 0.5
+  ctx.globalAlpha = 0.15 + 0.3 * mainAmp
   ctx.beginPath()
   tracePath(ctx, main, width, mid, half, mainAmp, phases[0] ?? 0, -1)
   ctx.stroke()

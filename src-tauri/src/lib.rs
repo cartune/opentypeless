@@ -1351,6 +1351,7 @@ pub fn run() {
             commands::config::set_auto_start,
             commands::config::set_capsule_auto_hide,
             commands::capsule::set_capsule_glass,
+            commands::capsule::animate_capsule_frame,
             commands::config::get_session_token,
             commands::config::set_session_token,
         ])

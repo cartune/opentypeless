@@ -29,7 +29,7 @@ export function CapsuleRecording() {
     <motion.div className="relative z-10 flex items-center gap-2 h-9 px-3">
       {/* White pulse dot — gentle opacity loop */}
       <motion.div
-        className="w-2 h-2 rounded-full bg-white/80 flex-shrink-0"
+        className="w-2 h-2 rounded-full bg-current opacity-80 flex-shrink-0"
         animate={reduced ? undefined : { opacity: [1, 0.5, 1] }}
         transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
       />
@@ -51,7 +51,7 @@ export function CapsuleRecording() {
         onPointerUp={stopPointerPropagation}
         onClick={handleCancel}
         aria-label={t('capsule.cancelRecording')}
-        className="flex-shrink-0 p-1 rounded-full text-white/70 hover:text-white hover:bg-white/15 transition-colors bg-transparent border-none cursor-pointer"
+        className="flex-shrink-0 p-1 rounded-full text-current opacity-70 hover:opacity-100 hover:bg-black/10 dark:hover:bg-current opacity-15 transition-colors bg-transparent border-none cursor-pointer"
       >
         <X size={12} />
       </button>
