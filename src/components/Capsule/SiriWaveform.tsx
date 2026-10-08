@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { useAppStore } from '../../stores/appStore'
-import { WAVE_LAYER_COUNT, nextWaveAmplitudes } from './waveformLevels'
+import { INITIAL_WAVE_STATE, WaveState, nextWaveState } from './waveformLevels'
 import { LAYERS, SIRI_WAVE_HEIGHT, SIRI_WAVE_WIDTH, drawSiriWave } from './siriWave'
 
 export function SiriWaveform() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const ampsRef = useRef<number[]>(Array(WAVE_LAYER_COUNT).fill(0))
+  const stateRef = useRef<WaveState>(INITIAL_WAVE_STATE)
   const phasesRef = useRef<number[]>([0, 1.3, 2.1, 0.7])
   const rafRef = useRef(0)
 
@@ -20,11 +20,12 @@ export function SiriWaveform() {
 
     const animate = () => {
       const meter = useAppStore.getState().audioMeter
-      ampsRef.current = nextWaveAmplitudes(ampsRef.current, meter)
+      stateRef.current = nextWaveState(stateRef.current, meter)
+      const amplitudes = stateRef.current.amplitudes
       // Phase speed follows energy, so the wave hurries when you speak.
-      const energy = 0.6 + ampsRef.current[3] * 1.4
+      const energy = 0.6 + amplitudes[3] * 1.4
       phasesRef.current = phasesRef.current.map((p, i) => p + LAYERS[i].speed * energy)
-      drawSiriWave(ctx, SIRI_WAVE_WIDTH, SIRI_WAVE_HEIGHT, ampsRef.current, phasesRef.current)
+      drawSiriWave(ctx, SIRI_WAVE_WIDTH, SIRI_WAVE_HEIGHT, amplitudes, phasesRef.current)
       rafRef.current = requestAnimationFrame(animate)
     }
     rafRef.current = requestAnimationFrame(animate)
