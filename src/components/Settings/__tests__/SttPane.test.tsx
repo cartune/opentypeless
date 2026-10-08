@@ -114,6 +114,7 @@ const mockAppStore = {
     noise_suppression_enabled: false,
     audio_ducking_enabled: true,
     audio_ducking_level: 75,
+    mic_sharing_mode: 'auto' as 'auto' | 'always' | 'never',
   },
   updateConfig: vi.fn(),
   sttTestStatus: 'idle' as 'idle' | 'testing' | 'success' | 'error',
@@ -185,6 +186,7 @@ describe('SttPane', () => {
       noise_suppression_enabled: false,
       audio_ducking_enabled: true,
       audio_ducking_level: 75,
+      mic_sharing_mode: 'auto' as 'auto' | 'always' | 'never',
     }
     mockAppStore.sttTestStatus = 'idle'
     mockAppStore.sttLatencyMs = null
@@ -262,6 +264,7 @@ describe('SttPane', () => {
         ...mockAppStore.config,
         audio_ducking_enabled: true,
         audio_ducking_level: 75,
+        mic_sharing_mode: 'auto' as 'auto' | 'always' | 'never',
       }
       render(<SttPane />)
       const level = screen.getByLabelText('Volume kept while dictating') as HTMLSelectElement

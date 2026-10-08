@@ -294,6 +294,8 @@ export interface AppConfig {
   audio_ducking_enabled: boolean
   /** Percentage of the current output volume kept while recording (10–100). */
   audio_ducking_level: number
+  /** Open the mic in voice-processing mode when a call already holds it (macOS). */
+  mic_sharing_mode: 'auto' | 'always' | 'never'
   /** User overrides for the BYOK price table; empty = built-in defaults. */
   usage_pricing: UsagePrice[]
   correction_rules_exact_apply: boolean
@@ -865,6 +867,7 @@ const defaultConfig: AppConfig = {
   noise_suppression_enabled: false,
   audio_ducking_enabled: true,
   audio_ducking_level: 75,
+  mic_sharing_mode: 'auto',
   capsule_glass_enabled: false,
   capsule_glass_style: 'clear',
   usage_pricing: [],

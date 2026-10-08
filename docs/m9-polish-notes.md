@@ -2,7 +2,29 @@
 
 分支 `m9-polish`（疊在 `m8-feedback` 上）。
 
-## 1. 通話中「辨識不到語音」— 有診斷、有一道保護，沒有重現、沒有確認修好
+## 1. 通話中「辨識不到語音」— 已重現、已找到原因、已修（真實通話待驗證）
+
+**根因**：使用者回報用的是內建麥克風、看到 Typelazy 的琥珀色提示、對方聽得到。本機用一個以「語音處理模式」（AVAudioEngine `setVoiceProcessingEnabled`，FaceTime / 電話就是這樣開麥克風）佔住麥克風的小程式重現：
+
+| 情境 | 我們原本的開法（cpal / 一般 HAL） | 語音處理模式開法 |
+|---|---|---|
+| 沒有通話，喇叭放測試音 | 峰值 −15 dBFS，voiced 66 | −27 dBFS |
+| 模擬通話中，喇叭放測試音 | **−38 ～ −60 dBFS，voiced 0**（裝置變 3 聲道） | −21 dBFS |
+| 模擬通話中，只有環境音 | −43 ～ −73 dBFS | 有訊號 |
+
+一旦有語音處理工作階段佔住內建麥克風，macOS 給一般 HAL 客戶端的是幾近靜音的串流；但第二個語音處理客戶端能拿到完整的處理後人聲。使用者 04:47–04:49 的三筆 `Recording diagnostics`（我測試時正佔著麥克風）就是這個症狀：`48000Hz/3ch … voiced=0 peak=-40dBFS`。
+
+**修法**（`audio/vpio.rs`、`audio/coreaudio.rs`、`capture.rs`）：
+- 開錄前讀 CoreAudio `kAudioDevicePropertyDeviceIsRunningSomewhere`（閒置時為 false、通話時 true，已驗證）。
+- 設定 > 語音辨識 > 「通話中的麥克風」：自動共用（預設）/ 一律用通話模式 / 不共用。
+- 自動模式下若麥克風已被別的程式使用，就改用 AVAudioEngine 語音處理模式開麥克風（單聲道 48 kHz，經原本的重採樣/降噪/分塊流程），診斷行會記 `mode=vpio`；否則維持 `mode=hal`。
+- 整合測試（`cargo test capture_real_mic -- --ignored --nocapture`）：閒置 `mode=hal voiced=66 peak=-9.8`；模擬通話中 `mode=vpio peak=-25.6`（測試音來自喇叭會被回音消除，voiced 偏低；真人聲不會被消除）。
+- 第二個語音處理客戶端加入時，通話方的收音沒有變差（−42 vs −45 dBFS，環境音波動內）。
+- 未驗證：真實 FaceTime / iPhone 通話。請通話中聽寫一次，把日誌最後一行 `Recording diagnostics:` 貼過來，應該要看到 `mode=vpio` 且 `voiced` 不是 0。
+
+**低層 AudioUnit 的死路**（留作紀錄）：直接用 `kAudioUnitSubType_VoiceProcessingIO`（coreaudio-rs）開，單聲道格式拿到的訊號比 AVAudioEngine 低 15–25 dB，要 9 聲道交錯格式則回呼幾次後停住；原因不明，改走 AVAudioEngine（objc2-avf-audio）後正常。
+
+舊的診斷與保護（保留）：
 
 - **日誌落地**：之前 tracing 只印到 stdout，從 Finder 啟動就全部消失。現在同時寫到
   `~/Library/Logs/com.cartune.opentypeless/typelazy.log.<日期>`（每日輪替）。啟動時記錄版本。

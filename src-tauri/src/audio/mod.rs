@@ -1,6 +1,10 @@
 pub mod capture;
+#[cfg(target_os = "macos")]
+pub mod coreaudio;
 pub mod dsp;
 pub mod ducking;
+#[cfg(target_os = "macos")]
+pub mod vpio;
 
 pub use capture::{AudioCaptureHandle, AudioConfig, CaptureState};
 

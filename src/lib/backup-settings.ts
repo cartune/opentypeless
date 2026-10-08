@@ -58,6 +58,7 @@ type SafeScalarKey =
   | 'noise_suppression_enabled'
   | 'audio_ducking_enabled'
   | 'audio_ducking_level'
+  | 'mic_sharing_mode'
   | 'capsule_glass_enabled'
   | 'capsule_glass_style'
 
@@ -197,6 +198,7 @@ export function createBackupSettings(config: AppConfig): BackupSettings {
     noise_suppression_enabled: config.noise_suppression_enabled,
     audio_ducking_enabled: config.audio_ducking_enabled,
     audio_ducking_level: config.audio_ducking_level,
+    mic_sharing_mode: config.mic_sharing_mode,
     capsule_glass_enabled: config.capsule_glass_enabled,
     capsule_glass_style: config.capsule_glass_style,
   }
@@ -272,6 +274,7 @@ const SAFE_SCALAR_KEYS: readonly SafeScalarKey[] = [
   'noise_suppression_enabled',
   'audio_ducking_enabled',
   'audio_ducking_level',
+  'mic_sharing_mode',
   'capsule_glass_enabled',
   'capsule_glass_style',
 ]

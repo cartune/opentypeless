@@ -401,6 +401,10 @@ pub struct AppConfig {
     pub audio_ducking_enabled: bool,
     /// Percentage of the current output volume to keep while recording.
     pub audio_ducking_level: u8,
+    /// How to open the microphone when another process (a call) already has
+    /// it: `auto` switches to voice-processing mode only then, `always`
+    /// uses it for every recording, `never` keeps the plain stream.
+    pub mic_sharing_mode: String,
     /// User-editable BYOK price table used only for the cost estimate shown in
     /// the app. Empty means "use the built-in defaults" on the frontend.
     pub usage_pricing: Vec<UsagePrice>,
@@ -519,6 +523,7 @@ impl Default for AppConfig {
             noise_suppression_enabled: false,
             audio_ducking_enabled: true,
             audio_ducking_level: crate::audio::ducking::DEFAULT_DUCK_LEVEL,
+            mic_sharing_mode: "auto".to_string(),
             capsule_glass_enabled: false,
             capsule_glass_style: "clear".to_string(),
             usage_pricing: Vec::new(),
@@ -682,6 +687,9 @@ impl AppConfig {
         }
         self.audio_ducking_level =
             crate::audio::ducking::clamp_duck_level(self.audio_ducking_level);
+        if !matches!(self.mic_sharing_mode.as_str(), "auto" | "always" | "never") {
+            self.mic_sharing_mode = "auto".to_string();
+        }
         if !matches!(
             self.stt_aliyun_qwen_region.as_str(),
             crate::stt::aliyun_qwen3_asr::ALIYUN_QWEN3_ASR_REGION_CHINA_MAINLAND

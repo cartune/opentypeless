@@ -74,6 +74,58 @@ pub struct AudioConfig {
     /// Lower the system output volume to this percentage of itself while the
     /// microphone is open. `None` leaves the output alone.
     pub output_ducking: Option<u8>,
+    /// When to open the microphone in voice-processing (call) mode.
+    pub mic_sharing: MicSharingMode,
+}
+
+/// How to open the microphone when another process (a call) already uses it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum MicSharingMode {
+    /// Voice-processing mode only while some other process holds the mic.
+    #[default]
+    Auto,
+    /// Voice-processing mode for every recording.
+    Always,
+    /// Plain HAL stream, whatever else is running.
+    Never,
+}
+
+impl MicSharingMode {
+    pub fn from_config(value: &str) -> Self {
+        match value {
+            "always" => Self::Always,
+            "never" => Self::Never,
+            _ => Self::Auto,
+        }
+    }
+}
+
+/// Which capture backend to use for this recording.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CaptureBackend {
+    /// cpal / plain HAL input unit.
+    Hal,
+    /// Apple voice-processing I/O, shared with an active call.
+    VoiceProcessing,
+}
+
+impl CaptureBackend {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Hal => "hal",
+            Self::VoiceProcessing => "vpio",
+        }
+    }
+}
+
+/// Pure decision used by the capture thread.
+pub fn select_capture_backend(mode: MicSharingMode, mic_in_use_elsewhere: bool) -> CaptureBackend {
+    match mode {
+        MicSharingMode::Never => CaptureBackend::Hal,
+        MicSharingMode::Always => CaptureBackend::VoiceProcessing,
+        MicSharingMode::Auto if mic_in_use_elsewhere => CaptureBackend::VoiceProcessing,
+        MicSharingMode::Auto => CaptureBackend::Hal,
+    }
 }
 
 impl Default for AudioConfig {
@@ -84,6 +136,7 @@ impl Default for AudioConfig {
             chunk_duration_ms: 20,
             noise_suppression: false,
             output_ducking: None,
+            mic_sharing: MicSharingMode::default(),
         }
     }
 }
@@ -97,6 +150,7 @@ impl AudioConfig {
             output_ducking: config
                 .audio_ducking_enabled
                 .then_some(config.audio_ducking_level),
+            mic_sharing: MicSharingMode::from_config(&config.mic_sharing_mode),
             ..Self::default()
         }
     }
@@ -118,6 +172,8 @@ fn audio_channel_capacity(config: &AudioConfig) -> usize {
 /// logged when a recording ends.
 #[derive(Debug, Clone, Default)]
 pub struct CaptureDiagnostics {
+    /// "hal" or "vpio".
+    pub mode: String,
     pub device: String,
     pub sample_rate: u32,
     pub channels: u16,
@@ -133,7 +189,8 @@ impl std::fmt::Display for CaptureDiagnostics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "device=\"{}\" {}Hz/{}ch ns={} duck={} chunks={} voiced={} peak={:.1}dBFS",
+            "mode={} device=\"{}\" {}Hz/{}ch ns={} duck={} chunks={} voiced={} peak={:.1}dBFS",
+            self.mode,
             self.device,
             self.sample_rate,
             self.channels,
@@ -157,6 +214,7 @@ pub struct AudioCaptureHandle {
     /// Peak linear amplitude so far, stored as f32 bits.
     peak: Arc<AtomicU32>,
     device_info: Arc<Mutex<Option<(String, u32, u16)>>>,
+    backend: Arc<Mutex<CaptureBackend>>,
     noise_suppression: bool,
     diagnostics_logged: bool,
     /// Restores the system output volume when capture ends (any path).
@@ -178,6 +236,7 @@ impl AudioCaptureHandle {
         let total_chunks = Arc::new(AtomicU32::new(0));
         let peak = Arc::new(AtomicU32::new(0f32.to_bits()));
         let device_info = Arc::new(Mutex::new(None));
+        let backend = Arc::new(Mutex::new(CaptureBackend::Hal));
         let noise_suppression = config.noise_suppression;
         let (mut startup_notifier, startup_waiter) = capture_startup_channel();
 
@@ -190,6 +249,7 @@ impl AudioCaptureHandle {
             total_chunks: total_chunks.clone(),
             peak: peak.clone(),
             device_info: device_info.clone(),
+            backend: backend.clone(),
         };
 
         // Audio capture must run on a dedicated OS thread because cpal::Stream is !Send
@@ -221,6 +281,7 @@ impl AudioCaptureHandle {
                 total_chunks,
                 peak,
                 device_info,
+                backend,
                 noise_suppression,
                 diagnostics_logged: false,
                 duck,
@@ -250,6 +311,12 @@ impl AudioCaptureHandle {
             .unwrap_or_else(|| ("(not opened)".to_string(), 0, 0));
         let peak = f32::from_bits(self.peak.load(Ordering::Relaxed));
         CaptureDiagnostics {
+            mode: self
+                .backend
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .label()
+                .to_string(),
             device,
             sample_rate,
             channels,
@@ -327,6 +394,7 @@ struct CaptureShared {
     total_chunks: Arc<AtomicU32>,
     peak: Arc<AtomicU32>,
     device_info: Arc<Mutex<Option<(String, u32, u16)>>>,
+    backend: Arc<Mutex<CaptureBackend>>,
 }
 
 struct InputProcessingContext {
@@ -494,6 +562,29 @@ fn run_capture(
         .unwrap_or_else(|_| "Default microphone".to_string());
     tracing::info!("Using input device: {}", device_description);
 
+    #[cfg(target_os = "macos")]
+    {
+        let mic_busy = super::coreaudio::mic_in_use_elsewhere();
+        let backend = select_capture_backend(config.mic_sharing, mic_busy);
+        tracing::info!(
+            "Capture backend: {:?} (mic_sharing={:?}, mic_in_use_elsewhere={mic_busy})",
+            backend,
+            config.mic_sharing
+        );
+        if backend == CaptureBackend::VoiceProcessing {
+            *shared.backend.lock().unwrap_or_else(|e| e.into_inner()) = backend;
+            return run_voice_processing_capture(
+                config,
+                device_description,
+                sender,
+                stop_rx,
+                state,
+                shared,
+                startup_notifier,
+            );
+        }
+    }
+
     // Use the device's default config instead of forcing 16kHz mono
     let default_config = device.default_input_config()?;
     let device_sample_rate = default_config.sample_rate();
@@ -618,10 +709,110 @@ fn run_capture(
     Ok(())
 }
 
+/// Capture through Apple's voice-processing I/O so a microphone already held
+/// by a call still delivers audio. Mirrors the cpal path: same processing
+/// context, same chunking, same stop protocol.
+#[cfg(target_os = "macos")]
+fn run_voice_processing_capture(
+    config: AudioConfig,
+    device_description: String,
+    sender: mpsc::Sender<Vec<u8>>,
+    stop_rx: std::sync::mpsc::Receiver<()>,
+    state: Arc<Mutex<CaptureState>>,
+    shared: CaptureShared,
+    startup_notifier: &mut CaptureStartupNotifier,
+) -> Result<()> {
+    let target_rate = config.sample_rate;
+    let target_channels = config.channels;
+    let samples_per_chunk = (target_rate * config.chunk_duration_ms / 1000) as usize;
+    let buffer: Arc<Mutex<Vec<i16>>> = Arc::new(Mutex::new(Vec::with_capacity(samples_per_chunk)));
+
+    // The engine reports its rate only once started, but the front end needs
+    // it up front. Voice processing runs at 48 kHz on every Mac we have seen;
+    // verify after start and bail out loudly if it differs.
+    let device_rate = super::vpio::VPIO_SAMPLE_RATE;
+    let mut context = InputProcessingContext {
+        device_channels: 1,
+        target_channels,
+        samples_per_chunk,
+        sender,
+        volume: shared.volume,
+        meter: shared.meter,
+        bands: super::dsp::BandAnalyzer::new(target_rate),
+        buffer,
+        voiced_chunks: shared.voiced_chunks,
+        total_chunks: shared.total_chunks,
+        peak: shared.peak,
+        front_end: super::dsp::AudioFrontEnd::new(
+            device_rate,
+            target_rate,
+            config.noise_suppression,
+        ),
+        processed: Vec::with_capacity(8192),
+    };
+    let capture = super::vpio::VoiceProcessingCapture::start(move |mono| {
+        process_input_samples(mono, &mut context);
+    })?;
+    if capture.sample_rate != device_rate {
+        return Err(anyhow::anyhow!(
+            "voice-processing input runs at {} Hz, expected {}",
+            capture.sample_rate,
+            device_rate
+        ));
+    }
+    *shared.device_info.lock().unwrap_or_else(|e| e.into_inner()) = Some((
+        format!("{device_description} (voice processing)"),
+        capture.sample_rate,
+        1,
+    ));
+
+    let capture_ready_at = crate::recording_deadline::CaptureReadyAt::now();
+    *state.lock().unwrap_or_else(|e| e.into_inner()) = CaptureState::Recording;
+    startup_notifier.ready(capture_ready_at);
+    tracing::info!(
+        "Audio capture started via voice processing ({}Hz 1ch -> target: {}Hz {}ch)",
+        capture.sample_rate,
+        target_rate,
+        target_channels
+    );
+
+    let _ = stop_rx.recv();
+    drop(capture);
+    *state.lock().unwrap_or_else(|e| e.into_inner()) = CaptureState::Idle;
+    tracing::info!("Audio capture stopped");
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::time::Duration;
+
+    #[test]
+    fn backend_follows_mic_sharing_mode_and_whether_a_call_holds_the_mic() {
+        assert_eq!(
+            select_capture_backend(MicSharingMode::Auto, false),
+            CaptureBackend::Hal
+        );
+        assert_eq!(
+            select_capture_backend(MicSharingMode::Auto, true),
+            CaptureBackend::VoiceProcessing
+        );
+        assert_eq!(
+            select_capture_backend(MicSharingMode::Never, true),
+            CaptureBackend::Hal
+        );
+        assert_eq!(
+            select_capture_backend(MicSharingMode::Always, false),
+            CaptureBackend::VoiceProcessing
+        );
+        assert_eq!(
+            MicSharingMode::from_config("always"),
+            MicSharingMode::Always
+        );
+        assert_eq!(MicSharingMode::from_config("bogus"), MicSharingMode::Auto);
+        assert_eq!(CaptureBackend::VoiceProcessing.label(), "vpio");
+    }
 
     #[test]
     fn capture_does_not_report_recording_before_the_backend_is_ready() {
@@ -739,5 +930,114 @@ mod voiced_tests {
         // -60 dBFS is the floor.
         assert!(meter_level(0.001) < 0.01);
         assert!(meter_level(0.0001) == 0.0);
+    }
+}
+
+#[cfg(test)]
+mod real_mic_tests {
+    use super::*;
+
+    /// Manual hardware check: opens the real default microphone for ~2.5 s
+    /// while `say` plays a sentence through the speakers, then prints the
+    /// diagnostics line. Run with
+    /// `cargo test capture_real_mic -- --ignored --nocapture`, once alone and
+    /// once while another process holds the mic in voice-processing mode.
+    #[test]
+    #[ignore]
+    fn capture_real_mic_peak() {
+        let (mut handle, mut rx) = AudioCaptureHandle::start(AudioConfig::default()).unwrap();
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        runtime.block_on(async {
+            handle.wait_until_ready().await.unwrap();
+            let speaker = std::process::Command::new("say")
+                .args(["testing one two three four five six seven"])
+                .spawn()
+                .ok();
+            let deadline = tokio::time::Instant::now() + std::time::Duration::from_millis(2500);
+            let mut bytes = 0usize;
+            while tokio::time::Instant::now() < deadline {
+                match tokio::time::timeout(std::time::Duration::from_millis(200), rx.recv()).await {
+                    Ok(Some(chunk)) => bytes += chunk.len(),
+                    Ok(None) => break,
+                    Err(_) => {}
+                }
+            }
+            if let Some(mut child) = speaker {
+                let _ = child.kill();
+            }
+            println!("bytes={bytes} {}", handle.diagnostics());
+        });
+        handle.stop();
+    }
+}
+
+#[cfg(test)]
+mod mic_probe_tests {
+    use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+    use std::sync::{Arc, Mutex};
+
+    /// Manual probe: lists the default input's configs and records ~1.5 s
+    /// with the requested channel count / rate (env MIC_CH, MIC_RATE),
+    /// printing the per-channel peak. `cargo test mic_probe -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn mic_probe() {
+        let host = cpal::default_host();
+        let device = host.default_input_device().expect("input device");
+        let default = device.default_input_config().expect("default config");
+        println!("default: {:?}", default);
+        if let Ok(configs) = device.supported_input_configs() {
+            for c in configs {
+                println!("  supported: {:?}", c);
+            }
+        }
+        let channels: u16 = std::env::var("MIC_CH")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(default.channels());
+        let rate: u32 = std::env::var("MIC_RATE")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(default.sample_rate());
+        let config = cpal::StreamConfig {
+            channels,
+            sample_rate: rate,
+            buffer_size: cpal::BufferSize::Default,
+        };
+        let peaks = Arc::new(Mutex::new(vec![0f32; channels as usize]));
+        let frames = Arc::new(Mutex::new(0usize));
+        let p2 = peaks.clone();
+        let f2 = frames.clone();
+        let stream = device
+            .build_input_stream(
+                &config,
+                move |data: &[f32], _| {
+                    let mut peaks = p2.lock().unwrap();
+                    for frame in data.chunks(channels as usize) {
+                        for (i, s) in frame.iter().enumerate() {
+                            if s.abs() > peaks[i] {
+                                peaks[i] = s.abs();
+                            }
+                        }
+                    }
+                    *f2.lock().unwrap() += data.len() / channels as usize;
+                },
+                |e| eprintln!("stream error: {e}"),
+                None,
+            )
+            .expect("build stream");
+        stream.play().expect("play");
+        std::thread::sleep(std::time::Duration::from_millis(1500));
+        drop(stream);
+        let peaks = peaks.lock().unwrap();
+        let db: Vec<String> = peaks
+            .iter()
+            .map(|p| format!("{:.1}", if *p > 0.0 { 20.0 * p.log10() } else { -120.0 }))
+            .collect();
+        println!(
+            "probe ch={channels} rate={rate} frames={} peak_dbfs_per_channel={:?}",
+            frames.lock().unwrap(),
+            db
+        );
     }
 }

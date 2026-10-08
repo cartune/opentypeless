@@ -732,6 +732,34 @@ export function SttPane() {
         </div>
       )}
 
+      {isMacPlatform() && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[13px] text-text-primary">{t('settings.micSharing')}</span>
+            <select
+              aria-label={t('settings.micSharing')}
+              value={config.mic_sharing_mode}
+              onChange={(event) =>
+                updateConfig({
+                  mic_sharing_mode:
+                    event.target.value === 'always'
+                      ? 'always'
+                      : event.target.value === 'never'
+                        ? 'never'
+                        : 'auto',
+                })
+              }
+              className="px-2 py-1.5 bg-bg-secondary border border-border rounded-[8px] text-[12px] text-text-primary outline-none focus:border-border-focus transition-colors"
+            >
+              <option value="auto">{t('settings.micSharingAuto')}</option>
+              <option value="always">{t('settings.micSharingAlways')}</option>
+              <option value="never">{t('settings.micSharingNever')}</option>
+            </select>
+          </div>
+          <p className="text-[11px] text-text-tertiary">{t('settings.micSharingHint')}</p>
+        </div>
+      )}
+
       <FormField label={t('settings.maxRecordingDuration')}>
         {recordingLimit ? (
           <div className="space-y-2">

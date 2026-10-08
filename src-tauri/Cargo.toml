@@ -72,6 +72,12 @@ keyring = { version = "3.6.3", default-features = false, features = ["apple-nati
 block2 = "0.5"
 objc2 = { version = "0.5", features = ["exception"] }
 objc2-core-audio = { version = "0.3.2", default-features = false, features = ["std", "AudioHardware"] }
+coreaudio-rs = { version = "0.14", default-features = false, features = ["audio_unit", "core_audio"] }
+objc2_06 = { package = "objc2", version = "0.6", default-features = false, features = ["std"] }
+block2_06 = { package = "block2", version = "0.6", default-features = false, features = ["std"] }
+objc2-avf-audio = { version = "0.3.2", default-features = false, features = ["std", "AVAudioEngine", "AVAudioNode", "AVAudioIONode", "AVAudioBuffer", "AVAudioFormat", "AVAudioTime", "AVAudioTypes", "block2"] }
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSError", "NSObject"] }
+objc2-audio-toolbox = { version = "0.3.2", default-features = false, features = ["std", "AUComponent", "AudioOutputUnit", "AudioUnitProperties"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 keyring = { version = "3.6.3", default-features = false, features = ["linux-native-sync-persistent", "crypto-rust"] }

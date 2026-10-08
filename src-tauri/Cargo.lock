@@ -3090,6 +3090,7 @@ version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13a380031deed8e99db00065c45937da434ca987c034e13b87e4441f9e4090be"
 dependencies = [
+ "block2 0.6.2",
  "objc2 0.6.4",
  "objc2-foundation",
 ]
@@ -3383,7 +3384,9 @@ dependencies = [
  "async-trait",
  "base64 0.22.1",
  "block2 0.5.1",
+ "block2 0.6.2",
  "chrono",
+ "coreaudio-rs",
  "cpal",
  "csv",
  "enigo",
@@ -3394,7 +3397,11 @@ dependencies = [
  "libloading 0.8.9",
  "nnnoiseless",
  "objc2 0.5.2",
+ "objc2 0.6.4",
+ "objc2-audio-toolbox",
+ "objc2-avf-audio",
  "objc2-core-audio",
+ "objc2-foundation",
  "ogg",
  "opusic-c",
  "plist",
