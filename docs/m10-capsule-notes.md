@@ -53,3 +53,7 @@ Date: 2026-10-08. Branch `m10-capsule-tweaks`（直接合進 `main`，不開 PR�
   - `bars`：即時音量條紋（`LevelBarsWaveform.tsx`）。26 根 2 px 的直條，每 60 ms 把這段時間內最大的「說話驅動值」推成最右邊一根、其餘往左捲（像語音備忘錄）。顏色用膠囊的文字色，深淺玻璃都看得到。純邏輯在 `waveformLevels.ts` 的 `nextLevelHistory`，有測試。
 - 轉錄中（`CapsuleProcessing`）文字後面閃爍的游標拿掉。
 - 順手修：上一輪把白色改成 `text-current` 時，`hover:bg-white/15` 被誤替換成 `bg-current opacity-15`，讓叉叉按鈕一直是 15% 透明度；已改回。
+
+## 6. 設定存檔後膠囊沒即時套用（第五輪回饋）
+
+膠囊和 Ask 視窗各自有一份 store，靠後端存檔時發的 `config:patch` 事件同步。原本的 patch 只手挑了幾個欄位（自動隱藏、錄音上限、歷史、語言），波形樣式、玻璃樣式、主題等都不在裡面，所以要重開 app 才會生效。改成把前後兩份設定序列化後逐欄比對，所有有變的欄位都進 patch（`commands/config.rs::config_patch_between`），膠囊存檔當下就會換。

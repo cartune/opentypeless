@@ -11,49 +11,20 @@ use crate::SessionTokenStore;
 use serde_json::{json, Map, Value};
 use tauri::{Emitter, Manager, Window};
 
+/// Every top-level config field whose value changed, so the capsule and Ask
+/// windows (which hold their own copy of the store) pick up a save at once
+/// instead of after a restart. Keys are the same snake_case names the
+/// frontend `AppConfig` uses.
 fn config_patch_between(previous: &storage::AppConfig, next: &storage::AppConfig) -> Value {
+    let previous = serde_json::to_value(previous).unwrap_or(Value::Null);
+    let next = serde_json::to_value(next).unwrap_or(Value::Null);
     let mut patch = Map::new();
-    if previous.capsule_auto_hide != next.capsule_auto_hide {
-        patch.insert(
-            "capsule_auto_hide".to_string(),
-            json!(next.capsule_auto_hide),
-        );
-    }
-    if previous.max_recording_seconds != next.max_recording_seconds {
-        patch.insert(
-            "max_recording_seconds".to_string(),
-            json!(next.max_recording_seconds),
-        );
-    }
-    if previous.recording_limit_mode != next.recording_limit_mode {
-        patch.insert(
-            "recording_limit_mode".to_string(),
-            json!(next.recording_limit_mode),
-        );
-    }
-    if previous.custom_recording_limit_seconds != next.custom_recording_limit_seconds {
-        patch.insert(
-            "custom_recording_limit_seconds".to_string(),
-            json!(next.custom_recording_limit_seconds),
-        );
-    }
-    if previous.history_enabled != next.history_enabled {
-        patch.insert("history_enabled".to_string(), json!(next.history_enabled));
-    }
-    if previous.history_retention_days != next.history_retention_days {
-        patch.insert(
-            "history_retention_days".to_string(),
-            json!(next.history_retention_days),
-        );
-    }
-    if previous.history_max_entries != next.history_max_entries {
-        patch.insert(
-            "history_max_entries".to_string(),
-            json!(next.history_max_entries),
-        );
-    }
-    if previous.ui_language != next.ui_language {
-        patch.insert("ui_language".to_string(), json!(next.ui_language));
+    if let (Some(previous), Some(next)) = (previous.as_object(), next.as_object()) {
+        for (key, value) in next {
+            if previous.get(key) != Some(value) {
+                patch.insert(key.clone(), value.clone());
+            }
+        }
     }
     Value::Object(patch)
 }
@@ -506,6 +477,24 @@ mod tests {
         let patch = config_patch_between(&previous, &next);
 
         assert_eq!(patch["capsule_auto_hide"], next.capsule_auto_hide);
+    }
+
+    #[test]
+    fn config_patch_includes_every_changed_field_and_nothing_else() {
+        let previous = storage::AppConfig::default();
+        let mut next = previous.clone();
+        next.capsule_waveform_style = "bars".to_string();
+        next.capsule_glass_style = "regular".to_string();
+        next.theme = "dark".to_string();
+        let patch = config_patch_between(&previous, &next);
+        assert_eq!(patch["capsule_waveform_style"], "bars");
+        assert_eq!(patch["capsule_glass_style"], "regular");
+        assert_eq!(patch["theme"], "dark");
+        assert_eq!(patch.as_object().unwrap().len(), 3);
+        assert!(config_patch_between(&previous, &previous)
+            .as_object()
+            .unwrap()
+            .is_empty());
     }
 
     #[test]
