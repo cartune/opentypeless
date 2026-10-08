@@ -49,6 +49,8 @@ pub struct LearnedItem {
     pub rule_added: bool,
     /// An earlier learned rule said the opposite; it was switched off instead.
     pub rule_disabled: bool,
+    /// Nothing to add: the word and the rule were both already there.
+    pub already_known: bool,
 }
 
 /// Payload of `learning:learned`.
@@ -189,7 +191,9 @@ fn apply(app: &tauri::AppHandle, request: &WatchRequest, edits: Vec<diff::Learne
             word_added: false,
             rule_added: false,
             rule_disabled: false,
+            already_known: false,
         };
+        // Same normalisation as the store's duplicate checks (NFKC, trim, case).
         let word_known = words.iter().any(|entry| {
             crate::storage::normalized_dictionary_identity(&entry.word)
                 == crate::storage::normalized_dictionary_identity(&edit.to)
@@ -202,19 +206,18 @@ fn apply(app: &tauri::AppHandle, request: &WatchRequest, edits: Vec<diff::Learne
             ))
             .is_ok();
         }
+        let forward = crate::storage::normalized_correction_identity(&edit.from, &edit.to);
+        let backward = crate::storage::normalized_correction_identity(&edit.to, &edit.from);
+        let identity = |rule: &crate::storage::CorrectionRule| {
+            crate::storage::normalized_correction_identity(&rule.pattern, &rule.replacement)
+        };
         if let Some(reverse) = rules.iter().find(|rule| {
-            rule.enabled
-                && rule.source == SOURCE_LEARNED
-                && rule.pattern == edit.to
-                && rule.replacement == edit.from
+            rule.enabled && rule.source == SOURCE_LEARNED && identity(rule) == backward
         }) {
             item.rule_disabled =
                 tauri::async_runtime::block_on(store.set_correction_enabled(reverse.id, false))
                     .is_ok();
-        } else if !rules
-            .iter()
-            .any(|rule| rule.pattern == edit.from && rule.replacement == edit.to)
-        {
+        } else if !rules.iter().any(|rule| identity(rule) == forward) {
             item.rule_added = tauri::async_runtime::block_on(store.add_correction_with_source(
                 &edit.from,
                 &edit.to,
@@ -222,17 +225,18 @@ fn apply(app: &tauri::AppHandle, request: &WatchRequest, edits: Vec<diff::Learne
             ))
             .is_ok();
         }
-        if item.word_added || item.rule_added || item.rule_disabled {
-            tracing::info!(
-                "Edit learning: learned {:?} -> {:?} (word={}, rule={}, disabled={})",
-                item.from,
-                item.to,
-                item.word_added,
-                item.rule_added,
-                item.rule_disabled
-            );
-            items.push(item);
-        }
+        item.already_known = !(item.word_added || item.rule_added || item.rule_disabled);
+        tracing::info!(
+            "Edit learning: {:?} -> {:?} (word={}, rule={}, disabled={}, known={})",
+            item.from,
+            item.to,
+            item.word_added,
+            item.rule_added,
+            item.rule_disabled,
+            item.already_known
+        );
+        // Known pairs are reported too, so an edit never looks like it went unnoticed.
+        items.push(item);
     }
     if items.is_empty() {
         return;
@@ -316,6 +320,7 @@ mod tests {
                 word_added: true,
                 rule_added: false,
                 rule_disabled: false,
+                already_known: false,
             }],
             app_label: "Notes".into(),
             main_visible: true,
@@ -324,5 +329,6 @@ mod tests {
         assert_eq!(json["appLabel"], "Notes");
         assert_eq!(json["mainVisible"], true);
         assert_eq!(json["items"][0]["wordAdded"], true);
+        assert_eq!(json["items"][0]["alreadyKnown"], false);
     }
 }

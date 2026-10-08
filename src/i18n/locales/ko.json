@@ -240,6 +240,7 @@
   },
   "capsule": {
     "learned": "Learned {{pairs}}",
+    "learnedKnown": "Already known: {{pairs}}",
     "cancelRecording": "녹음 취소",
     "translationTarget": "번역 대상",
     "translationTargets": "번역 대상 목록",
@@ -566,6 +567,7 @@
     "word": "단어",
     "learnedBadge": "Learned",
     "learnedToast": "Learned from your edit in {{app}}: {{pairs}}",
+    "learnedKnownToast": "Already in your dictionary: {{pairs}}",
     "pronunciation": "발음",
     "pronunciationOptional": "발음 (선택)",
     "add": "추가",

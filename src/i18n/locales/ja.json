@@ -240,6 +240,7 @@
   },
   "capsule": {
     "learned": "Learned {{pairs}}",
+    "learnedKnown": "Already known: {{pairs}}",
     "cancelRecording": "録音をキャンセル",
     "translationTarget": "翻訳先",
     "translationTargets": "翻訳先一覧",
@@ -566,6 +567,7 @@
     "word": "単語",
     "learnedBadge": "Learned",
     "learnedToast": "Learned from your edit in {{app}}: {{pairs}}",
+    "learnedKnownToast": "Already in your dictionary: {{pairs}}",
     "pronunciation": "発音",
     "pronunciationOptional": "発音（任意）",
     "add": "追加",

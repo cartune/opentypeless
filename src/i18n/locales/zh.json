@@ -240,6 +240,7 @@
   },
   "capsule": {
     "learned": "已学会 {{pairs}}",
+    "learnedKnown": "已在词典中：{{pairs}}",
     "cancelRecording": "取消录音",
     "translationTarget": "翻译目标",
     "translationTargets": "翻译目标列表",
@@ -566,6 +567,7 @@
     "word": "词语",
     "learnedBadge": "自动学习",
     "learnedToast": "已从您在 {{app}} 的修改学到：{{pairs}}",
+    "learnedKnownToast": "{{pairs}} 已在词典中",
     "pronunciation": "发音",
     "pronunciationOptional": "发音（可选）",
     "add": "添加",

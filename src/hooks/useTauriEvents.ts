@@ -196,20 +196,27 @@ export function useTauriEvents() {
     })
 
     addListener<LearnedPayload>('learning:learned', (payload) => {
-      const pairs = payload.items.map((item) => `${item.from} → ${item.to}`).join('、')
+      const describe = (items: LearnedPayload['items']) =>
+        items.map((item) => `${item.from} → ${item.to}`).join('、')
+      const learned = payload.items.filter((item) => !item.alreadyKnown)
+      // An edit to a word that was already known still gets acknowledged.
+      const pairs = describe(learned.length > 0 ? learned : payload.items)
+      const capsuleKey = learned.length > 0 ? 'capsule.learned' : 'capsule.learnedKnown'
+      const toastKey =
+        learned.length > 0 ? 'dictionary.learnedToast' : 'dictionary.learnedKnownToast'
       if (window.location.hash === '#capsule') {
         // The pill tells the user only when the main window is not there to.
         if (!payload.mainVisible) {
           useAppStore
             .getState()
-            .setPipelineNotice({ kind: 'learned', text: t('capsule.learned', { pairs }) })
+            .setPipelineNotice({ kind: 'learned', text: t(capsuleKey, { pairs }) })
         }
         return
       }
-      useAppStore.getState().bumpDictionaryRevision()
+      if (learned.length > 0) useAppStore.getState().bumpDictionaryRevision()
       if (payload.mainVisible) {
-        window.location.hash = '#/settings?pane=dictionary'
-        toast.learned(t('dictionary.learnedToast', { app: payload.appLabel, pairs }))
+        if (learned.length > 0) window.location.hash = '#/settings?pane=dictionary'
+        toast.learned(t(toastKey, { app: payload.appLabel, pairs }))
       }
     })
     addListener<void>('tray:settings', () => {

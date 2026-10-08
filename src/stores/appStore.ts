@@ -23,6 +23,8 @@ export interface LearnedItem {
   wordAdded: boolean
   ruleAdded: boolean
   ruleDisabled: boolean
+  /** Nothing to add: the word and the rule were both already there. */
+  alreadyKnown: boolean
 }
 
 export interface LearnedPayload {

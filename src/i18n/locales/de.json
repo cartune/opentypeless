@@ -240,6 +240,7 @@
   },
   "capsule": {
     "learned": "Learned {{pairs}}",
+    "learnedKnown": "Already known: {{pairs}}",
     "cancelRecording": "Aufnahme abbrechen",
     "translationTarget": "Übersetzungsziel",
     "translationTargets": "Übersetzungsziele",
@@ -566,6 +567,7 @@
     "word": "Wort",
     "learnedBadge": "Learned",
     "learnedToast": "Learned from your edit in {{app}}: {{pairs}}",
+    "learnedKnownToast": "Already in your dictionary: {{pairs}}",
     "pronunciation": "Aussprache",
     "pronunciationOptional": "Aussprache (optional)",
     "add": "Hinzufügen",

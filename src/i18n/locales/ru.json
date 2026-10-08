@@ -240,6 +240,7 @@
   },
   "capsule": {
     "learned": "Learned {{pairs}}",
+    "learnedKnown": "Already known: {{pairs}}",
     "cancelRecording": "Отменить запись",
     "translationTarget": "Язык перевода",
     "translationTargets": "Языки перевода",
@@ -566,6 +567,7 @@
     "word": "Слово",
     "learnedBadge": "Learned",
     "learnedToast": "Learned from your edit in {{app}}: {{pairs}}",
+    "learnedKnownToast": "Already in your dictionary: {{pairs}}",
     "pronunciation": "Произношение",
     "pronunciationOptional": "Произношение (необязательно)",
     "add": "Добавить",

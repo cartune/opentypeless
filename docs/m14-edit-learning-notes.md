@@ -8,7 +8,7 @@
 2. `edit_learning/ax.rs`（macOS）：裸 FFI（同 `is_accessibility_trusted` 的寫法，不加 crate），`AXUIElementCreateApplication(pid)` → `AXFocusedUIElement`，**抓住元件參考不放**，之後焦點離開也能持續讀 `AXValue` 與 `AXSelectedTextRange`。`AXUIElementSetMessagingTimeout` 0.5 秒避免目標 App 卡住執行緒。元件參考不是 `Send`，整個監看在一條專用 `std::thread` 上跑。
 3. `edit_learning/mod.rs` 的 `watch()`：插入後 500 ms 取**基準讀取**（讓 App 自己的自動校正先跑完，diff 以此為準而不是以送出的文字），用游標位置定位插入區段，前後各留 24 字當錨點（`SpanAnchor`）。之後每 1.5 秒讀一次，區段內容變了就記錄時間；**改完後靜止 4 秒**、新的錄音開始（`invalidate()` 讓 generation 失效）、錨點找不到、或超過 120 秒，就結算一次。
 4. `edit_learning/diff.rs`（純邏輯，有測試）：`learn_edits(baseline, current)`。先去掉共同前後綴，中段做字元 LCS 對齊，相鄰 hunk 以「中間只隔一個 CJK 字」合併（開會→會議），拉丁字母擴到整個單字（oo→u 變成 cartoon→Cartune）。只保留兩邊都非空的「替換」；純新增（繼續打字）、純刪除不算。過濾：每邊 ≤ 24 字、CJK ≤ 8 字、拉丁 ≤ 3 個字、不含句讀/換行、最多 5 個替換；長度 ≥ 20 字或同時改了 ≥ 2 處時，改動超過 40% 視為重寫，整個丟掉。
-5. `apply()`：`to` 含字母就加進字典（`source = learned`）；若既有的 learned 規則剛好相反（to→from），**關掉那條**而不是再加一條反向規則（避免乒乓）；否則新增糾錯規則 `from → to`（`source = learned`）。最後發 `learning:learned {items, appLabel, mainVisible}`，`mainVisible` 由後端看 `main` 視窗 `is_visible()` 決定。
+5. `apply()`：比對一律用 store 的 `normalized_*_identity`（NFKC、trim、小寫），和重複檢查同一套；`to` 含字母就加進字典（`source = learned`）；若既有的 learned 規則剛好相反（to→from），**關掉那條**而不是再加一條反向規則（避免乒乓）；否則新增糾錯規則 `from → to`（`source = learned`）。兩邊都已存在的配對也會回報（`alreadyKnown = true`，UI 顯示「已在字典中」），修改不會像沒被注意到。最後發 `learning:learned {items, appLabel, mainVisible}`，`mainVisible` 由後端看 `main` 視窗 `is_visible()` 決定。
 
 ## 資料與設定
 
@@ -33,3 +33,4 @@
 - 只學「換詞」，學不到語氣；同一次聽寫只結算一次。
 - 游標位置以 UTF-16 回報，已轉成 char index；基準視窗長度固定為插入字數，尾端自動校正會讓視窗偏移一個字，靠前後錨點吸收。
 - 欄位超過 40k 字或聽寫超過 3k 字不監看。
+- 兩次聽寫連續學到東西時，第二則膠囊通知沿用第一則的倒數（文字會換，但提早收起）。

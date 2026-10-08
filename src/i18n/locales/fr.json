@@ -240,6 +240,7 @@
   },
   "capsule": {
     "learned": "Learned {{pairs}}",
+    "learnedKnown": "Already known: {{pairs}}",
     "cancelRecording": "Annuler l'enregistrement",
     "translationTarget": "Langue cible",
     "translationTargets": "Langues cibles",
@@ -566,6 +567,7 @@
     "word": "Mot",
     "learnedBadge": "Learned",
     "learnedToast": "Learned from your edit in {{app}}: {{pairs}}",
+    "learnedKnownToast": "Already in your dictionary: {{pairs}}",
     "pronunciation": "Prononciation",
     "pronunciationOptional": "Prononciation (facultatif)",
     "add": "Ajouter",
