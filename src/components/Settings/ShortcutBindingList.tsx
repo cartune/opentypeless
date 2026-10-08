@@ -66,6 +66,8 @@ export function HotkeyRecorder({
   const autoConfirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const autoStarted = useRef(false)
   const recordingRef = useRef(false)
+  const pendingRef = useRef<string | null>(null)
+  const comboKeyPressed = useRef(false)
 
   const clearTimer = useCallback(() => {
     if (!autoConfirmTimer.current) return
@@ -80,6 +82,7 @@ export function HotkeyRecorder({
       setRecording(false)
       setModifierHint(null)
       setPending(null)
+      pendingRef.current = null
       const validationError = validateHotkey?.(hotkey)
       if (validationError) {
         setError(validationError)
@@ -98,6 +101,7 @@ export function HotkeyRecorder({
     recordingRef.current = false
     setRecording(false)
     setPending(null)
+    pendingRef.current = null
     setModifierHint(null)
     setError(null)
     resumeHotkey().catch(() => {})
@@ -108,6 +112,8 @@ export function HotkeyRecorder({
     if (disabled) return
     pauseHotkey().catch(() => {})
     recordingRef.current = true
+    comboKeyPressed.current = false
+    pendingRef.current = null
     setRecording(true)
     setPending(null)
     setModifierHint(null)
@@ -144,6 +150,7 @@ export function HotkeyRecorder({
         setModifierHint(parts.length > 0 ? `${parts.join('+')}+...` : null)
         return
       }
+      comboKeyPressed.current = true
 
       setModifierHint(null)
       const keyMap: Record<string, string> = {
@@ -171,6 +178,7 @@ export function HotkeyRecorder({
 
       parts.push(keyName)
       const combo = parts.join('+')
+      pendingRef.current = combo
       setPending(combo)
       if (autoConfirmTimer.current) clearTimeout(autoConfirmTimer.current)
       autoConfirmTimer.current = setTimeout(() => confirmHotkey(combo), 1500)
@@ -178,17 +186,35 @@ export function HotkeyRecorder({
     [confirmHotkey, isMac],
   )
 
+  // A bare Option tap (press and release with no other key) is a valid
+  // macOS dictation trigger, mirroring the Fn key. Browsers never deliver a
+  // keydown "primary" for it, so detect it on keyup instead.
+  const handleKeyUp = useCallback(
+    (event: KeyboardEvent) => {
+      setModifierHint(null)
+      if (!isMac || event.key !== 'Alt') return
+      if (comboKeyPressed.current || pendingRef.current !== null) return
+      if (event.metaKey || event.ctrlKey || event.shiftKey) return
+      event.preventDefault()
+      event.stopPropagation()
+      pendingRef.current = 'Option'
+      setPending('Option')
+      if (autoConfirmTimer.current) clearTimeout(autoConfirmTimer.current)
+      autoConfirmTimer.current = setTimeout(() => confirmHotkey('Option'), 1500)
+    },
+    [confirmHotkey, isMac],
+  )
+
   useEffect(() => {
     if (!recording) return
-    const clearModifierHint = () => setModifierHint(null)
     window.addEventListener('keydown', handleKeyDown, true)
-    window.addEventListener('keyup', clearModifierHint, true)
+    window.addEventListener('keyup', handleKeyUp, true)
     return () => {
       window.removeEventListener('keydown', handleKeyDown, true)
-      window.removeEventListener('keyup', clearModifierHint, true)
+      window.removeEventListener('keyup', handleKeyUp, true)
       clearTimer()
     }
-  }, [clearTimer, handleKeyDown, recording])
+  }, [clearTimer, handleKeyDown, handleKeyUp, recording])
 
   const handleClick = () => {
     if (disabled) return

@@ -8,6 +8,11 @@ vi.mock('../../../lib/tauri', () => ({
   resumeHotkey: vi.fn().mockResolvedValue(undefined),
 }))
 
+vi.mock('../../../stores/appStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../stores/appStore')>()),
+  isMacPlatform: () => true,
+}))
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) =>
@@ -194,5 +199,61 @@ describe('ShortcutBindingList', () => {
     unmount()
 
     expect(tauri.resumeHotkey).toHaveBeenCalled()
+  })
+
+  it('accepts a bare Option tap as the macOS dictation trigger', () => {
+    vi.useFakeTimers()
+    try {
+      const onChange = vi.fn()
+      render(
+        <ShortcutBindingList
+          role="dictation"
+          label="Dictate"
+          bindings={[ctrlSlash]}
+          otherBindings={[]}
+          required
+          specialOptions={[]}
+          onChange={onChange}
+        />,
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Add shortcut' }))
+      fireEvent.keyDown(window, { key: 'Alt', altKey: true })
+      fireEvent.keyUp(window, { key: 'Alt' })
+      vi.advanceTimersByTime(1500)
+
+      expect(onChange).toHaveBeenCalledWith([ctrlSlash, { primary: 'Option', modifiers: [] }])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('keeps Option+Space when Option is released after the combo key', () => {
+    vi.useFakeTimers()
+    try {
+      const onChange = vi.fn()
+      render(
+        <ShortcutBindingList
+          role="ask"
+          label="Ask"
+          bindings={[]}
+          otherBindings={[]}
+          required={false}
+          specialOptions={[]}
+          onChange={onChange}
+        />,
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Add shortcut' }))
+      fireEvent.keyDown(window, { key: 'Alt', altKey: true })
+      fireEvent.keyDown(window, { key: ' ', altKey: true })
+      fireEvent.keyUp(window, { key: 'Alt' })
+      vi.advanceTimersByTime(1500)
+
+      expect(onChange).toHaveBeenCalledTimes(1)
+      expect(onChange).toHaveBeenCalledWith([{ primary: 'Space', modifiers: ['Option'] }])
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
