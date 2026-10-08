@@ -242,12 +242,14 @@ fn animate_frame_on_main_thread(
     Ok(())
 }
 
-/// Tint laid over the clear glass so it reads as smoked (dark UI) or frosted
-/// (light UI) glass instead of a bare, greyish refraction. RGBA 0..255.
+/// Faint theme tint over the clear glass. Apple's glass tint scatters light
+/// rather than darkening it, so anything stronger than this reads as frosted
+/// glass instead of clear; keep it just enough to lean dark or light.
+/// RGBA 0..255.
 pub fn glass_tint_color(tint: &str) -> Option<(u8, u8, u8, u8)> {
     match tint {
-        "dark" => Some((8, 10, 14, 120)),
-        "light" => Some((255, 255, 255, 70)),
+        "dark" => Some((8, 10, 14, 40)),
+        "light" => Some((255, 255, 255, 36)),
         _ => None,
     }
 }
@@ -353,6 +355,8 @@ mod tests {
         let (_, _, _, dark_alpha) = glass_tint_color("dark").unwrap();
         let (_, _, _, light_alpha) = glass_tint_color("light").unwrap();
         assert!(dark_alpha > light_alpha);
+        // Stronger tints turn Clear glass frosted (verified on macOS 26).
+        assert!(dark_alpha <= 48 && light_alpha <= 48);
         assert_eq!(glass_tint_color("none"), None);
         assert_eq!(glass_tint_color("anything"), None);
     }

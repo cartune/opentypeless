@@ -8,7 +8,7 @@ Date: 2026-10-08. Branch `m10-capsule-tweaks`（直接合進 `main`，不開 PR�
 
 - 預設改成開（Rust `AppConfig::default` 與 TS `defaultConfig`），並直接把使用者的 `settings.json` 打開。
 - CSS 的白色邊框、頂部高光、4% 白底全部拿掉，`.glass-capsule*` 只剩 `background: transparent`。原生 `NSGlassEffectView` 就是整個表面。
-- **色調跟著介面主題**：`set_capsule_glass(enabled, radius, style, tint)` 多了 `tint`（`dark` / `light` / `none`），用 `window_vibrancy::LiquidGlassOptions::tint_color`。深色介面 → 煙燻黑 `(8,10,14,α120)`；淺色 → 霧面白 `(255,255,255,α70)`。前端在 `useCapsuleResize` 以 `document.documentElement.classList.contains('dark')` 決定，主題設定改變時重新套用。
+- **色調跟著介面主題**：`set_capsule_glass(enabled, radius, style, tint)` 多了 `tint`（`dark` / `light` / `none`），用 `window_vibrancy::LiquidGlassOptions::tint_color`。深色介面 → `(8,10,14,α40)`；淺色 → `(255,255,255,α36)`。原本用 α120 / α70，但 Apple 的玻璃 tint 是散射而不是加深，疊太重整顆 pill 就變霧面（m13 用原生 `NSGlassEffectView` 並排實測後調淡）；要更深色得在 webview 疊 CSS 淡色層，不是加重原生 tint。前端在 `useCapsuleResize` 以 `document.documentElement.classList.contains('dark')` 決定，主題設定改變時重新套用。
 - 膠囊內容的字色從寫死的白改成 `text-current`，外殼在淺色玻璃上用 `text-neutral-900`、深色用白；文字陰影只在深色。
 
 ## 2. 波形要很大聲才動 → 一般講話就要滿
