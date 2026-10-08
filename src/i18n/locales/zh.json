@@ -541,7 +541,11 @@
     "capsuleGlassHint": "胶囊改用系统原生的半透明玻璃背景（macOS 26 的 Liquid Glass；旧版 macOS 用模糊效果）。关闭可回到原本的实色胶囊。",
     "capsuleGlassStyle": "玻璃样式",
     "capsuleGlassStyleClear": "透明（透出背后桌面）",
-    "capsuleGlassStyleRegular": "一般（加一层暗色，更易读）"
+    "capsuleGlassStyleRegular": "一般（加一层暗色，更易读）",
+    "capsuleWaveformStyle": "波形样式",
+    "capsuleWaveformStyleSiri": "彩色波浪（Siri 风格）",
+    "capsuleWaveformStyleMono": "单色波浪",
+    "capsuleWaveformStyleBars": "音量条纹（实时音量）"
   },
   "contextFamilies": {
     "email": "邮件",

@@ -115,3 +115,45 @@ export function nextWaveState(previous: WaveState, meter: AudioMeter): WaveState
 export function nextWaveAmplitudes(previous: number[], meter: AudioMeter): number[] {
   return nextWaveState({ amplitudes: previous, peak: 0 }, meter).amplitudes
 }
+
+/** Number of bars in the live level-bars waveform. */
+export const LEVEL_BAR_COUNT = 26
+/** How often a new bar is appended (ms); older bars scroll left. */
+export const LEVEL_BAR_INTERVAL_MS = 60
+
+export interface LevelHistory {
+  /** Newest last; each entry is a 0..1 speech drive. */
+  bars: number[]
+  /** Loudest drive seen since the last bar was appended. */
+  pending: number
+  /** Timestamp (ms) of the last appended bar. */
+  lastAt: number
+}
+
+export const EMPTY_LEVEL_HISTORY: LevelHistory = {
+  bars: Array(LEVEL_BAR_COUNT).fill(0),
+  pending: 0,
+  lastAt: 0,
+}
+
+/**
+ * Feed one frame of the meter into the scrolling level history. Between
+ * appends the loudest drive is kept, so a short consonant is not lost; every
+ * `LEVEL_BAR_INTERVAL_MS` the pending value becomes the newest bar and the
+ * oldest falls off the left.
+ */
+export function nextLevelHistory(
+  previous: LevelHistory,
+  meter: AudioMeter,
+  now: number,
+  intervalMs = LEVEL_BAR_INTERVAL_MS,
+): LevelHistory {
+  const pending = Math.max(previous.pending, speechDrive(meter.level))
+  if (previous.lastAt !== 0 && now - previous.lastAt < intervalMs) {
+    return { ...previous, pending }
+  }
+  const bars = previous.bars.slice(-(LEVEL_BAR_COUNT - 1))
+  bars.push(pending)
+  while (bars.length < LEVEL_BAR_COUNT) bars.unshift(0)
+  return { bars, pending: 0, lastAt: now }
+}

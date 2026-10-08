@@ -326,6 +326,10 @@ fn normalize_translation_code(value: &str) -> Option<String> {
         .then_some(normalized)
 }
 
+fn default_capsule_waveform_style() -> String {
+    "siri".to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct AppConfig {
@@ -393,6 +397,9 @@ pub struct AppConfig {
     /// `clear` lets the desktop show through (NSGlassEffectViewStyle::Clear);
     /// `regular` adds Apple's own dimming layer for legibility.
     pub capsule_glass_style: String,
+    /// Recording waveform look: `siri` (colourful layered), `mono` (single hue), `bars` (live level bars).
+    #[serde(default = "default_capsule_waveform_style")]
+    pub capsule_waveform_style: String,
     /// Run RNNoise on microphone input before STT (off by default until
     /// verified on real hardware; see docs/m7-noise-notes.md).
     pub noise_suppression_enabled: bool,
@@ -526,6 +533,7 @@ impl Default for AppConfig {
             mic_sharing_mode: "auto".to_string(),
             capsule_glass_enabled: true,
             capsule_glass_style: "clear".to_string(),
+            capsule_waveform_style: default_capsule_waveform_style(),
             usage_pricing: Vec::new(),
             correction_rules_exact_apply: true,
         }
@@ -684,6 +692,12 @@ impl AppConfig {
     pub(crate) fn normalize_values(&mut self) {
         if !matches!(self.capsule_glass_style.as_str(), "clear" | "regular") {
             self.capsule_glass_style = "clear".to_string();
+        }
+        if !matches!(
+            self.capsule_waveform_style.as_str(),
+            "siri" | "mono" | "bars"
+        ) {
+            self.capsule_waveform_style = default_capsule_waveform_style();
         }
         self.audio_ducking_level =
             crate::audio::ducking::clamp_duck_level(self.audio_ducking_level);

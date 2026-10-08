@@ -309,6 +309,28 @@ export function GeneralPane() {
                 )}
               </>
             )}
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[13px] text-text-primary">
+                {t('settings.capsuleWaveformStyle')}
+              </span>
+              <select
+                aria-label={t('settings.capsuleWaveformStyle')}
+                value={config.capsule_waveform_style}
+                onChange={(event) =>
+                  updateConfig({
+                    capsule_waveform_style:
+                      event.target.value === 'mono' || event.target.value === 'bars'
+                        ? event.target.value
+                        : 'siri',
+                  })
+                }
+                className="px-2 py-1.5 bg-bg-secondary border border-border rounded-[8px] text-[12px] text-text-primary outline-none focus:border-border-focus transition-colors"
+              >
+                <option value="siri">{t('settings.capsuleWaveformStyleSiri')}</option>
+                <option value="mono">{t('settings.capsuleWaveformStyleMono')}</option>
+                <option value="bars">{t('settings.capsuleWaveformStyleBars')}</option>
+              </select>
+            </div>
             <Toggle
               checked={config.esc_cancel_enabled}
               onChange={(checked) => updateConfig({ esc_cancel_enabled: checked })}

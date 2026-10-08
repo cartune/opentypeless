@@ -51,6 +51,51 @@ export const LAYERS: Layer[] = [
   },
 ]
 
+/**
+ * Single-hue palette: the same layered waves in one blue-violet, lighter
+ * towards the core, like a monochrome Siri / "flowing silk" wave.
+ */
+export const MONO_LAYERS: Layer[] = [
+  {
+    colors: ['#6b5cff', '#8f84ff', '#6b5cff'],
+    glow: '#5b4dff',
+    cycles: 1.4,
+    speed: 0.11,
+    gain: 1.0,
+    lineWidth: 1.1,
+  },
+  {
+    colors: ['#8577ff', '#b3a9ff', '#8577ff'],
+    glow: '#7a6bff',
+    cycles: 1.9,
+    speed: -0.14,
+    gain: 0.85,
+    lineWidth: 0.9,
+  },
+  {
+    colors: ['#a79cff', '#d6cfff', '#a79cff'],
+    glow: '#9a8cff',
+    cycles: 2.6,
+    speed: 0.19,
+    gain: 0.7,
+    lineWidth: 0.8,
+  },
+  {
+    colors: ['#c9c2ff', '#f0edff', '#c9c2ff'],
+    glow: '#b5aaff',
+    cycles: 1.1,
+    speed: -0.08,
+    gain: 0.6,
+    lineWidth: 0.8,
+  },
+]
+
+export type SiriPalette = 'siri' | 'mono'
+
+export function paletteLayers(palette: SiriPalette): Layer[] {
+  return palette === 'mono' ? MONO_LAYERS : LAYERS
+}
+
 const STEPS = 48
 /** Glow radius in CSS px; the canvas is tiny so this is cheap per frame. */
 const GLOW_BLUR = 5
@@ -93,6 +138,7 @@ export function drawSiriWave(
   height: number,
   amplitudes: number[],
   phases: number[],
+  layers: Layer[] = LAYERS,
 ) {
   ctx.clearRect(0, 0, width, height)
   const mid = height / 2
@@ -102,7 +148,7 @@ export function drawSiriWave(
   ctx.globalCompositeOperation = 'source-over'
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  LAYERS.forEach((layer, i) => {
+  layers.forEach((layer, i) => {
     const amp = Math.max(0, Math.min(1, amplitudes[i] ?? 0))
     const phase = phases[i] ?? 0
     const gradient = ctx.createLinearGradient(0, 0, width, 0)
@@ -141,7 +187,7 @@ export function drawSiriWave(
 
   // One thin bright core on the main layer keeps the shape readable over a
   // light desktop without bleaching the colours.
-  const main = LAYERS[0]
+  const main = layers[0]
   const mainAmp = Math.max(0, Math.min(1, amplitudes[0] ?? 0))
   ctx.shadowBlur = 0
   ctx.strokeStyle = '#ffffff'

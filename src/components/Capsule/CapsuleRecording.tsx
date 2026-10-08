@@ -51,7 +51,7 @@ export function CapsuleRecording() {
         onPointerUp={stopPointerPropagation}
         onClick={handleCancel}
         aria-label={t('capsule.cancelRecording')}
-        className="flex-shrink-0 p-1 rounded-full text-current opacity-70 hover:opacity-100 hover:bg-black/10 dark:hover:bg-current opacity-15 transition-colors bg-transparent border-none cursor-pointer"
+        className="flex-shrink-0 p-1 rounded-full text-current opacity-70 hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/15 transition-colors bg-transparent border-none cursor-pointer"
       >
         <X size={12} />
       </button>

@@ -14,6 +14,7 @@ export type PipelineState =
   | 'ask_thinking'
 
 export type PipelineNotice = 'cancelled'
+export type CapsuleWaveformStyle = 'siri' | 'mono' | 'bars'
 
 export type VoiceMode = 'dictate' | 'ask' | 'translate'
 
@@ -288,6 +289,8 @@ export interface AppConfig {
   capsule_glass_enabled: boolean
   /** Native glass flavour: `clear` shows the desktop through, `regular` dims for legibility. */
   capsule_glass_style: 'clear' | 'regular'
+  /** Recording waveform look: colourful Siri waves, a single-hue wave, or live level bars. */
+  capsule_waveform_style: CapsuleWaveformStyle
   /** Run RNNoise on microphone input before speech recognition. */
   noise_suppression_enabled: boolean
   /** Lower the system output volume while the microphone is open (macOS). */
@@ -873,6 +876,7 @@ const defaultConfig: AppConfig = {
   mic_sharing_mode: 'auto',
   capsule_glass_enabled: true,
   capsule_glass_style: 'clear',
+  capsule_waveform_style: 'siri',
   usage_pricing: [],
   correction_rules_exact_apply: true,
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useReducedMotion } from 'framer-motion'
 import { useAppStore } from '../../stores/appStore'
 import { SiriWaveform } from './SiriWaveform'
+import { LevelBarsWaveform } from './LevelBarsWaveform'
 import {
   WAVEFORM_BAR_COUNT,
   WAVEFORM_MAX_HEIGHT,
@@ -21,8 +22,10 @@ function canvasSupported(): boolean {
 
 export function Waveform() {
   const reducedMotion = useReducedMotion()
+  const style = useAppStore((s) => s.config.capsule_waveform_style)
   if (!reducedMotion && canvasSupported()) {
-    return <SiriWaveform />
+    if (style === 'bars') return <LevelBarsWaveform />
+    return <SiriWaveform palette={style === 'mono' ? 'mono' : 'siri'} />
   }
   return <BarWaveform />
 }

@@ -541,7 +541,11 @@
     "capsuleGlassHint": "Draws the capsule on a native translucent glass backdrop (macOS 26 Liquid Glass; blur on older macOS). Turn off to get the solid capsule back.",
     "capsuleGlassStyle": "Glass style",
     "capsuleGlassStyleClear": "Clear (desktop shows through)",
-    "capsuleGlassStyleRegular": "Regular (dimmed for legibility)"
+    "capsuleGlassStyleRegular": "Regular (dimmed for legibility)",
+    "capsuleWaveformStyle": "Waveform style",
+    "capsuleWaveformStyleSiri": "Colour waves (Siri style)",
+    "capsuleWaveformStyleMono": "Single-colour waves",
+    "capsuleWaveformStyleBars": "Level bars (live volume)"
   },
   "contextFamilies": {
     "email": "Email",

@@ -4,7 +4,11 @@ import {
   WAVEFORM_MIN_HEIGHT,
   WAVEFORM_MAX_HEIGHT,
   AGC_FLOOR,
+  EMPTY_LEVEL_HISTORY,
   INITIAL_WAVE_STATE,
+  LEVEL_BAR_COUNT,
+  LEVEL_BAR_INTERVAL_MS,
+  nextLevelHistory,
   isSilentLevel,
   nextWaveAmplitudes,
   nextWaveState,
@@ -131,5 +135,34 @@ describe('speech window and automatic gain', () => {
     for (let i = 0; i < 600; i++) state = nextWaveState(state, quietVoice)
     expect(state.peak).toBeLessThan(0.5)
     expect(state.amplitudes[3]).toBeGreaterThanOrEqual(0.5)
+  })
+})
+
+describe('nextLevelHistory', () => {
+  const loud = { level: 0.6, bands: [0, 0, 0, 0, 0] }
+  const quiet = { level: 0.3, bands: [0, 0, 0, 0, 0] }
+  const silence = { level: 0, bands: [0, 0, 0, 0, 0] }
+
+  it('appends the loudest moment since the last bar and scrolls left', () => {
+    let h = nextLevelHistory(EMPTY_LEVEL_HISTORY, loud, 1000)
+    expect(h.bars).toHaveLength(LEVEL_BAR_COUNT)
+    expect(h.bars[LEVEL_BAR_COUNT - 1]).toBeGreaterThan(0.9)
+    // Within the interval nothing is appended, but the peak is remembered.
+    h = nextLevelHistory(h, quiet, 1000 + LEVEL_BAR_INTERVAL_MS / 2)
+    expect(h.bars[LEVEL_BAR_COUNT - 1]).toBeGreaterThan(0.9)
+    expect(h.pending).toBeGreaterThan(0)
+    h = nextLevelHistory(h, silence, 1000 + LEVEL_BAR_INTERVAL_MS)
+    expect(h.bars).toHaveLength(LEVEL_BAR_COUNT)
+    expect(h.bars[LEVEL_BAR_COUNT - 2]).toBeGreaterThan(0.9)
+    expect(h.bars[LEVEL_BAR_COUNT - 1]).toBeGreaterThan(0.3)
+    expect(h.pending).toBe(0)
+  })
+
+  it('shows a flat line for silence', () => {
+    let h = EMPTY_LEVEL_HISTORY
+    for (let i = 0; i < LEVEL_BAR_COUNT + 2; i++) {
+      h = nextLevelHistory(h, silence, 1000 + i * LEVEL_BAR_INTERVAL_MS)
+    }
+    h.bars.forEach((b) => expect(b).toBe(0))
   })
 })

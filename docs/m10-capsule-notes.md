@@ -44,3 +44,12 @@ Date: 2026-10-08. Branch `m10-capsule-tweaks`（直接合進 `main`，不開 PR�
 - 設定 > 一般 > 外觀 切換深 / 淺色，膠囊玻璃應立刻換成煙燻 / 霧面。
 - 錄音：膠囊應從中心彈出，叉叉右邊有空間。
 - Esc 取消：彈到「已取消」→ 停一下 → 從中心縮小消失。
+
+## 5. 三種波形樣式 + 轉錄中的游標（第四輪回饋）
+
+- 設定 > 一般 新增「波形樣式」（`capsule_waveform_style`，預設 `siri`）：
+  - `siri`：原本的彩色霓虹多層波。
+  - `mono`：同樣的多層波，但單一藍紫色調、往中心越亮（`siriWave.ts` 的 `MONO_LAYERS`），仿使用者給的參考影片。
+  - `bars`：即時音量條紋（`LevelBarsWaveform.tsx`）。26 根 2 px 的直條，每 60 ms 把這段時間內最大的「說話驅動值」推成最右邊一根、其餘往左捲（像語音備忘錄）。顏色用膠囊的文字色，深淺玻璃都看得到。純邏輯在 `waveformLevels.ts` 的 `nextLevelHistory`，有測試。
+- 轉錄中（`CapsuleProcessing`）文字後面閃爍的游標拿掉。
+- 順手修：上一輪把白色改成 `text-current` 時，`hover:bg-white/15` 被誤替換成 `bg-current opacity-15`，讓叉叉按鈕一直是 15% 透明度；已改回。
