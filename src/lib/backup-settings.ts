@@ -59,6 +59,7 @@ type SafeScalarKey =
   | 'audio_ducking_enabled'
   | 'audio_ducking_level'
   | 'capsule_glass_enabled'
+  | 'capsule_glass_style'
 
 export type BackupSettings = Partial<Pick<AppConfig, SafeScalarKey>> & {
   voice_routing_flags?: VoiceRoutingFlags
@@ -197,6 +198,7 @@ export function createBackupSettings(config: AppConfig): BackupSettings {
     audio_ducking_enabled: config.audio_ducking_enabled,
     audio_ducking_level: config.audio_ducking_level,
     capsule_glass_enabled: config.capsule_glass_enabled,
+    capsule_glass_style: config.capsule_glass_style,
   }
 
   if (Array.isArray(config.usage_pricing)) {
@@ -271,6 +273,7 @@ const SAFE_SCALAR_KEYS: readonly SafeScalarKey[] = [
   'audio_ducking_enabled',
   'audio_ducking_level',
   'capsule_glass_enabled',
+  'capsule_glass_style',
 ]
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -114,12 +114,51 @@ fn audio_channel_capacity(config: &AudioConfig) -> usize {
 
 /// Handle to control audio capture running on a dedicated thread.
 /// This is Send + Sync safe because it only holds channels and atomic state.
+/// What the capture thread learned about the input, for the diagnostics line
+/// logged when a recording ends.
+#[derive(Debug, Clone, Default)]
+pub struct CaptureDiagnostics {
+    pub device: String,
+    pub sample_rate: u32,
+    pub channels: u16,
+    pub noise_suppression: bool,
+    pub ducking: bool,
+    pub total_chunks: u32,
+    pub voiced_chunks: u32,
+    /// Loudest processed sample over the whole recording, in dBFS.
+    pub peak_dbfs: f32,
+}
+
+impl std::fmt::Display for CaptureDiagnostics {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "device=\"{}\" {}Hz/{}ch ns={} duck={} chunks={} voiced={} peak={:.1}dBFS",
+            self.device,
+            self.sample_rate,
+            self.channels,
+            self.noise_suppression,
+            self.ducking,
+            self.total_chunks,
+            self.voiced_chunks,
+            self.peak_dbfs
+        )
+    }
+}
+
 pub struct AudioCaptureHandle {
     stop_tx: Option<std::sync::mpsc::Sender<()>>,
     startup_waiter: Option<CaptureStartupWaiter>,
     volume: Arc<Mutex<f32>>,
+    meter: Arc<Mutex<super::dsp::AudioMeter>>,
     state: Arc<Mutex<CaptureState>>,
     voiced_chunks: Arc<AtomicU32>,
+    total_chunks: Arc<AtomicU32>,
+    /// Peak linear amplitude so far, stored as f32 bits.
+    peak: Arc<AtomicU32>,
+    device_info: Arc<Mutex<Option<(String, u32, u16)>>>,
+    noise_suppression: bool,
+    diagnostics_logged: bool,
     /// Restores the system output volume when capture ends (any path).
     duck: Option<super::ducking::OutputDuckGuard>,
 }
@@ -134,13 +173,24 @@ impl AudioCaptureHandle {
         let (stop_tx, stop_rx) = std::sync::mpsc::channel::<()>();
         let volume = Arc::new(Mutex::new(0.0f32));
         let state = Arc::new(Mutex::new(initial_capture_state()));
+        let meter = Arc::new(Mutex::new(super::dsp::AudioMeter::default()));
         let voiced_chunks = Arc::new(AtomicU32::new(0));
+        let total_chunks = Arc::new(AtomicU32::new(0));
+        let peak = Arc::new(AtomicU32::new(0f32.to_bits()));
+        let device_info = Arc::new(Mutex::new(None));
+        let noise_suppression = config.noise_suppression;
         let (mut startup_notifier, startup_waiter) = capture_startup_channel();
 
-        let vol_clone = volume.clone();
         let state_clone = state.clone();
         let failed_state = state.clone();
-        let voiced_clone = voiced_chunks.clone();
+        let shared = CaptureShared {
+            volume: volume.clone(),
+            meter: meter.clone(),
+            voiced_chunks: voiced_chunks.clone(),
+            total_chunks: total_chunks.clone(),
+            peak: peak.clone(),
+            device_info: device_info.clone(),
+        };
 
         // Audio capture must run on a dedicated OS thread because cpal::Stream is !Send
         std::thread::spawn(move || {
@@ -148,9 +198,8 @@ impl AudioCaptureHandle {
                 config,
                 audio_tx,
                 stop_rx,
-                vol_clone,
                 state_clone,
-                voiced_clone,
+                shared,
                 &mut startup_notifier,
             ) {
                 *failed_state
@@ -166,8 +215,14 @@ impl AudioCaptureHandle {
                 stop_tx: Some(stop_tx),
                 startup_waiter: Some(startup_waiter),
                 volume,
+                meter,
                 state,
                 voiced_chunks,
+                total_chunks,
+                peak,
+                device_info,
+                noise_suppression,
+                diagnostics_logged: false,
                 duck,
             },
             audio_rx,
@@ -185,17 +240,52 @@ impl AudioCaptureHandle {
         waiter.wait().await.map_err(anyhow::Error::msg)
     }
 
+    /// Snapshot of what was captured so far.
+    pub fn diagnostics(&self) -> CaptureDiagnostics {
+        let (device, sample_rate, channels) = self
+            .device_info
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+            .unwrap_or_else(|| ("(not opened)".to_string(), 0, 0));
+        let peak = f32::from_bits(self.peak.load(Ordering::Relaxed));
+        CaptureDiagnostics {
+            device,
+            sample_rate,
+            channels,
+            noise_suppression: self.noise_suppression,
+            ducking: self.duck.as_ref().is_some_and(|d| d.is_active()),
+            total_chunks: self.total_chunks.load(Ordering::Relaxed),
+            voiced_chunks: self.voiced_chunks.load(Ordering::Relaxed),
+            peak_dbfs: if peak > 0.0 {
+                20.0 * peak.log10()
+            } else {
+                f32::NEG_INFINITY
+            },
+        }
+    }
+
     pub fn stop(&mut self) {
+        if !self.diagnostics_logged {
+            self.diagnostics_logged = true;
+            tracing::info!("Recording diagnostics: {}", self.diagnostics());
+        }
         // Signal the capture thread to stop
         self.stop_tx = None;
         // Give the output volume back the moment the key is released.
         self.duck = None;
         *self.volume.lock().unwrap_or_else(|e| e.into_inner()) = 0.0;
+        *self.meter.lock().unwrap_or_else(|e| e.into_inner()) = super::dsp::AudioMeter::default();
         *self.state.lock().unwrap_or_else(|e| e.into_inner()) = CaptureState::Idle;
     }
 
     pub fn get_volume(&self) -> f32 {
         *self.volume.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// Latest level + band snapshot for the capsule waveform.
+    pub fn get_meter(&self) -> super::dsp::AudioMeter {
+        *self.meter.lock().unwrap_or_else(|e| e.into_inner())
     }
 
     /// Shared counter of 20 ms chunks that contained audible signal so far.
@@ -228,14 +318,29 @@ where
     samples.iter().copied().map(f32::from_sample).collect()
 }
 
+/// State shared between the capture thread and the handle: live meter plus
+/// the counters behind the diagnostics line.
+struct CaptureShared {
+    volume: Arc<Mutex<f32>>,
+    meter: Arc<Mutex<super::dsp::AudioMeter>>,
+    voiced_chunks: Arc<AtomicU32>,
+    total_chunks: Arc<AtomicU32>,
+    peak: Arc<AtomicU32>,
+    device_info: Arc<Mutex<Option<(String, u32, u16)>>>,
+}
+
 struct InputProcessingContext {
     device_channels: u16,
     target_channels: u16,
     samples_per_chunk: usize,
     sender: mpsc::Sender<Vec<u8>>,
     volume: Arc<Mutex<f32>>,
+    meter: Arc<Mutex<super::dsp::AudioMeter>>,
+    bands: super::dsp::BandAnalyzer,
     buffer: Arc<Mutex<Vec<i16>>>,
     voiced_chunks: Arc<AtomicU32>,
+    total_chunks: Arc<AtomicU32>,
+    peak: Arc<AtomicU32>,
     /// Resampling (+ optional denoising) state; lives on the capture thread.
     front_end: super::dsp::AudioFrontEnd,
     /// Pre-allocated output scratch for one callback.
@@ -304,8 +409,20 @@ fn process_input_samples(data: &[f32], context: &mut InputProcessingContext) {
 
     // Meter and voiced gate both look at the processed signal, so with noise
     // suppression on, steady fan noise no longer registers as "audio".
+    let level = meter_level(normalized_rms(&context.processed));
     if let Ok(mut volume) = context.volume.lock() {
-        *volume = meter_level(normalized_rms(&context.processed));
+        *volume = level;
+    }
+    let bands = context.bands.analyze(&context.processed);
+    if let Ok(mut meter) = context.meter.lock() {
+        *meter = super::dsp::AudioMeter { level, bands };
+    }
+    let chunk_peak = context
+        .processed
+        .iter()
+        .fold(0f32, |acc, sample| acc.max(sample.abs()));
+    if chunk_peak > f32::from_bits(context.peak.load(Ordering::Relaxed)) {
+        context.peak.store(chunk_peak.to_bits(), Ordering::Relaxed);
     }
 
     // Convert f32 to i16 PCM and buffer
@@ -324,6 +441,7 @@ fn process_input_samples(data: &[f32], context: &mut InputProcessingContext) {
     // Send complete chunks
     while buffer.len() >= context.samples_per_chunk {
         let chunk: Vec<i16> = buffer.drain(..context.samples_per_chunk).collect();
+        context.total_chunks.fetch_add(1, Ordering::Relaxed);
         if chunk_is_voiced(&chunk) {
             context.voiced_chunks.fetch_add(1, Ordering::Relaxed);
         }
@@ -361,9 +479,8 @@ fn run_capture(
     config: AudioConfig,
     sender: mpsc::Sender<Vec<u8>>,
     stop_rx: std::sync::mpsc::Receiver<()>,
-    volume: Arc<Mutex<f32>>,
     state: Arc<Mutex<CaptureState>>,
-    voiced_chunks: Arc<AtomicU32>,
+    shared: CaptureShared,
     startup_notifier: &mut CaptureStartupNotifier,
 ) -> Result<()> {
     let host = cpal::default_host();
@@ -390,6 +507,12 @@ fn run_capture(
         device_sample_format
     );
 
+    *shared.device_info.lock().unwrap_or_else(|e| e.into_inner()) = Some((
+        device_description.clone(),
+        device_sample_rate,
+        device_channels,
+    ));
+
     let stream_config = cpal::StreamConfig {
         channels: device_channels,
         sample_rate: device_sample_rate,
@@ -406,9 +529,13 @@ fn run_capture(
         target_channels,
         samples_per_chunk,
         sender,
-        volume,
+        volume: shared.volume,
+        meter: shared.meter,
+        bands: super::dsp::BandAnalyzer::new(target_rate),
         buffer,
-        voiced_chunks,
+        voiced_chunks: shared.voiced_chunks,
+        total_chunks: shared.total_chunks,
+        peak: shared.peak,
         front_end: super::dsp::AudioFrontEnd::new(
             device_sample_rate,
             target_rate,

@@ -393,3 +393,135 @@ mod tests {
         assert!(gain.abs() < 1.0);
     }
 }
+
+/// Number of frequency bands reported to the capsule waveform.
+pub const METER_BANDS: usize = 5;
+/// Band centres in Hz: fundamentals, low formants, mid formants, consonants, sibilance.
+pub const METER_BAND_HZ: [f32; METER_BANDS] = [150.0, 400.0, 1000.0, 2500.0, 5000.0];
+/// Meter floor in dBFS; levels at or below this map to 0.
+const BAND_FLOOR_DBFS: f32 = -60.0;
+
+/// Overall level plus a tiny spectrum, both 0..1 on a dB scale.
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize)]
+pub struct AudioMeter {
+    pub level: f32,
+    pub bands: [f32; METER_BANDS],
+}
+
+impl Default for AudioMeter {
+    fn default() -> Self {
+        Self {
+            level: 0.0,
+            bands: [0.0; METER_BANDS],
+        }
+    }
+}
+
+/// Goertzel band energies for one chunk. No allocation; the coefficients are
+/// computed once per sample rate so this is safe inside the audio callback.
+#[derive(Debug, Clone)]
+pub struct BandAnalyzer {
+    coeffs: [f32; METER_BANDS],
+}
+
+impl BandAnalyzer {
+    pub fn new(sample_rate: u32) -> Self {
+        let fs = sample_rate.max(1) as f32;
+        let mut coeffs = [0.0f32; METER_BANDS];
+        for (coeff, hz) in coeffs.iter_mut().zip(METER_BAND_HZ) {
+            // Bands above Nyquist cannot exist at this rate; leave them silent.
+            *coeff = if hz < fs / 2.0 {
+                2.0 * (2.0 * std::f32::consts::PI * hz / fs).cos()
+            } else {
+                f32::NAN
+            };
+        }
+        Self { coeffs }
+    }
+
+    /// Band levels 0..1 (dB scaled like the main meter) for `samples` in -1..1.
+    pub fn analyze(&self, samples: &[f32]) -> [f32; METER_BANDS] {
+        let mut out = [0.0f32; METER_BANDS];
+        if samples.is_empty() {
+            return out;
+        }
+        let n = samples.len() as f32;
+        for (level, &coeff) in out.iter_mut().zip(&self.coeffs) {
+            if coeff.is_nan() {
+                continue;
+            }
+            let (mut s1, mut s2) = (0.0f32, 0.0f32);
+            for &x in samples {
+                let s0 = x + coeff * s1 - s2;
+                s2 = s1;
+                s1 = s0;
+            }
+            let power = (s1 * s1 + s2 * s2 - coeff * s1 * s2).max(0.0);
+            // Amplitude of a full-scale sine at this bin would be ~1.0.
+            let amplitude = 2.0 * power.sqrt() / n;
+            *level = db_level(amplitude);
+        }
+        out
+    }
+}
+
+/// Map a linear amplitude (0..1) to a 0..1 meter level on a dB scale.
+pub fn db_level(amplitude: f32) -> f32 {
+    if amplitude <= 0.0 {
+        return 0.0;
+    }
+    let dbfs = 20.0 * amplitude.log10();
+    ((dbfs - BAND_FLOOR_DBFS) / -BAND_FLOOR_DBFS).clamp(0.0, 1.0)
+}
+
+#[cfg(test)]
+mod band_tests {
+    use super::*;
+
+    fn tone(hz: f32, rate: u32, n: usize, amp: f32) -> Vec<f32> {
+        (0..n)
+            .map(|i| amp * (2.0 * std::f32::consts::PI * hz * i as f32 / rate as f32).sin())
+            .collect()
+    }
+
+    #[test]
+    fn a_1khz_tone_lands_in_the_1khz_band() {
+        let analyzer = BandAnalyzer::new(16_000);
+        let bands = analyzer.analyze(&tone(1000.0, 16_000, 320, 0.5));
+        let (best, _) = bands
+            .iter()
+            .enumerate()
+            .max_by(|a, b| a.1.total_cmp(b.1))
+            .unwrap();
+        assert_eq!(best, 2, "bands={bands:?}");
+        // The 1 kHz bin reads near -6 dBFS; neighbours sit well below it.
+        assert!(bands[2] > 0.85, "bands={bands:?}");
+        assert!(
+            bands[1] < bands[2] - 0.15 && bands[3] < bands[2] - 0.15,
+            "bands={bands:?}"
+        );
+    }
+
+    #[test]
+    fn silence_and_empty_input_are_all_zero() {
+        let analyzer = BandAnalyzer::new(16_000);
+        assert_eq!(analyzer.analyze(&[]), [0.0; METER_BANDS]);
+        assert_eq!(analyzer.analyze(&[0.0; 320]), [0.0; METER_BANDS]);
+    }
+
+    #[test]
+    fn bands_above_nyquist_stay_silent() {
+        let analyzer = BandAnalyzer::new(8_000);
+        let bands = analyzer.analyze(&tone(1000.0, 8_000, 160, 0.5));
+        assert_eq!(bands[4], 0.0, "5 kHz does not exist at 8 kHz");
+        assert!(bands[2] > 0.8);
+    }
+
+    #[test]
+    fn db_level_maps_full_scale_to_one_and_floor_to_zero() {
+        assert!((db_level(1.0) - 1.0).abs() < 1e-6);
+        assert_eq!(db_level(0.0), 0.0);
+        assert!((db_level(0.001) - 0.0).abs() < 1e-6);
+        assert!((db_level(0.1) - 0.666_67).abs() < 1e-3);
+    }
+}

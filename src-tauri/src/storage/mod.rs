@@ -390,6 +390,9 @@ pub struct AppConfig {
     /// Native Liquid Glass / vibrancy backdrop for the capsule (macOS).
     /// Off by default until the rendering has been seen on real hardware.
     pub capsule_glass_enabled: bool,
+    /// `clear` lets the desktop show through (NSGlassEffectViewStyle::Clear);
+    /// `regular` adds Apple's own dimming layer for legibility.
+    pub capsule_glass_style: String,
     /// Run RNNoise on microphone input before STT (off by default until
     /// verified on real hardware; see docs/m7-noise-notes.md).
     pub noise_suppression_enabled: bool,
@@ -517,6 +520,7 @@ impl Default for AppConfig {
             audio_ducking_enabled: true,
             audio_ducking_level: crate::audio::ducking::DEFAULT_DUCK_LEVEL,
             capsule_glass_enabled: false,
+            capsule_glass_style: "clear".to_string(),
             usage_pricing: Vec::new(),
             correction_rules_exact_apply: true,
         }
@@ -673,6 +677,9 @@ impl AppConfig {
     }
 
     pub(crate) fn normalize_values(&mut self) {
+        if !matches!(self.capsule_glass_style.as_str(), "clear" | "regular") {
+            self.capsule_glass_style = "clear".to_string();
+        }
         self.audio_ducking_level =
             crate::audio::ducking::clamp_duck_level(self.audio_ducking_level);
         if !matches!(

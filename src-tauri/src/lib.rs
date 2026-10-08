@@ -844,21 +844,90 @@ fn dispatch_cli_action(app: &tauri::AppHandle, action: CliAction) {
     }
 }
 
+/// Directory for rolling log files. macOS: `~/Library/Logs/<identifier>`; the
+/// app data dir elsewhere. Hardware-only bugs (calls, headsets, hotkeys) are
+/// undiagnosable from stdout because the bundle is launched via Finder.
+fn log_dir() -> Option<std::path::PathBuf> {
+    let identifier = "com.cartune.opentypeless";
+    if cfg!(target_os = "macos") {
+        let home = std::env::var_os("HOME")?;
+        Some(
+            std::path::PathBuf::from(home)
+                .join("Library/Logs")
+                .join(identifier),
+        )
+    } else if cfg!(target_os = "windows") {
+        let base = std::env::var_os("LOCALAPPDATA")?;
+        Some(std::path::PathBuf::from(base).join(identifier).join("logs"))
+    } else {
+        let home = std::env::var_os("HOME")?;
+        Some(
+            std::path::PathBuf::from(home)
+                .join(".local/share")
+                .join(identifier)
+                .join("logs"),
+        )
+    }
+}
+
+static LOG_GUARD: std::sync::OnceLock<tracing_appender::non_blocking::WorkerGuard> =
+    std::sync::OnceLock::new();
+
+fn init_logging() {
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::util::SubscriberInitExt;
+
+    let filter = EnvFilter::from_default_env().add_directive(
+        "opentypeless=debug"
+            .parse()
+            .expect("static directive is valid"),
+    );
+    let stdout = tracing_subscriber::fmt::layer();
+    let file = log_dir().and_then(|dir| {
+        std::fs::create_dir_all(&dir).ok()?;
+        let appender = tracing_appender::rolling::daily(&dir, "typelazy.log");
+        let (writer, guard) = tracing_appender::non_blocking(appender);
+        let _ = LOG_GUARD.set(guard);
+        Some((
+            dir,
+            tracing_subscriber::fmt::layer()
+                .with_ansi(false)
+                .with_writer(writer),
+        ))
+    });
+    match file {
+        Some((dir, layer)) => {
+            tracing_subscriber::registry()
+                .with(filter)
+                .with(stdout)
+                .with(layer)
+                .init();
+            tracing::info!(
+                "Typelazy {} starting; logs in {}",
+                env!("CARGO_PKG_VERSION"),
+                dir.display()
+            );
+        }
+        None => {
+            tracing_subscriber::registry()
+                .with(filter)
+                .with(stdout)
+                .init();
+            tracing::info!(
+                "Typelazy {} starting (no log dir)",
+                env!("CARGO_PKG_VERSION")
+            );
+        }
+    }
+}
+
 pub fn run() {
     #[cfg(target_os = "linux")]
     let xinitthreads_status = linux_x11::init_xlib_threads();
 
     apply_linux_workarounds();
 
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::from_default_env().add_directive(
-                "opentypeless=debug"
-                    .parse()
-                    .expect("static directive is valid"),
-            ),
-        )
-        .init();
+    init_logging();
 
     #[cfg(target_os = "linux")]
     log_linux_launch_diagnostics(xinitthreads_status);

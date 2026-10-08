@@ -477,7 +477,7 @@ describe('useCapsuleResize async updates', () => {
     expect(windowApiMocks.setSize.mock.calls.map(([size]) => [size.width, size.height])).toEqual([
       [36, 36],
     ])
-    expect(tauriMocks.setCapsuleGlass).toHaveBeenCalledWith(true, CAPSULE_GLASS_RADIUS)
+    expect(tauriMocks.setCapsuleGlass).toHaveBeenCalledWith(true, CAPSULE_GLASS_RADIUS, 'clear')
 
     tauriMocks.setCapsuleGlass.mockClear()
     windowApiMocks.setSize.mockClear()
@@ -512,7 +512,7 @@ describe('useCapsuleResize async updates', () => {
     })
 
     await waitFor(() => {
-      expect(tauriMocks.setCapsuleGlass).toHaveBeenCalledWith(true, CAPSULE_GLASS_RADIUS)
+      expect(tauriMocks.setCapsuleGlass).toHaveBeenCalledWith(true, CAPSULE_GLASS_RADIUS, 'clear')
     })
     // Back to the pill: resize first, then re-apply the glass.
     expect(windowApiMocks.setSize.mock.invocationCallOrder[0]).toBeLessThan(

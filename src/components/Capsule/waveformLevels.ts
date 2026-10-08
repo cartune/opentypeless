@@ -29,3 +29,44 @@ export function nextWaveformHeights(previous: number[], level: number): number[]
 export function isSilentLevel(level: number): boolean {
   return !(level > SILENT_LEVEL_THRESHOLD)
 }
+
+/** Number of frequency bands the backend reports in `audio:meter`. */
+export const METER_BAND_COUNT = 5
+/** Number of translucent wave layers drawn by the Siri-style waveform. */
+export const WAVE_LAYER_COUNT = 4
+
+export interface AudioMeter {
+  /** 0..1 dB-scaled overall level, same scale as `audioVolume`. */
+  level: number
+  /** 0..1 dB-scaled band levels, low to high (≈150, 400, 1000, 2500, 5000 Hz). */
+  bands: number[]
+}
+
+export const EMPTY_METER: AudioMeter = { level: 0, bands: Array(METER_BAND_COUNT).fill(0) }
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0))
+}
+
+/**
+ * Map the band meter onto wave-layer amplitudes (0..1). Each layer follows a
+ * different part of the spectrum so vowels, sibilants and pitch changes move
+ * different waves, and everything is scaled by the overall level so silence
+ * flattens every layer. Fast attack, slower release, like the bar meter.
+ */
+export function nextWaveAmplitudes(previous: number[], meter: AudioMeter): number[] {
+  const level = clamp01(meter.level)
+  const band = (i: number) => clamp01(meter.bands[i] ?? 0)
+  // Low layer: fundamentals; mid: formants; high: consonants/sibilance; crest: overall.
+  const targets = [
+    Math.max(band(0), band(1)) * 0.9,
+    band(2),
+    Math.max(band(3), band(4)) * 0.85,
+    level,
+  ].map((t) => t * (0.35 + 0.65 * level))
+  return targets.map((target, i) => {
+    const prev = previous[i] ?? 0
+    const blend = target > prev ? 0.55 : 0.18
+    return prev + (target - prev) * blend
+  })
+}

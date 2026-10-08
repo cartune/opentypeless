@@ -213,6 +213,7 @@ export function useCapsuleResize() {
   const setContextMenuReady = useAppStore((s) => s.setContextMenuReady)
   const capsuleAutoHide = useAppStore((s) => s.config.capsule_auto_hide)
   const glassEnabled = useAppStore((s) => s.config.capsule_glass_enabled)
+  const glassStyle = useAppStore((s) => s.config.capsule_glass_style)
   const initialized = useRef(false)
   const prevWindowSize = useRef<{ width: number; height: number } | null>(null)
   const prevPadding = useRef(CAPSULE_WINDOW_PADDING)
@@ -279,7 +280,7 @@ export function useCapsuleResize() {
           }
           const applyGlassIfNeeded = async () => {
             if (glass && !glassApplied.current) {
-              await setCapsuleGlass(true, CAPSULE_GLASS_RADIUS).catch(() => {})
+              await setCapsuleGlass(true, CAPSULE_GLASS_RADIUS, glassStyle).catch(() => {})
               glassApplied.current = true
             }
           }
@@ -446,6 +447,7 @@ export function useCapsuleResize() {
     translationTargetMenuOpen,
     capsuleAutoHide,
     glassEnabled,
+    glassStyle,
     setContextMenuReady,
   ])
 

@@ -25,7 +25,9 @@ pub async fn set_capsule_glass(
     app: tauri::AppHandle,
     enabled: bool,
     radius: f64,
+    style: Option<String>,
 ) -> Result<CapsuleGlassMode, String> {
+    let style = style.unwrap_or_else(|| "clear".to_string());
     let Some(window) = app.get_webview_window("capsule") else {
         return Err("capsule window not found".to_string());
     };
@@ -36,7 +38,7 @@ pub async fn set_capsule_glass(
         let target = window.clone();
         window
             .run_on_main_thread(move || {
-                let _ = tx.send(apply_capsule_glass(&target, enabled, radius));
+                let _ = tx.send(apply_capsule_glass(&target, enabled, radius, &style));
             })
             .map_err(|error| error.to_string())?;
         let result = rx
@@ -52,7 +54,7 @@ pub async fn set_capsule_glass(
     }
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = (window, enabled, radius);
+        let _ = (window, enabled, radius, style);
         Ok(CapsuleGlassMode::None)
     }
 }
@@ -62,6 +64,7 @@ fn apply_capsule_glass(
     window: &tauri::WebviewWindow,
     enabled: bool,
     radius: f64,
+    style: &str,
 ) -> Result<CapsuleGlassMode, String> {
     use window_vibrancy::{
         apply_liquid_glass, apply_vibrancy, clear_liquid_glass, clear_vibrancy, Error,
@@ -82,9 +85,18 @@ fn apply_capsule_glass(
     // Re-applying on top of a previous backdrop would stack views; clear first.
     let _ = clear_liquid_glass(window);
     let _ = clear_vibrancy(window);
+    // Clear shows the desktop through the pill; Regular adds Apple's dimming
+    // layer. Opaque is always off so the window stays see-through.
+    let glass_style = if style == "regular" {
+        NSGlassEffectViewStyle::Regular
+    } else {
+        NSGlassEffectViewStyle::Clear
+    };
     match apply_liquid_glass(
         window,
-        LiquidGlassOptions::new(NSGlassEffectViewStyle::Regular).radius(radius),
+        LiquidGlassOptions::new(glass_style)
+            .radius(radius)
+            .opaque(false),
     ) {
         Ok(()) => Ok(CapsuleGlassMode::LiquidGlass),
         Err(Error::UnsupportedPlatformVersion(_)) => {

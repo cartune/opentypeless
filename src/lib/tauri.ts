@@ -531,8 +531,14 @@ export interface UsageSummary {
 export type CapsuleGlassMode = 'liquid_glass' | 'vibrancy' | 'none'
 
 /** Apply or clear the native glass backdrop on the capsule window (macOS only; no-op elsewhere). */
-export async function setCapsuleGlass(enabled: boolean, radius = 18): Promise<CapsuleGlassMode> {
-  return invoke('set_capsule_glass', { enabled, radius })
+export type CapsuleGlassStyle = 'clear' | 'regular'
+
+export async function setCapsuleGlass(
+  enabled: boolean,
+  radius = 18,
+  style: CapsuleGlassStyle = 'clear',
+): Promise<CapsuleGlassMode> {
+  return invoke('set_capsule_glass', { enabled, radius, style })
 }
 
 /** `since` is an ISO date prefix such as "2026-10-01" compared against history `created_at`. */

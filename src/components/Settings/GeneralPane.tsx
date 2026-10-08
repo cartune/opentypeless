@@ -286,6 +286,27 @@ export function GeneralPane() {
                 <p className="text-[11px] text-text-tertiary -mt-1">
                   {t('settings.capsuleGlassHint')}
                 </p>
+                {config.capsule_glass_enabled && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[13px] text-text-primary">
+                      {t('settings.capsuleGlassStyle')}
+                    </span>
+                    <select
+                      aria-label={t('settings.capsuleGlassStyle')}
+                      value={config.capsule_glass_style}
+                      onChange={(event) =>
+                        updateConfig({
+                          capsule_glass_style:
+                            event.target.value === 'regular' ? 'regular' : 'clear',
+                        })
+                      }
+                      className="px-2 py-1.5 bg-bg-secondary border border-border rounded-[8px] text-[12px] text-text-primary outline-none focus:border-border-focus transition-colors"
+                    >
+                      <option value="clear">{t('settings.capsuleGlassStyleClear')}</option>
+                      <option value="regular">{t('settings.capsuleGlassStyleRegular')}</option>
+                    </select>
+                  </div>
+                )}
               </>
             )}
             <Toggle

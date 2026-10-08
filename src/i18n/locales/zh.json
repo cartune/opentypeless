@@ -533,7 +533,10 @@
     "audioDuckingLevelOption": "保留 {{percent}}%",
     "audioDuckingHint": "开始录音时把 Mac 的输出音量降到当前的这个比例，停止后自动恢复。通话、音乐等背景声会变小，不容易混进识别结果。输出设备没有音量控制（如 HDMI）时不会动作。",
     "capsuleGlass": "Liquid Glass 胶囊",
-    "capsuleGlassHint": "胶囊改用系统原生的半透明玻璃背景（macOS 26 的 Liquid Glass；旧版 macOS 用模糊效果）。关闭可回到原本的实色胶囊。"
+    "capsuleGlassHint": "胶囊改用系统原生的半透明玻璃背景（macOS 26 的 Liquid Glass；旧版 macOS 用模糊效果）。关闭可回到原本的实色胶囊。",
+    "capsuleGlassStyle": "玻璃样式",
+    "capsuleGlassStyleClear": "透明（透出背后桌面）",
+    "capsuleGlassStyleRegular": "一般（加一层暗色，更易读）"
   },
   "contextFamilies": {
     "email": "邮件",

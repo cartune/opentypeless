@@ -1675,13 +1675,14 @@ impl PipelineHandle {
                 if current != PipelineState::Recording {
                     break;
                 }
-                let vol = audio_handle_ref
+                let meter = audio_handle_ref
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
                     .as_ref()
-                    .map(|h| h.get_volume())
-                    .unwrap_or(0.0);
-                let _ = app_handle.emit("audio:volume", vol);
+                    .map(|h| h.get_meter())
+                    .unwrap_or_default();
+                let _ = app_handle.emit("audio:volume", meter.level);
+                let _ = app_handle.emit("audio:meter", meter);
             }
         });
 

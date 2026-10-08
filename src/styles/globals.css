@@ -687,10 +687,20 @@ body,
   pointer-events: none;
 }
 .glass-capsule-active {
-  background: rgba(18, 18, 22, 0.3);
+  /* No dark plate: the native glass is the surface. Legibility comes from
+     the text shadow and a slightly stronger rim instead. */
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 0 6px rgba(0, 0, 0, 0.25);
 }
 .glass-capsule-error {
-  background: rgba(220, 38, 38, 0.55);
+  background: rgba(220, 38, 38, 0.35);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 .dark .glass-capsule {
   background: rgba(255, 255, 255, 0.04);
@@ -700,8 +710,12 @@ body,
     inset 0 -1px 0 rgba(0, 0, 0, 0.25);
 }
 .dark .glass-capsule-active {
-  background: rgba(0, 0, 0, 0.24);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
 }
 .dark .glass-capsule-error {
-  background: rgba(185, 28, 28, 0.6);
+  background: rgba(185, 28, 28, 0.4);
 }

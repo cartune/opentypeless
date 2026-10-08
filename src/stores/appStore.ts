@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { TARGET_LANGUAGES } from '../lib/constants'
 
+import { EMPTY_METER, type AudioMeter } from '../components/Capsule/waveformLevels'
+
 export type PipelineState =
   | 'idle'
   | 'preparing'
@@ -284,6 +286,8 @@ export interface AppConfig {
   esc_cancel_enabled: boolean
   /** Native Liquid Glass / vibrancy backdrop behind the capsule (macOS). */
   capsule_glass_enabled: boolean
+  /** Native glass flavour: `clear` shows the desktop through, `regular` dims for legibility. */
+  capsule_glass_style: 'clear' | 'regular'
   /** Run RNNoise on microphone input before speech recognition. */
   noise_suppression_enabled: boolean
   /** Lower the system output volume while the microphone is open (macOS). */
@@ -315,6 +319,8 @@ interface AppState {
   // Recording
   audioVolume: number
   setAudioVolume: (v: number) => void
+  audioMeter: AudioMeter
+  setAudioMeter: (meter: AudioMeter) => void
   partialTranscript: string
   setPartialTranscript: (t: string) => void
   finalTranscript: string
@@ -860,6 +866,7 @@ const defaultConfig: AppConfig = {
   audio_ducking_enabled: true,
   audio_ducking_level: 75,
   capsule_glass_enabled: false,
+  capsule_glass_style: 'clear',
   usage_pricing: [],
   correction_rules_exact_apply: true,
 }
@@ -872,6 +879,8 @@ export const useAppStore = create<AppState>((set) => ({
 
   audioVolume: 0,
   setAudioVolume: (audioVolume) => set({ audioVolume }),
+  audioMeter: EMPTY_METER,
+  setAudioMeter: (audioMeter) => set({ audioMeter }),
   partialTranscript: '',
   setPartialTranscript: (partialTranscript) => set({ partialTranscript }),
   finalTranscript: '',

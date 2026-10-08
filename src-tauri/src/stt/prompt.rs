@@ -13,9 +13,11 @@ fn script_hint(language: Option<&str>) -> Option<&'static str> {
     let language = language?.trim().to_ascii_lowercase();
     match language.as_str() {
         "zh-tw" | "zh-hant" | "zh_hant" | "zh-hk" => {
-            Some("以下是繁體中文的語音內容，請使用台灣慣用的繁體字。")
+            Some("以下是繁體中文的語音內容，請使用台灣慣用的繁體字。內容會中英夾雜，英文單字、縮寫與產品名稱請保持英文原文，不要翻成中文。")
         }
-        "zh" | "zh-cn" | "zh-hans" | "zh_hans" => Some("以下是中文的语音内容。"),
+        "zh" | "zh-cn" | "zh-hans" | "zh_hans" => {
+            Some("以下是中文的语音内容。内容会中英夹杂，英文单词、缩写与产品名称请保持英文原文。")
+        }
         "ja" => Some("以下は日本語の音声です。"),
         _ => None,
     }

@@ -83,10 +83,11 @@ mod platform {
     use super::{ducked_volume, should_restore, worth_ducking};
     use objc2_core_audio::{
         kAudioDevicePropertyMute, kAudioDevicePropertyVolumeScalar,
-        kAudioHardwarePropertyDefaultOutputDevice, kAudioObjectPropertyElementMain,
-        kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyScopeOutput, kAudioObjectSystemObject,
-        AudioObjectGetPropertyData, AudioObjectHasProperty, AudioObjectID,
-        AudioObjectIsPropertySettable, AudioObjectPropertyAddress, AudioObjectSetPropertyData,
+        kAudioHardwarePropertyDefaultInputDevice, kAudioHardwarePropertyDefaultOutputDevice,
+        kAudioObjectPropertyElementMain, kAudioObjectPropertyScopeGlobal,
+        kAudioObjectPropertyScopeOutput, kAudioObjectSystemObject, AudioObjectGetPropertyData,
+        AudioObjectHasProperty, AudioObjectID, AudioObjectIsPropertySettable,
+        AudioObjectPropertyAddress, AudioObjectSetPropertyData,
     };
     use std::ptr::NonNull;
 
@@ -112,9 +113,9 @@ mod platform {
         }
     }
 
-    fn default_output_device() -> Option<AudioObjectID> {
+    fn default_device(selector: u32) -> Option<AudioObjectID> {
         let mut addr = address(
-            kAudioHardwarePropertyDefaultOutputDevice,
+            selector,
             kAudioObjectPropertyScopeGlobal,
             kAudioObjectPropertyElementMain,
         );
@@ -132,6 +133,14 @@ mod platform {
             )
         };
         (status == 0 && device != 0).then_some(device)
+    }
+
+    fn default_output_device() -> Option<AudioObjectID> {
+        default_device(kAudioHardwarePropertyDefaultOutputDevice)
+    }
+
+    fn default_input_device() -> Option<AudioObjectID> {
+        default_device(kAudioHardwarePropertyDefaultInputDevice)
     }
 
     fn settable(device: AudioObjectID, selector: u32, element: u32) -> bool {
@@ -233,6 +242,16 @@ mod platform {
 
     pub fn duck(level: u8) -> Option<DuckState> {
         let device = default_output_device()?;
+        // Headsets (AirPods, Bluetooth HFP) expose one device for both the
+        // microphone and the speaker. Touching its volume while a call owns it
+        // is one more thing that can disturb the input stream, and the far
+        // end's voice does not leak into a headset mic anyway. Leave it alone.
+        if default_input_device() == Some(device) {
+            tracing::info!(
+                "Output ducking skipped: default output device {device} is also the default input (headset)"
+            );
+            return None;
+        }
         let elements = volume_elements(device);
         let (selector, element) = *elements.first()?;
         let original = read_f32(device, selector, element)?;

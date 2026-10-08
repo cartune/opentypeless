@@ -533,7 +533,10 @@
     "audioDuckingLevelOption": "Keep {{percent}}%",
     "audioDuckingHint": "Turns the Mac’s output volume down to this share of its current level the moment recording starts, and puts it back when you stop. Calls and music in the background get quieter so they do not leak into the transcript. Skipped if the output device has no volume control.",
     "capsuleGlass": "Liquid Glass capsule",
-    "capsuleGlassHint": "Draws the capsule on a native translucent glass backdrop (macOS 26 Liquid Glass; blur on older macOS). Turn off to get the solid capsule back."
+    "capsuleGlassHint": "Draws the capsule on a native translucent glass backdrop (macOS 26 Liquid Glass; blur on older macOS). Turn off to get the solid capsule back.",
+    "capsuleGlassStyle": "Glass style",
+    "capsuleGlassStyleClear": "Clear (desktop shows through)",
+    "capsuleGlassStyleRegular": "Regular (dimmed for legibility)"
   },
   "contextFamilies": {
     "email": "Email",
