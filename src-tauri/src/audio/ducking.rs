@@ -12,7 +12,7 @@ pub const MAX_DUCK_LEVEL: u8 = 100;
 pub const DEFAULT_DUCK_LEVEL: u8 = 75;
 
 /// Tolerance when checking whether the device still sits at our ducked value.
-const RESTORE_TOLERANCE: f32 = 0.02;
+const RESTORE_TOLERANCE: f32 = 0.05;
 
 /// Clamp a user-supplied level into the supported range.
 pub fn clamp_duck_level(level: u8) -> u8 {
@@ -252,6 +252,10 @@ mod platform {
         if applied.is_empty() {
             return None;
         }
+        // Devices quantise the scalar; remember what actually stuck so the
+        // restore check compares against reality, not our request.
+        let (selector, element) = applied[0];
+        let ducked = read_f32(device, selector, element).unwrap_or(ducked);
         Some(DuckState {
             device,
             elements: applied,
@@ -332,9 +336,36 @@ mod tests {
     }
 
     #[test]
-    fn guard_without_a_device_is_inert_and_drops_cleanly() {
-        // On CI runners without an output device this must not panic.
-        let guard = OutputDuckGuard::duck(75);
-        let _ = guard.is_active();
+    fn guard_at_full_level_is_inert_everywhere() {
+        // Level 100 never touches the device, so this is safe on CI and on a
+        // developer's speakers alike.
+        let guard = OutputDuckGuard::duck(100);
+        assert!(!guard.is_active());
+    }
+
+    /// Manual hardware check: ducks the real output device and prints the
+    /// volume before, during and after. Run with
+    /// `cargo test duck_real_output -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn duck_real_output_device_and_restore() {
+        fn system_volume() -> String {
+            std::process::Command::new("osascript")
+                .args(["-e", "output volume of (get volume settings)"])
+                .output()
+                .map(|out| String::from_utf8_lossy(&out.stdout).trim().to_string())
+                .unwrap_or_default()
+        }
+        let before = system_volume();
+        let guard = OutputDuckGuard::duck(50);
+        let during = system_volume();
+        println!(
+            "before={before} during={during} active={}",
+            guard.is_active()
+        );
+        drop(guard);
+        let after = system_volume();
+        println!("after={after}");
+        assert_eq!(before, after, "volume must be restored");
     }
 }

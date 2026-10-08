@@ -6,7 +6,8 @@
 
 - 之前只有點「Option (⌥)」按鈕才能設定；按鍵盤上的 Option 沒反應。
 - `ShortcutBindingList.tsx`：keyup 時若是 macOS、按的是 Alt/Option、期間沒按其他鍵、也沒有待確認組合，就當成 `Option` 綁定（1.5 秒後自動確認）。Option+Space 這種組合不受影響。
-- 測試：`ShortcutBindingList.test.tsx` 新增兩例。
+- 另一個真正造成「有一個快捷鍵無效」的原因：macOS 按住 Option 再按字母會送出組合字元（Option+A → å），之前拿 `event.key` 當主鍵就被判無效。現在字母與數字改用 `event.code`（KeyA、Digit1）。
+- 測試：`ShortcutBindingList.test.tsx` 新增三例。
 
 ## 2. 取消改成安靜提示
 
@@ -23,7 +24,8 @@
 - 生命週期綁在 `AudioCaptureHandle`：`stop()` 與 Drop 都會還原，所以 Ask 流程、取消、錯誤路徑一律涵蓋。
 - 注意：這降的是 **Mac 整體輸出音量**，通話對方的聲音也會一起變小；macOS 沒有公開 API 能只降某個 App。
 - 非 macOS 為 no-op。
-- 測試：純函式（相對比例、clamp、還原判斷、跳過條件）；真機請看 log 的 `Output ducked: 0.80 -> 0.60 (75%)`。
+- 寫入後會回讀裝置實際值（有些裝置會量化音量），還原判斷用的是回讀值，容差 0.05。
+- 測試：純函式（相對比例、clamp、還原判斷、跳過條件）。真機手動測試 `cargo test duck_real_output -- --ignored --nocapture`，本機實測 62 → 31 → 62。
 
 ## 真機驗證
 

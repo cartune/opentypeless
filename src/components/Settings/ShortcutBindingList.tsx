@@ -172,7 +172,10 @@ export function HotkeyRecorder({
         '。': '.',
         '?': '/',
       }
-      let keyName = keyMap[event.key] || event.key
+      // With Option held, macOS delivers the composed character (Option+A is
+      // "å"), so derive letters and digits from the physical key code instead.
+      const physical = /^(?:Key([A-Z])|Digit([0-9]))$/.exec(event.code ?? '')
+      let keyName = physical ? (physical[1] ?? physical[2]) : keyMap[event.key] || event.key
       if (keyName.length === 1) keyName = keyName.toUpperCase()
       if (parts.length === 0 && !STANDALONE_KEYS.has(keyName)) return
 

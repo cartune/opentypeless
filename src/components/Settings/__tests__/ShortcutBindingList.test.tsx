@@ -228,6 +228,33 @@ describe('ShortcutBindingList', () => {
     }
   })
 
+  it('records Option+letter from the physical key, not the composed character', () => {
+    vi.useFakeTimers()
+    try {
+      const onChange = vi.fn()
+      render(
+        <ShortcutBindingList
+          role="dictation"
+          label="Dictate"
+          bindings={[ctrlSlash]}
+          otherBindings={[]}
+          required
+          specialOptions={[]}
+          onChange={onChange}
+        />,
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Add shortcut' }))
+      fireEvent.keyDown(window, { key: 'å', code: 'KeyA', altKey: true })
+      vi.advanceTimersByTime(1500)
+
+      expect(screen.queryByText('settings.hotkeyInvalid')).not.toBeInTheDocument()
+      expect(onChange).toHaveBeenCalledWith([ctrlSlash, { primary: 'A', modifiers: ['Option'] }])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('keeps Option+Space when Option is released after the combo key', () => {
     vi.useFakeTimers()
     try {
