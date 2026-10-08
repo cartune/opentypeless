@@ -326,6 +326,10 @@ fn normalize_translation_code(value: &str) -> Option<String> {
         .then_some(normalized)
 }
 
+fn default_true() -> bool {
+    true
+}
+
 fn default_capsule_waveform_style() -> String {
     "siri".to_string()
 }
@@ -400,6 +404,10 @@ pub struct AppConfig {
     /// Recording waveform look: `siri` (colourful layered), `mono` (single hue), `bars` (live level bars).
     #[serde(default = "default_capsule_waveform_style")]
     pub capsule_waveform_style: String,
+    /// Watch the field after dictation and learn dictionary words / correction
+    /// rules from the words the user replaces (macOS, needs Accessibility).
+    #[serde(default = "default_true")]
+    pub edit_learning_enabled: bool,
     /// Run RNNoise on microphone input before STT (off by default until
     /// verified on real hardware; see docs/m7-noise-notes.md).
     pub noise_suppression_enabled: bool,
@@ -534,6 +542,7 @@ impl Default for AppConfig {
             capsule_glass_enabled: true,
             capsule_glass_style: "clear".to_string(),
             capsule_waveform_style: default_capsule_waveform_style(),
+            edit_learning_enabled: true,
             usage_pricing: Vec::new(),
             correction_rules_exact_apply: true,
         }
@@ -2029,6 +2038,23 @@ fn prepare_backup_correction_rules(
     Ok(prepared)
 }
 
+/// `source` tells manual entries from ones learned from the user's edits.
+fn ensure_dictionary_optional_columns(conn: &Connection) -> Result<()> {
+    for table in ["dictionary", "correction_rules"] {
+        let mut stmt = conn.prepare(&format!("PRAGMA table_info({table})"))?;
+        let has_source = stmt
+            .query_map([], |row| row.get::<_, String>(1))?
+            .filter_map(|column| column.ok())
+            .any(|column| column == "source");
+        if !has_source {
+            conn.execute_batch(&format!(
+                "ALTER TABLE {table} ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'"
+            ))?;
+        }
+    }
+    Ok(())
+}
+
 fn ensure_history_optional_columns(conn: &Connection) -> Result<()> {
     let mut stmt = conn.prepare("PRAGMA table_info(history)")?;
     let columns = stmt
@@ -2212,6 +2238,13 @@ pub struct DictionaryEntry {
     pub id: i64,
     pub word: String,
     pub pronunciation: Option<String>,
+    /// `manual` (typed or imported) or `learned` (from the user's edits).
+    #[serde(default = "default_dictionary_source")]
+    pub source: String,
+}
+
+pub fn default_dictionary_source() -> String {
+    "manual".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -2220,6 +2253,9 @@ pub struct CorrectionRule {
     pub pattern: String,
     pub replacement: String,
     pub enabled: bool,
+    /// `manual` or `learned`, see `DictionaryEntry::source`.
+    #[serde(default = "default_dictionary_source")]
+    pub source: String,
 }
 
 pub struct DictionaryStore {
@@ -2244,12 +2280,22 @@ impl DictionaryStore {
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             );",
         )?;
+        ensure_dictionary_optional_columns(&conn)?;
         Ok(Self {
             conn: Mutex::new(conn),
         })
     }
 
     pub async fn add(&self, word: &str, pronunciation: Option<&str>) -> Result<()> {
+        self.add_with_source(word, pronunciation, "manual").await
+    }
+
+    pub async fn add_with_source(
+        &self,
+        word: &str,
+        pronunciation: Option<&str>,
+        source: &str,
+    ) -> Result<()> {
         let word = validate_dictionary_text(word, 100, "dictionary_word")?;
         let pronunciation = pronunciation
             .map(|value| validate_dictionary_text(value, 100, "dictionary_pronunciation"))
@@ -2260,8 +2306,8 @@ impl DictionaryStore {
             anyhow::bail!("dictionary_duplicate");
         }
         conn.execute(
-            "INSERT INTO dictionary (word, pronunciation) VALUES (?1, ?2)",
-            rusqlite::params![word, pronunciation],
+            "INSERT INTO dictionary (word, pronunciation, source) VALUES (?1, ?2, ?3)",
+            rusqlite::params![word, pronunciation, source],
         )?;
         Ok(())
     }
@@ -2298,12 +2344,13 @@ impl DictionaryStore {
     pub async fn list(&self) -> Result<Vec<DictionaryEntry>> {
         let conn = self.conn.lock().unwrap_or_else(|e| e.into_inner());
         let mut stmt =
-            conn.prepare("SELECT id, word, pronunciation FROM dictionary ORDER BY id ASC")?;
+            conn.prepare("SELECT id, word, pronunciation, source FROM dictionary ORDER BY id ASC")?;
         let rows = stmt.query_map([], |row| {
             Ok(DictionaryEntry {
                 id: row.get(0)?,
                 word: row.get(1)?,
                 pronunciation: row.get(2)?,
+                source: row.get(3)?,
             })
         })?;
         let mut entries = Vec::new();
@@ -2345,6 +2392,16 @@ impl DictionaryStore {
     }
 
     pub async fn add_correction(&self, pattern: &str, replacement: &str) -> Result<()> {
+        self.add_correction_with_source(pattern, replacement, "manual")
+            .await
+    }
+
+    pub async fn add_correction_with_source(
+        &self,
+        pattern: &str,
+        replacement: &str,
+        source: &str,
+    ) -> Result<()> {
         let pattern = validate_dictionary_text(pattern, 120, "correction_pattern")?;
         let replacement = validate_dictionary_text(replacement, 120, "correction_replacement")?;
         let identity = normalized_correction_identity(&pattern, &replacement);
@@ -2353,8 +2410,8 @@ impl DictionaryStore {
             anyhow::bail!("correction_duplicate");
         }
         conn.execute(
-            "INSERT INTO correction_rules (pattern, replacement, enabled) VALUES (?1, ?2, 1)",
-            rusqlite::params![pattern, replacement],
+            "INSERT INTO correction_rules (pattern, replacement, enabled, source) VALUES (?1, ?2, 1, ?3)",
+            rusqlite::params![pattern, replacement, source],
         )?;
         Ok(())
     }
@@ -2406,7 +2463,7 @@ impl DictionaryStore {
     pub async fn correction_rules(&self) -> Result<Vec<CorrectionRule>> {
         let conn = self.conn.lock().unwrap_or_else(|e| e.into_inner());
         let mut stmt = conn.prepare(
-            "SELECT id, pattern, replacement, enabled FROM correction_rules ORDER BY id ASC",
+            "SELECT id, pattern, replacement, enabled, source FROM correction_rules ORDER BY id ASC",
         )?;
         let rows = stmt.query_map([], |row| {
             Ok(CorrectionRule {
@@ -2414,6 +2471,7 @@ impl DictionaryStore {
                 pattern: row.get(1)?,
                 replacement: row.get(2)?,
                 enabled: row.get::<_, i64>(3)? != 0,
+                source: row.get(4)?,
             })
         })?;
         let mut entries = Vec::new();
@@ -2426,7 +2484,7 @@ impl DictionaryStore {
     pub async fn enabled_correction_rules(&self) -> Vec<CorrectionRule> {
         let conn = self.conn.lock().unwrap_or_else(|e| e.into_inner());
         let mut stmt = match conn.prepare(
-            "SELECT id, pattern, replacement, enabled FROM correction_rules WHERE enabled = 1 ORDER BY id ASC LIMIT 100",
+            "SELECT id, pattern, replacement, enabled, source FROM correction_rules WHERE enabled = 1 ORDER BY id ASC LIMIT 100",
         ) {
             Ok(s) => s,
             Err(_) => return Vec::new(),
@@ -2437,6 +2495,7 @@ impl DictionaryStore {
                 pattern: row.get(1)?,
                 replacement: row.get(2)?,
                 enabled: row.get::<_, i64>(3)? != 0,
+                source: row.get(4)?,
             })
         }) {
             Ok(r) => r,
@@ -3806,11 +3865,13 @@ mod tests {
                         id: 20,
                         word: "OpenTypeless".to_string(),
                         pronunciation: None,
+                        source: "manual".to_string(),
                     },
                     DictionaryEntry {
                         id: 21,
                         word: " opentypeless ".to_string(),
                         pronunciation: Some("duplicate".to_string()),
+                        source: "manual".to_string(),
                     },
                 ]),
                 Some(vec![CorrectionRule {
@@ -3818,6 +3879,7 @@ mod tests {
                     pattern: "open type less".to_string(),
                     replacement: "OpenTypeless".to_string(),
                     enabled: false,
+                    source: "manual".to_string(),
                 }]),
                 &policy,
                 "2026-07-13T00:00:00",
@@ -3853,6 +3915,7 @@ mod tests {
                     id: 2,
                     word: "x".repeat(101),
                     pronunciation: None,
+                    source: "manual".to_string(),
                 }]),
                 None,
                 &HistoryRetentionPolicy::default(),
@@ -4259,6 +4322,46 @@ mod tests {
             )
             .unwrap();
         assert_eq!(raw_values, (String::new(), String::new()));
+    }
+
+    #[tokio::test]
+    async fn dictionary_store_adds_source_column_to_old_databases_and_keeps_learned_flag() {
+        let path = std::env::temp_dir().join(format!(
+            "typelazy-dict-source-{}-{}.db",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(
+                "CREATE TABLE dictionary (id INTEGER PRIMARY KEY AUTOINCREMENT, word TEXT NOT NULL, pronunciation TEXT);
+                 CREATE TABLE correction_rules (id INTEGER PRIMARY KEY AUTOINCREMENT, pattern TEXT NOT NULL, replacement TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT (datetime('now')));
+                 INSERT INTO dictionary (word) VALUES ('Old');
+                 INSERT INTO correction_rules (pattern, replacement) VALUES ('a', 'b');",
+            )
+            .unwrap();
+        }
+        let store = DictionaryStore::new(path.clone()).unwrap();
+        store
+            .add_with_source("Cartune", None, "learned")
+            .await
+            .unwrap();
+        store
+            .add_correction_with_source("卡通", "Cartune", "learned")
+            .await
+            .unwrap();
+        let entries = store.list().await.unwrap();
+        assert_eq!(entries[0].source, "manual");
+        assert_eq!(entries[1].source, "learned");
+        let rules = store.correction_rules().await.unwrap();
+        assert_eq!(rules[0].source, "manual");
+        assert_eq!(rules[1].source, "learned");
+        assert_eq!(store.enabled_correction_rules().await[1].source, "learned");
+        drop(store);
+        let _ = std::fs::remove_file(&path);
     }
 
     #[tokio::test]

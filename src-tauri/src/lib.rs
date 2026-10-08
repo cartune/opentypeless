@@ -3,6 +3,7 @@ pub mod audio;
 pub mod commands;
 pub mod credentials;
 pub mod dictionary_io;
+pub mod edit_learning;
 pub mod error;
 pub mod hotkey;
 #[cfg(target_os = "linux")]

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useAppStore, type PipelineState } from '../stores/appStore'
+import { useAppStore, type PipelineState, type PipelineNotice } from '../stores/appStore'
 import { animateCapsuleFrame, setCapsuleGlass, type CapsuleGlassTint } from '../lib/tauri'
 
 interface CapsuleSize {
@@ -170,6 +170,33 @@ export function getCapsuleFocusable(): boolean {
 }
 
 export const CAPSULE_NOTICE_SIZE: CapsuleSize = { width: 120, height: 36 }
+const CAPSULE_LEARNED_MIN_WIDTH = 168
+const CAPSULE_LEARNED_MAX_WIDTH = 340
+/** Icon, gaps and padding around the notice text. */
+const CAPSULE_LEARNED_CHROME = 52
+
+/** Rough width of the 11px medium notice text (CJK glyphs are square). */
+export function estimateNoticeTextWidth(text: string): number {
+  let width = 0
+  for (const ch of text) {
+    const code = ch.codePointAt(0) ?? 0
+    width += code > 0x2e7f ? 11.5 : ch === ' ' ? 3.2 : 6.3
+  }
+  return Math.round(width)
+}
+
+/** The pill is sized to the notice: fixed for "cancelled", text-fitted for learned words. */
+export function getCapsuleNoticeSize(notice: PipelineNotice | null): CapsuleSize {
+  if (notice?.kind !== 'learned') return CAPSULE_NOTICE_SIZE
+  const width = Math.min(
+    CAPSULE_LEARNED_MAX_WIDTH,
+    Math.max(
+      CAPSULE_LEARNED_MIN_WIDTH,
+      CAPSULE_LEARNED_CHROME + estimateNoticeTextWidth(notice.text),
+    ),
+  )
+  return { width, height: 36 }
+}
 /** Pill size (before padding) the window shrinks to when it scales away. */
 export const CAPSULE_COLLAPSED_SIZE: CapsuleSize = { width: 6, height: 6 }
 
@@ -268,12 +295,13 @@ function getSizeForState(
   contextMenuOpen: boolean,
   translationTargetMenuOpen = false,
   hasNotice = false,
+  notice: PipelineNotice | null = null,
 ): CapsuleSize {
   if (translationTargetMenuOpen) return { width: 360, height: 180 }
   if (contextMenuOpen) return { width: 220, height: 220 }
   if (hasError) return { width: 200, height: 36 }
   if (expanded) return { width: 220, height: 90 }
-  if (hasNotice && state === 'idle') return CAPSULE_NOTICE_SIZE
+  if (hasNotice && state === 'idle') return getCapsuleNoticeSize(notice)
   switch (state) {
     case 'idle':
       return { width: 36, height: 36 }
@@ -332,6 +360,7 @@ export function useCapsuleResize() {
       contextMenuOpen,
       translationTargetMenuOpen,
       hasNotice,
+      pipelineNotice,
     )
     const glass = shouldApplyCapsuleGlass({
       glassEnabled,
@@ -622,6 +651,7 @@ export function useCapsuleResize() {
       cancelled = true
     }
   }, [
+    pipelineNotice,
     pipelineState,
     capsuleExpanded,
     hasError,
@@ -643,5 +673,6 @@ export function useCapsuleResize() {
     contextMenuOpen,
     translationTargetMenuOpen,
     hasNotice,
+    pipelineNotice,
   )
 }

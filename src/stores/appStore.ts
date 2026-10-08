@@ -13,7 +13,23 @@ export type PipelineState =
   | 'ask_recording'
   | 'ask_thinking'
 
-export type PipelineNotice = 'cancelled'
+/** Quiet, non-error notices the capsule shows briefly. */
+export type PipelineNotice = { kind: 'cancelled' } | { kind: 'learned'; text: string }
+
+/** One replacement learned from the user's edit (`learning:learned`). */
+export interface LearnedItem {
+  from: string
+  to: string
+  wordAdded: boolean
+  ruleAdded: boolean
+  ruleDisabled: boolean
+}
+
+export interface LearnedPayload {
+  items: LearnedItem[]
+  appLabel: string
+  mainVisible: boolean
+}
 export type CapsuleWaveformStyle = 'siri' | 'mono' | 'bars'
 
 export type VoiceMode = 'dictate' | 'ask' | 'translate'
@@ -164,10 +180,13 @@ export interface InsertResult {
   message: string | null
 }
 
+export type DictionarySource = 'manual' | 'learned'
+
 export interface DictionaryEntry {
   id: number
   word: string
   pronunciation: string | null
+  source: DictionarySource
 }
 
 export interface CorrectionRule {
@@ -175,6 +194,7 @@ export interface CorrectionRule {
   pattern: string
   replacement: string
   enabled: boolean
+  source: DictionarySource
 }
 
 export interface CustomScene {
@@ -291,6 +311,8 @@ export interface AppConfig {
   capsule_glass_style: 'clear' | 'regular'
   /** Recording waveform look: colourful Siri waves, a single-hue wave, or live level bars. */
   capsule_waveform_style: CapsuleWaveformStyle
+  /** Learn dictionary words and correction rules from the words the user replaces after dictation (macOS). */
+  edit_learning_enabled: boolean
   /** Run RNNoise on microphone input before speech recognition. */
   noise_suppression_enabled: boolean
   /** Lower the system output volume while the microphone is open (macOS). */
@@ -396,6 +418,9 @@ interface AppState {
   // Non-error notices shown briefly in the capsule (e.g. user cancelled)
   pipelineNotice: PipelineNotice | null
   setPipelineNotice: (notice: PipelineNotice | null) => void
+  /** Bumped when the backend learned something, so open dictionary views refetch. */
+  dictionaryRevision: number
+  bumpDictionaryRevision: () => void
   /** True while the capsule window is scaling away to its centre (after "cancelled"). */
   capsuleCollapsing: boolean
   setCapsuleCollapsing: (collapsing: boolean) => void
@@ -877,6 +902,7 @@ const defaultConfig: AppConfig = {
   capsule_glass_enabled: true,
   capsule_glass_style: 'clear',
   capsule_waveform_style: 'siri',
+  edit_learning_enabled: true,
   usage_pricing: [],
   correction_rules_exact_apply: true,
 }
@@ -955,6 +981,9 @@ export const useAppStore = create<AppState>((set) => ({
   setPipelineError: (pipelineError) => set({ pipelineError }),
   pipelineNotice: null,
   setPipelineNotice: (pipelineNotice) => set({ pipelineNotice }),
+  dictionaryRevision: 0,
+  bumpDictionaryRevision: () =>
+    set((state) => ({ dictionaryRevision: state.dictionaryRevision + 1 })),
   capsuleCollapsing: false,
   setCapsuleCollapsing: (capsuleCollapsing) => set({ capsuleCollapsing }),
   askSelection: null,

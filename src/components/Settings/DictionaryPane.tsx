@@ -11,6 +11,7 @@ import {
   Trash2,
   Upload,
   X,
+  Sparkles,
 } from 'lucide-react'
 import { useAppStore } from '../../stores/appStore'
 import {
@@ -33,6 +34,7 @@ import {
 import { toast } from '../toast-service'
 import { DictionaryImportDialog } from './DictionaryImportDialog'
 import { SegmentedControl } from './shared/SegmentedControl'
+import { Toggle } from './shared/Toggle'
 
 const MAX_IMPORT_BYTES = 1024 * 1024
 
@@ -75,6 +77,9 @@ export function DictionaryPane() {
   const setDictionary = useAppStore((state) => state.setDictionary)
   const correctionRules = useAppStore((state) => state.correctionRules)
   const setCorrectionRules = useAppStore((state) => state.setCorrectionRules)
+  const editLearningEnabled = useAppStore((state) => state.config.edit_learning_enabled)
+  const updateConfig = useAppStore((state) => state.updateConfig)
+  const dictionaryRevision = useAppStore((state) => state.dictionaryRevision)
   const { t } = useTranslation()
   const [activeSection, setActiveSection] = useState<'words' | 'corrections'>('words')
   const [word, setWord] = useState('')
@@ -118,6 +123,12 @@ export function DictionaryPane() {
     setDictionary(nextDictionary)
     setCorrectionRules(nextCorrections)
   }, [setCorrectionRules, setDictionary])
+
+  // Something was learned from an edit while this pane is open: show it.
+  useEffect(() => {
+    if (dictionaryRevision === 0) return
+    void refreshDictionary().catch(() => {})
+  }, [dictionaryRevision, refreshDictionary])
 
   const closeExportMenu = useCallback(() => {
     setExportMenuOpen(false)
@@ -267,8 +278,26 @@ export function DictionaryPane() {
     }
   }
 
+  const learnedBadge = (
+    <span
+      className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-accent"
+      title={t('settings.editLearningHint')}
+    >
+      <Sparkles size={10} />
+      {t('dictionary.learnedBadge')}
+    </span>
+  )
+
   return (
     <div className="space-y-5">
+      <div className="rounded-[10px] border border-border bg-bg-secondary/40 px-3 py-2.5">
+        <Toggle
+          checked={editLearningEnabled}
+          onChange={(checked) => updateConfig({ edit_learning_enabled: checked })}
+          label={t('settings.editLearning')}
+        />
+        <p className="mt-1 text-[11px] text-text-tertiary">{t('settings.editLearningHint')}</p>
+      </div>
       <div className="flex min-w-0 items-center gap-2">
         <div className="relative min-w-0 flex-1">
           <Search
@@ -442,7 +471,10 @@ export function DictionaryPane() {
                     key={entry.id}
                     className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_64px] gap-2 border-t border-border px-3 py-2.5 text-[13px] hover:bg-bg-secondary/50"
                   >
-                    <span className="min-w-0 truncate text-text-primary">{entry.word}</span>
+                    <span className="flex min-w-0 items-center gap-1.5 text-text-primary">
+                      <span className="min-w-0 truncate">{entry.word}</span>
+                      {entry.source === 'learned' && learnedBadge}
+                    </span>
                     <span className="min-w-0 truncate text-text-secondary">
                       {entry.pronunciation || '-'}
                     </span>
@@ -571,7 +603,10 @@ export function DictionaryPane() {
                       className="h-4 w-4 accent-accent"
                     />
                     <div className="min-w-0">
-                      <p className="truncate text-text-primary">{rule.pattern}</p>
+                      <p className="flex min-w-0 items-center gap-1.5 text-text-primary">
+                        <span className="min-w-0 truncate">{rule.pattern}</span>
+                        {rule.source === 'learned' && learnedBadge}
+                      </p>
                       <p className="truncate text-[12px] text-text-secondary">{rule.replacement}</p>
                     </div>
                     <div className="flex justify-end">

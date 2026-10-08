@@ -42,16 +42,27 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
+type Source = 'manual' | 'learned'
+
 const mockAppStore = {
-  dictionary: [] as Array<{ id: number; word: string; pronunciation: string | null }>,
+  dictionary: [] as Array<{
+    id: number
+    word: string
+    pronunciation: string | null
+    source: Source
+  }>,
   setDictionary: vi.fn(),
   correctionRules: [] as Array<{
     id: number
     pattern: string
     replacement: string
     enabled: boolean
+    source: Source
   }>,
   setCorrectionRules: vi.fn(),
+  config: { edit_learning_enabled: true },
+  updateConfig: vi.fn(),
+  dictionaryRevision: 0,
 }
 
 vi.mock('../../../stores/appStore', () => ({
@@ -134,7 +145,7 @@ describe('DictionaryPane', () => {
 
   it('adds a correction rule and refreshes correction rules', async () => {
     vi.mocked(tauri.getCorrectionRules).mockResolvedValueOnce([
-      { id: 1, pattern: '拓肯', replacement: 'Token', enabled: true },
+      { id: 1, pattern: '拓肯', replacement: 'Token', enabled: true, source: 'manual' },
     ])
 
     render(<DictionaryPane />)
@@ -151,18 +162,24 @@ describe('DictionaryPane', () => {
     await waitFor(() => {
       expect(tauri.addCorrectionRule).toHaveBeenCalledWith('拓肯', 'Token')
       expect(mockAppStore.setCorrectionRules).toHaveBeenCalledWith([
-        { id: 1, pattern: '拓肯', replacement: 'Token', enabled: true },
+        { id: 1, pattern: '拓肯', replacement: 'Token', enabled: true, source: 'manual' },
       ])
     })
   })
 
   it('searches words, pronunciations, wrong phrases, and replacements locally', () => {
     mockAppStore.dictionary = [
-      { id: 1, word: 'OpenTypeless', pronunciation: 'open typeless' },
-      { id: 2, word: 'MeloLab', pronunciation: 'mee-lo' },
+      { id: 1, word: 'OpenTypeless', pronunciation: 'open typeless', source: 'manual' },
+      { id: 2, word: 'MeloLab', pronunciation: 'mee-lo', source: 'manual' },
     ]
     mockAppStore.correctionRules = [
-      { id: 3, pattern: 'open type less', replacement: 'OpenTypeless', enabled: true },
+      {
+        id: 3,
+        pattern: 'open type less',
+        replacement: 'OpenTypeless',
+        enabled: true,
+        source: 'manual',
+      },
     ]
     render(<DictionaryPane />)
 
@@ -179,10 +196,28 @@ describe('DictionaryPane', () => {
     expect(screen.getByText('open type less')).toBeInTheDocument()
   })
 
+  it('marks learned words and rules and exposes the learning toggle', () => {
+    mockAppStore.dictionary = [
+      { id: 1, word: 'Cartune', pronunciation: null, source: 'learned' },
+      { id: 2, word: 'Token', pronunciation: null, source: 'manual' },
+    ]
+    render(<DictionaryPane />)
+    expect(screen.getAllByText('dictionary.learnedBadge')).toHaveLength(1)
+    const toggle = screen.getByRole('switch', { name: 'settings.editLearning' })
+    fireEvent.click(toggle)
+    expect(mockAppStore.updateConfig).toHaveBeenCalledWith({ edit_learning_enabled: false })
+  })
+
   it('edits dictionary and correction rows inline', async () => {
-    mockAppStore.dictionary = [{ id: 1, word: 'Token', pronunciation: null }]
+    mockAppStore.dictionary = [{ id: 1, word: 'Token', pronunciation: null, source: 'manual' }]
     mockAppStore.correctionRules = [
-      { id: 2, pattern: 'open type less', replacement: 'OpenTypeless', enabled: true },
+      {
+        id: 2,
+        pattern: 'open type less',
+        replacement: 'OpenTypeless',
+        enabled: true,
+        source: 'manual',
+      },
     ]
     render(<DictionaryPane />)
 

@@ -62,6 +62,7 @@ type SafeScalarKey =
   | 'capsule_glass_enabled'
   | 'capsule_glass_style'
   | 'capsule_waveform_style'
+  | 'edit_learning_enabled'
 
 export type BackupSettings = Partial<Pick<AppConfig, SafeScalarKey>> & {
   voice_routing_flags?: VoiceRoutingFlags
@@ -203,6 +204,7 @@ export function createBackupSettings(config: AppConfig): BackupSettings {
     capsule_glass_enabled: config.capsule_glass_enabled,
     capsule_glass_style: config.capsule_glass_style,
     capsule_waveform_style: config.capsule_waveform_style,
+    edit_learning_enabled: config.edit_learning_enabled,
   }
 
   if (Array.isArray(config.usage_pricing)) {
@@ -280,6 +282,7 @@ const SAFE_SCALAR_KEYS: readonly SafeScalarKey[] = [
   'capsule_glass_enabled',
   'capsule_glass_style',
   'capsule_waveform_style',
+  'edit_learning_enabled',
 ]
 
 function isRecord(value: unknown): value is Record<string, unknown> {

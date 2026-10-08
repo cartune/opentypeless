@@ -1,17 +1,21 @@
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../stores/appStore'
 
-/** How long the quiet "cancelled" pill stays before collapsing to the dot. */
-export const CAPSULE_CANCELLED_MS = 700
-/** How long the window takes to scale away to its centre afterwards. */
-export const CAPSULE_COLLAPSE_MS = 200
+import { CAPSULE_COLLAPSE_MS, getCapsuleNoticeHoldMs } from './noticeTiming'
 
+export { CAPSULE_CANCELLED_MS, CAPSULE_COLLAPSE_MS, CAPSULE_LEARNED_MS } from './noticeTiming'
+
+/** Quiet notices: "cancelled" after Esc, or what was just learned from an edit. */
 export function CapsuleCancelled() {
   const { t } = useTranslation()
+  const notice = useAppStore((s) => s.pipelineNotice)
   const setCapsuleCollapsing = useAppStore((s) => s.setCapsuleCollapsing)
   const resetRecording = useAppStore((s) => s.resetRecording)
+  const kind = notice?.kind ?? 'cancelled'
+  const holdMs = getCapsuleNoticeHoldMs(notice)
 
   useEffect(() => {
     // Hold the notice, scale the whole pill away to its centre, then go idle.
@@ -26,14 +30,14 @@ export function CapsuleCancelled() {
           resetRecording()
         }
       }, CAPSULE_COLLAPSE_MS)
-    }, CAPSULE_CANCELLED_MS)
+    }, holdMs)
     return () => {
       clearTimeout(collapse)
       if (clear) clearTimeout(clear)
       // A new run that interrupts the notice must not leave the window collapsed.
       if (useAppStore.getState().capsuleCollapsing) setCapsuleCollapsing(false)
     }
-  }, [resetRecording, setCapsuleCollapsing])
+  }, [holdMs, resetRecording, setCapsuleCollapsing])
 
   return (
     <motion.div
@@ -41,10 +45,16 @@ export function CapsuleCancelled() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15, ease: 'easeOut' }}
-      data-capsule-notice="cancelled"
+      data-capsule-notice={kind}
     >
-      <span className="h-2 w-2 flex-shrink-0 rounded-full bg-current opacity-40" />
-      <p className="truncate text-[11px] font-medium">{t('capsule.errors.cancelled')}</p>
+      {kind === 'learned' ? (
+        <Sparkles size={12} className="flex-shrink-0 opacity-80" />
+      ) : (
+        <span className="h-2 w-2 flex-shrink-0 rounded-full bg-current opacity-40" />
+      )}
+      <p className="truncate text-[11px] font-medium">
+        {notice?.kind === 'learned' ? notice.text : t('capsule.errors.cancelled')}
+      </p>
     </motion.div>
   )
 }

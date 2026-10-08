@@ -145,6 +145,7 @@ impl From<BackupDictionaryEntry> for DictionaryEntry {
             id: 0,
             word: entry.word,
             pronunciation: entry.pronunciation,
+            source: crate::storage::default_dictionary_source(),
         }
     }
 }
@@ -164,6 +165,7 @@ impl From<BackupCorrectionRule> for CorrectionRule {
             pattern: rule.pattern,
             replacement: rule.replacement,
             enabled: rule.enabled,
+            source: crate::storage::default_dictionary_source(),
         }
     }
 }

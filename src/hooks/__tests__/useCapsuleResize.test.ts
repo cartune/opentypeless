@@ -17,6 +17,8 @@ import {
   isPillLayout,
   shouldApplyCapsuleGlass,
   useCapsuleResize,
+  getCapsuleNoticeSize,
+  CAPSULE_NOTICE_SIZE,
 } from '../useCapsuleResize'
 import { useAppStore } from '../../stores/appStore'
 
@@ -96,6 +98,20 @@ describe('getCapsuleVisibility', () => {
         pipelineState: 'idle',
       }),
     ).toBe(true)
+  })
+
+  it('sizes the notice pill to its text', () => {
+    expect(getCapsuleNoticeSize(null)).toEqual(CAPSULE_NOTICE_SIZE)
+    expect(getCapsuleNoticeSize({ kind: 'cancelled' })).toEqual(CAPSULE_NOTICE_SIZE)
+    const short = getCapsuleNoticeSize({ kind: 'learned', text: '已學會 卡通 → Cartune' })
+    expect(short.height).toBe(36)
+    expect(short.width).toBeGreaterThan(CAPSULE_NOTICE_SIZE.width)
+    const long = getCapsuleNoticeSize({
+      kind: 'learned',
+      text: '已學會 ' + '很長的詞 → 另一個很長的詞、'.repeat(6),
+    })
+    expect(long.width).toBe(340)
+    expect(long.width).toBeGreaterThan(short.width)
   })
 
   it('keeps the idle capsule visible while a cancelled notice is showing', () => {
@@ -505,7 +521,7 @@ describe('useCapsuleResize async updates', () => {
     windowApiMocks.hide.mockClear()
 
     act(() => {
-      useAppStore.setState({ pipelineState: 'idle', pipelineNotice: 'cancelled' })
+      useAppStore.setState({ pipelineState: 'idle', pipelineNotice: { kind: 'cancelled' } })
     })
     await waitFor(() => {
       expect(tauriMocks.animateCapsuleFrame).toHaveBeenCalledTimes(1)

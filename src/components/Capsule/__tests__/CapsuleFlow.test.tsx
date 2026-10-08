@@ -69,10 +69,37 @@ describe('Capsule flow states', () => {
     })
   })
 
+  it('shows what was learned from an edit and holds it longer than a cancel', () => {
+    vi.useFakeTimers()
+    try {
+      useAppStore.setState({
+        pipelineState: 'idle',
+        pipelineNotice: { kind: 'learned', text: '已學會 卡通 → Cartune' },
+      })
+      const { container } = render(<Capsule />)
+      expect(screen.getByText('已學會 卡通 → Cartune')).toBeInTheDocument()
+      expect(container.querySelector('[data-capsule-notice="learned"]')).not.toBeNull()
+      act(() => {
+        vi.advanceTimersByTime(700)
+      })
+      expect(useAppStore.getState().capsuleCollapsing).toBe(false)
+      act(() => {
+        vi.advanceTimersByTime(2500)
+      })
+      expect(useAppStore.getState().capsuleCollapsing).toBe(true)
+      act(() => {
+        vi.advanceTimersByTime(200)
+      })
+      expect(useAppStore.getState().pipelineNotice).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('shows a quiet cancelled notice instead of the red error pill, then collapses', () => {
     vi.useFakeTimers()
     try {
-      useAppStore.setState({ pipelineState: 'idle', pipelineNotice: 'cancelled' })
+      useAppStore.setState({ pipelineState: 'idle', pipelineNotice: { kind: 'cancelled' } })
 
       const { container } = render(<Capsule />)
 
@@ -89,7 +116,7 @@ describe('Capsule flow states', () => {
         vi.advanceTimersByTime(700)
       })
       // After the hold the whole pill scales away to its centre…
-      expect(useAppStore.getState().pipelineNotice).toBe('cancelled')
+      expect(useAppStore.getState().pipelineNotice).toEqual({ kind: 'cancelled' })
       expect(useAppStore.getState().capsuleCollapsing).toBe(true)
 
       act(() => {

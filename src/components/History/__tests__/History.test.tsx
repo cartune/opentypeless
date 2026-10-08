@@ -56,7 +56,13 @@ describe('History correction creation', () => {
     vi.clearAllMocks()
     vi.mocked(addCorrectionRule).mockResolvedValue(undefined)
     vi.mocked(getCorrectionRules).mockResolvedValue([
-      { id: 2, pattern: 'open type less', replacement: 'OpenTypeless', enabled: true },
+      {
+        id: 2,
+        pattern: 'open type less',
+        replacement: 'OpenTypeless',
+        enabled: true,
+        source: 'manual',
+      },
     ])
   })
 

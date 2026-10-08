@@ -769,6 +769,8 @@ pub struct PipelineHandle {
     stt_audio_bytes: Arc<AtomicU64>,
     /// Wakes an in-flight LLM polish request so abort() cancels it immediately.
     llm_abort: Arc<tokio::sync::Notify>,
+    /// Watches the target field after insertion to learn from the user's edits.
+    edit_learning: Arc<crate::edit_learning::EditLearning>,
     preloaded_config: Arc<Mutex<Option<storage::AppConfig>>>,
     preloaded_app_ctx: Arc<Mutex<Option<RecordingContext>>>,
     preloaded_dictionary: Arc<Mutex<Option<Vec<llm::DictionaryTerm>>>>,
@@ -879,6 +881,18 @@ fn history_output_metadata_with_prior_error(
     metadata
 }
 
+/// Only plain dictation that was actually typed or pasted into the field is
+/// worth watching; answers, drafts and selection rewrites are not.
+fn should_watch_for_edits(
+    enabled: bool,
+    intent: crate::voice_intent::VoiceIntentKind,
+    strategy: output::InsertionStrategy,
+) -> bool {
+    enabled
+        && intent == crate::voice_intent::VoiceIntentKind::DictateInsert
+        && strategy != output::InsertionStrategy::ClipboardCopyOnly
+}
+
 struct PipelineVoiceExecutionBackend<'a> {
     pipeline: &'a PipelineHandle,
     app_name: &'a str,
@@ -919,6 +933,22 @@ impl crate::voice_intent::executor::VoiceExecutionBackend for PipelineVoiceExecu
             .await
             .map_err(|error| error.to_string())?;
         if result.status == output::InsertStatus::Inserted {
+            if should_watch_for_edits(
+                self.config.edit_learning_enabled,
+                self.intent_kind,
+                result.strategy_used,
+            ) {
+                if let Some(pid) = self.target_guard.process_id {
+                    self.pipeline.edit_learning.arm(
+                        self.pipeline.app_handle.clone(),
+                        crate::edit_learning::WatchRequest {
+                            pid,
+                            inserted: text.to_string(),
+                            app_label: self.app_name.to_string(),
+                        },
+                    );
+                }
+            }
             Ok(())
         } else if result.status == output::InsertStatus::CopiedFallback {
             self.already_copied = true;
@@ -1049,6 +1079,7 @@ impl PipelineHandle {
             abort_flag: Arc::new(AtomicBool::new(false)),
             stt_audio_bytes: Arc::new(AtomicU64::new(0)),
             llm_abort: Arc::new(tokio::sync::Notify::new()),
+            edit_learning: Arc::new(crate::edit_learning::EditLearning::default()),
             preloaded_config: Arc::new(Mutex::new(None)),
             preloaded_app_ctx: Arc::new(Mutex::new(None)),
             preloaded_dictionary: Arc::new(Mutex::new(None)),
@@ -1211,6 +1242,8 @@ impl PipelineHandle {
         // Reset abort flag for new recording
         self.abort_flag.store(false, Ordering::SeqCst);
         self.stt_audio_bytes.store(0, Ordering::SeqCst);
+        // The previous dictation's edit watcher must settle before new text lands.
+        self.edit_learning.invalidate();
 
         // Atomic CAS: only one caller can transition Idle → Preparing. Recording is emitted only
         // after audio capture is ready, so the capsule does not tell users to speak too early.
@@ -3307,6 +3340,42 @@ impl PipelineHandle {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn edit_learning_only_watches_typed_or_pasted_dictation() {
+        use crate::voice_intent::VoiceIntentKind as Kind;
+        use output::InsertionStrategy as S;
+        assert!(super::should_watch_for_edits(
+            true,
+            Kind::DictateInsert,
+            S::Auto
+        ));
+        assert!(super::should_watch_for_edits(
+            true,
+            Kind::DictateInsert,
+            S::ClipboardPaste
+        ));
+        assert!(!super::should_watch_for_edits(
+            false,
+            Kind::DictateInsert,
+            S::Auto
+        ));
+        assert!(!super::should_watch_for_edits(
+            true,
+            Kind::DictateInsert,
+            S::ClipboardCopyOnly
+        ));
+        assert!(!super::should_watch_for_edits(
+            true,
+            Kind::RewriteSelection,
+            S::Auto
+        ));
+        assert!(!super::should_watch_for_edits(
+            true,
+            Kind::DraftInsert,
+            S::Auto
+        ));
+    }
+
     use super::*;
     use std::sync::atomic::{AtomicBool, AtomicU64};
 

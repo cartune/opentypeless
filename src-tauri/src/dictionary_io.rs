@@ -764,12 +764,14 @@ mod tests {
             id: 1,
             word: "  =HYPERLINK(\"https://example.com\")".to_string(),
             pronunciation: Some("+cmd".to_string()),
+            source: "manual".to_string(),
         }];
         let corrections = vec![CorrectionRule {
             id: 2,
             pattern: "-danger".to_string(),
             replacement: "@danger".to_string(),
             enabled: true,
+            source: "manual".to_string(),
         }];
 
         let exported = export_dictionary_csv(&dictionary, &corrections).unwrap();
@@ -802,12 +804,14 @@ dictionary,'=literal,,,,true\n";
                 id: 9,
                 word: "OpenTypeless".to_string(),
                 pronunciation: None,
+                source: "manual".to_string(),
             }],
             &[CorrectionRule {
                 id: 8,
                 pattern: "open type less".to_string(),
                 replacement: "OpenTypeless".to_string(),
                 enabled: true,
+                source: "manual".to_string(),
             }],
         )
         .unwrap();

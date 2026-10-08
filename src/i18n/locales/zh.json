@@ -239,6 +239,7 @@
     }
   },
   "capsule": {
+    "learned": "已学会 {{pairs}}",
     "cancelRecording": "取消录音",
     "translationTarget": "翻译目标",
     "translationTargets": "翻译目标列表",
@@ -504,6 +505,8 @@
     "correctionExactApplyHint": "除了提示 AI，也会在最终文本中逐字替换规则（拉丁字母不区分大小写）。",
     "commandMode": "指令模式（选中文字后按 Ask 快捷键）",
     "commandModeHint": "选中文字、按 Ask 快捷键（默认 Fn+Space）说“改成正式语气”“翻成英文”等指令，会直接原地替换选中内容；提问仍会打开回答窗口。开启时会一并启用“选中文字”上下文。",
+    "editLearning": "从我的修改学习",
+    "editLearningHint": "听写输出后，Typelazy 会在几分钟内观察该输入框；你把某个词改掉，新写法会自动加入词典并建立纠错规则（macOS，需要辅助功能权限）。",
     "usage": "用量",
     "usageDescription": "使用自己 API key 的语音分钟数、token 数与估计费用，全部由本机历史记录计算，不会上传任何数据。",
     "usagePeriodMonth": "本月",
@@ -561,6 +564,8 @@
   },
   "dictionary": {
     "word": "词语",
+    "learnedBadge": "自动学习",
+    "learnedToast": "已从您在 {{app}} 的修改学到：{{pairs}}",
     "pronunciation": "发音",
     "pronunciationOptional": "发音（可选）",
     "add": "添加",

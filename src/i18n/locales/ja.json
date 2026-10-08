@@ -239,6 +239,7 @@
     }
   },
   "capsule": {
+    "learned": "Learned {{pairs}}",
     "cancelRecording": "録音をキャンセル",
     "translationTarget": "翻訳先",
     "translationTargets": "翻訳先一覧",
@@ -504,6 +505,8 @@
     "correctionExactApplyHint": "Besides hinting the AI, replace each rule’s pattern literally in the final text (case-insensitive for Latin text).",
     "commandMode": "コマンドモード（テキスト選択中の Ask ショートカット）",
     "commandModeHint": "テキストを選択して Ask ショートカットを押し、「フォーマルにして」「英語に翻訳して」などの指示を話すと選択範囲をその場で置き換えます。質問は引き続き回答ポップアップを開きます。",
+    "editLearning": "Learn from my edits",
+    "editLearningHint": "After dictation, Typelazy watches that field for a couple of minutes. When you replace a word, the new spelling is added to the dictionary and becomes a correction rule (macOS, needs Accessibility).",
     "usage": "Usage",
     "usageDescription": "Minutes, tokens and an estimated cost for your own API keys, computed from local history. Nothing is sent anywhere.",
     "usagePeriodMonth": "This month",
@@ -561,6 +564,8 @@
   },
   "dictionary": {
     "word": "単語",
+    "learnedBadge": "Learned",
+    "learnedToast": "Learned from your edit in {{app}}: {{pairs}}",
     "pronunciation": "発音",
     "pronunciationOptional": "発音（任意）",
     "add": "追加",

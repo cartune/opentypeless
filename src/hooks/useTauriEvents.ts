@@ -3,7 +3,7 @@ import { listen } from '@tauri-apps/api/event'
 import { useTranslation } from 'react-i18next'
 import i18n from '../i18n'
 import type { AudioMeter } from '../components/Capsule/waveformLevels'
-import { useAppStore, type AskSelectionCaptured } from '../stores/appStore'
+import { useAppStore, type AskSelectionCaptured, type LearnedPayload } from '../stores/appStore'
 import { useAuthStore } from '../stores/authStore'
 import type {
   AppConfig,
@@ -162,7 +162,7 @@ export function useTauriEvents() {
       const capsuleErrorKey = capsuleErrorKeyFromPayload(payload)
       if (capsuleErrorKey === 'cancelled') {
         // A user cancel is not a failure: show a quiet notice, never the red pill.
-        useAppStore.getState().setPipelineNotice('cancelled')
+        useAppStore.getState().setPipelineNotice({ kind: 'cancelled' })
         return
       }
       setPipelineError(t(`capsule.errors.${capsuleErrorKey}`))
@@ -195,6 +195,23 @@ export function useTauriEvents() {
       }
     })
 
+    addListener<LearnedPayload>('learning:learned', (payload) => {
+      const pairs = payload.items.map((item) => `${item.from} → ${item.to}`).join('、')
+      if (window.location.hash === '#capsule') {
+        // The pill tells the user only when the main window is not there to.
+        if (!payload.mainVisible) {
+          useAppStore
+            .getState()
+            .setPipelineNotice({ kind: 'learned', text: t('capsule.learned', { pairs }) })
+        }
+        return
+      }
+      useAppStore.getState().bumpDictionaryRevision()
+      if (payload.mainVisible) {
+        window.location.hash = '#/settings?pane=dictionary'
+        toast.learned(t('dictionary.learnedToast', { app: payload.appLabel, pairs }))
+      }
+    })
     addListener<void>('tray:settings', () => {
       window.location.hash = '#/settings'
     })

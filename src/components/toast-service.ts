@@ -1,4 +1,4 @@
-export type ToastType = 'success' | 'error' | 'info'
+export type ToastType = 'success' | 'error' | 'info' | 'learned'
 
 type ToastHandler = (text: string, type?: ToastType) => void
 
@@ -17,3 +17,5 @@ export function toast(text: string, type: ToastType = 'info') {
 
 toast.success = (text: string) => toast(text, 'success')
 toast.error = (text: string) => toast(text, 'error')
+/** Glass pill for things Typelazy learned on its own; stays a little longer. */
+toast.learned = (text: string) => toast(text, 'learned')

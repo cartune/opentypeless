@@ -263,13 +263,16 @@ describe('AccountPage password controls', () => {
       cloudWordsLimit: 1000,
       licenseStatus: 'active',
     })
-    const dictionary = [{ id: 7, word: 'OpenTypeless', pronunciation: null }]
+    const dictionary = [
+      { id: 7, word: 'OpenTypeless', pronunciation: null, source: 'manual' as const },
+    ]
     const correctionRules = [
       {
         id: 9,
         pattern: 'open type less',
         replacement: 'OpenTypeless',
         enabled: true,
+        source: 'manual' as const,
       },
     ]
     useAppStore.setState({ dictionary, correctionRules })
@@ -300,13 +303,29 @@ describe('AccountPage password controls', () => {
     })
     const cloudHistory = [{ id: 1, raw_text: 'cloud raw' }]
     const cloudDictionary = {
-      entries: [{ id: 2, word: 'TalkMore', pronunciation: null }],
-      correction_rules: [{ id: 3, pattern: 'talk more', replacement: 'TalkMore', enabled: true }],
+      entries: [{ id: 2, word: 'TalkMore', pronunciation: null, source: 'manual' as const }],
+      correction_rules: [
+        {
+          id: 3,
+          pattern: 'talk more',
+          replacement: 'TalkMore',
+          enabled: true,
+          source: 'manual' as const,
+        },
+      ],
     }
     const restoredHistory = [{ id: 11, raw_text: 'persisted raw' }]
-    const restoredDictionary = [{ id: 12, word: 'TalkMore', pronunciation: null }]
+    const restoredDictionary = [
+      { id: 12, word: 'TalkMore', pronunciation: null, source: 'manual' as const },
+    ]
     const restoredCorrections = [
-      { id: 13, pattern: 'talk more', replacement: 'TalkMore', enabled: true },
+      {
+        id: 13,
+        pattern: 'talk more',
+        replacement: 'TalkMore',
+        enabled: true,
+        source: 'manual' as const,
+      },
     ]
     vi.mocked(api.downloadBackup).mockResolvedValue({
       history: cloudHistory,

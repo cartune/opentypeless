@@ -264,7 +264,9 @@ describe('appStore', () => {
     })
 
     it('setDictionary replaces dictionary', () => {
-      const entries: DictionaryEntry[] = [{ id: 1, word: 'API', pronunciation: null }]
+      const entries: DictionaryEntry[] = [
+        { id: 1, word: 'API', pronunciation: null, source: 'manual' },
+      ]
       getState().setDictionary(entries)
       expect(getState().dictionary).toHaveLength(1)
       expect(getState().dictionary[0].word).toBe('API')
@@ -272,7 +274,7 @@ describe('appStore', () => {
 
     it('setCorrectionRules replaces correction rules', () => {
       const rules: CorrectionRule[] = [
-        { id: 1, pattern: '拓肯', replacement: 'Token', enabled: true },
+        { id: 1, pattern: '拓肯', replacement: 'Token', enabled: true, source: 'manual' },
       ]
       getState().setCorrectionRules(rules)
       expect(getState().correctionRules).toHaveLength(1)
