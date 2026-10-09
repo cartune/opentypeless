@@ -555,9 +555,11 @@
     "capsuleSound": "录音开始与结束提示音",
     "capsuleSoundStyle": "提示音样式",
     "capsuleSoundStyle_dashla": "Dashla 红灯起步",
-    "capsuleSoundStyle_chime": "清脆双音",
-    "capsuleSoundStyle_marimba": "木琴",
-    "capsuleSoundStyle_glass": "玻璃铃"
+    "capsuleSoundStyle_chime": "清脆双音（合成）",
+    "capsuleSoundStyle_interface": "界面启动 / 返回（Mixkit）",
+    "capsuleSoundStyle_positive": "正向提示（Mixkit）",
+    "capsuleSoundStyle_confirm": "答对 / 确认（Mixkit）",
+    "capsuleSoundStyle_arcade": "复古琶音（Kenney）"
   },
   "contextFamilies": {
     "email": "邮件",

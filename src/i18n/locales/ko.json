@@ -555,9 +555,11 @@
     "capsuleSound": "Sound cues when recording starts and stops",
     "capsuleSoundStyle": "Sound style",
     "capsuleSoundStyle_dashla": "Dashla traffic-light ding",
-    "capsuleSoundStyle_chime": "Clean chime",
-    "capsuleSoundStyle_marimba": "Marimba",
-    "capsuleSoundStyle_glass": "Glass bell"
+    "capsuleSoundStyle_chime": "Clean chime (synth)",
+    "capsuleSoundStyle_interface": "Interface start / back (Mixkit)",
+    "capsuleSoundStyle_positive": "Positive notification (Mixkit)",
+    "capsuleSoundStyle_confirm": "Correct / confirm (Mixkit)",
+    "capsuleSoundStyle_arcade": "Retro arpeggio (Kenney)"
   },
   "contextFamilies": {
     "email": "Email",

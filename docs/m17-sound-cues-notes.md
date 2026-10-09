@@ -4,6 +4,24 @@ Date: 2026-10-10. Branches `m17-sound-cues` (first cut) and `m18-sound-styles` (
 
 ## What changed
 
+### m19: real assets
+
+The synthesised marimba/glass styles were dropped; the user wanted actual sound design. Styles are
+now pairs of bundled WAVs (`src-tauri/assets/sounds/`, 44.1 kHz mono 16-bit, trimmed to the
+audible part with a 120 ms fade, peak-normalised to -1 dBFS):
+
+| style | start | stop | source / licence |
+|---|---|---|---|
+| dashla | dashla-ding.wav (1.2 s, original pitch, both cues) | same | dashla-app `assets/sounds/traffic-light.wav` (company asset) |
+| interface | mixkit-interface-start.wav | mixkit-interface-back.wav | Mixkit sfx 2574 / 2575, Mixkit Free License (commercial OK, no attribution) |
+| positive | mixkit-positive.wav | mixkit-remove.wav | Mixkit sfx 951 / 2576 |
+| confirm | mixkit-correct.wav | mixkit-confirm.wav | Mixkit sfx 2870 / 2867 |
+| arcade | kenney-maximize.wav | kenney-minimize.wav | Kenney Interface Sounds maximize_006 / minimize_006, CC0 |
+| chime | synthesised do → mi | mi → do | — |
+
+Cancel is a synthesised 392 Hz tap for every style. Mixkit previews were fetched from
+`assets.mixkit.co/active_storage/sfx/<id>/<id>-preview.mp3` and converted with ffmpeg.
+
 ### m18: styles, the Dashla ding, louder and outside the ducking window
 
 - Four cue styles, `capsule_sound_style` (default `dashla`): **dashla** reuses the 紅燈起步 ding

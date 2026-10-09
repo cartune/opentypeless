@@ -35,8 +35,15 @@ export interface LearnedPayload {
   mainVisible: boolean
 }
 export type CapsuleWaveformStyle = 'siri' | 'mono' | 'bars'
-export type CapsuleSoundStyle = 'dashla' | 'chime' | 'marimba' | 'glass'
-export const CAPSULE_SOUND_STYLES: CapsuleSoundStyle[] = ['dashla', 'chime', 'marimba', 'glass']
+export type CapsuleSoundStyle = 'dashla' | 'interface' | 'positive' | 'confirm' | 'arcade' | 'chime'
+export const CAPSULE_SOUND_STYLES: CapsuleSoundStyle[] = [
+  'dashla',
+  'interface',
+  'positive',
+  'confirm',
+  'arcade',
+  'chime',
+]
 
 export type VoiceMode = 'dictate' | 'ask' | 'translate'
 

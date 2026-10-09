@@ -1,12 +1,10 @@
-//! Audible cues for the capsule: a two-note rise when recording starts, the
-//! same two notes falling when it stops, a single low note on cancel. Four
-//! styles; the default reuses the Dashla "traffic light, go" ding (an asset of
-//! this company's own app) for both notes. Everything else is synthesised, so
-//! nothing needs a licence. Playback is `NSSound` on macOS, scheduled from the
+//! Audible cues for the capsule: one sound when recording starts, another
+//! when it stops, a low tap on cancel. Styles are pairs of bundled assets
+//! (see `assets/sounds/`, provenance in docs/m17-sound-cues-notes.md) plus
+//! one synthesised chime. Playback is `NSSound` on macOS, scheduled from the
 //! Rust state transitions, so no webview autoplay policy is involved.
 
 use std::f32::consts::PI;
-use std::sync::OnceLock;
 
 /// Which moment to mark.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -19,30 +17,38 @@ pub enum Cue {
 /// The sound set, chosen in Settings → General.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum CueStyle {
-    /// Dashla's 紅燈起步 ding, played do → mi and back.
+    /// Dashla's 紅燈起步 ding, as is, for both start and stop.
     #[default]
     Dashla,
-    /// Clean sine chime.
+    /// Mixkit "Software interface start" / "Software interface back".
+    Interface,
+    /// Mixkit "Positive notification" / "Software interface remove".
+    Positive,
+    /// Mixkit "Correct answer tone" / "Confirmation tone".
+    Confirm,
+    /// Kenney Interface Sounds "maximize_006" / "minimize_006" (CC0).
+    Arcade,
+    /// Synthesised sine chime, do → mi and back.
     Chime,
-    /// Soft struck tone with a quick decay.
-    Marimba,
-    /// Bright bell-like tone.
-    Glass,
 }
 
 impl CueStyle {
-    pub const ALL: [CueStyle; 4] = [
+    pub const ALL: [CueStyle; 6] = [
         CueStyle::Dashla,
+        CueStyle::Interface,
+        CueStyle::Positive,
+        CueStyle::Confirm,
+        CueStyle::Arcade,
         CueStyle::Chime,
-        CueStyle::Marimba,
-        CueStyle::Glass,
     ];
 
     pub fn parse(value: &str) -> CueStyle {
         match value.trim().to_ascii_lowercase().as_str() {
+            "interface" => CueStyle::Interface,
+            "positive" => CueStyle::Positive,
+            "confirm" => CueStyle::Confirm,
+            "arcade" => CueStyle::Arcade,
             "chime" => CueStyle::Chime,
-            "marimba" => CueStyle::Marimba,
-            "glass" => CueStyle::Glass,
             _ => CueStyle::Dashla,
         }
     }
@@ -50,18 +56,22 @@ impl CueStyle {
     pub fn as_str(self) -> &'static str {
         match self {
             CueStyle::Dashla => "dashla",
+            CueStyle::Interface => "interface",
+            CueStyle::Positive => "positive",
+            CueStyle::Confirm => "confirm",
+            CueStyle::Arcade => "arcade",
             CueStyle::Chime => "chime",
-            CueStyle::Marimba => "marimba",
-            CueStyle::Glass => "glass",
         }
     }
 
     pub fn as_u8(self) -> u8 {
         match self {
             CueStyle::Dashla => 0,
-            CueStyle::Chime => 1,
-            CueStyle::Marimba => 2,
-            CueStyle::Glass => 3,
+            CueStyle::Interface => 1,
+            CueStyle::Positive => 2,
+            CueStyle::Confirm => 3,
+            CueStyle::Arcade => 4,
+            CueStyle::Chime => 5,
         }
     }
 
@@ -71,6 +81,41 @@ impl CueStyle {
             .find(|style| style.as_u8() == value)
             .unwrap_or_default()
     }
+
+    /// The bundled WAV for `cue`, when the style is asset based.
+    fn asset(self, cue: Cue) -> Option<&'static [u8]> {
+        let bytes: &'static [u8] = match (self, cue) {
+            (CueStyle::Dashla, Cue::Start | Cue::Stop) => {
+                include_bytes!("../assets/sounds/dashla-ding.wav")
+            }
+            (CueStyle::Interface, Cue::Start) => {
+                include_bytes!("../assets/sounds/mixkit-interface-start.wav")
+            }
+            (CueStyle::Interface, Cue::Stop) => {
+                include_bytes!("../assets/sounds/mixkit-interface-back.wav")
+            }
+            (CueStyle::Positive, Cue::Start) => {
+                include_bytes!("../assets/sounds/mixkit-positive.wav")
+            }
+            (CueStyle::Positive, Cue::Stop) => {
+                include_bytes!("../assets/sounds/mixkit-remove.wav")
+            }
+            (CueStyle::Confirm, Cue::Start) => {
+                include_bytes!("../assets/sounds/mixkit-correct.wav")
+            }
+            (CueStyle::Confirm, Cue::Stop) => {
+                include_bytes!("../assets/sounds/mixkit-confirm.wav")
+            }
+            (CueStyle::Arcade, Cue::Start) => {
+                include_bytes!("../assets/sounds/kenney-maximize.wav")
+            }
+            (CueStyle::Arcade, Cue::Stop) => {
+                include_bytes!("../assets/sounds/kenney-minimize.wav")
+            }
+            _ => return None,
+        };
+        Some(bytes)
+    }
 }
 
 const SAMPLE_RATE: u32 = 44_100;
@@ -79,35 +124,15 @@ const VOLUME: f32 = 1.0;
 /// Peak of a synthesised note (full scale is 1.0).
 const PEAK: f32 = 0.6;
 /// Longest cue, in milliseconds.
-pub const MAX_CUE_MS: u32 = 1_000;
-/// Major third: the "mi" above "do".
-const MAJOR_THIRD: f32 = 1.2599;
-/// Gap between the two notes of a cue.
-const NOTE_GAP_MS: u32 = 130;
-/// Pitches of the two-note figure per style (do, mi), in Hz.
+pub const MAX_CUE_MS: u32 = 1_200;
+/// The synthesised chime: do and mi, in Hz.
 const CHIME_DO: f32 = 659.3;
-const MARIMBA_DO: f32 = 523.3;
-const GLASS_DO: f32 = 1046.5;
+const CHIME_MI: f32 = 830.6;
+/// Cancel: one low tap, in Hz.
+const CANCEL_HZ: f32 = 392.0;
 
-/// Two notes as pitch multipliers of the style's base note.
-fn figure(cue: Cue) -> &'static [f32] {
-    match cue {
-        Cue::Start => &[1.0, MAJOR_THIRD],
-        Cue::Stop => &[MAJOR_THIRD, 1.0],
-        // A lone note a fourth below: unmistakably "no".
-        Cue::Cancel => &[0.749],
-    }
-}
-
-/// The Dashla ding: 700 ms of the traffic-light sound, faded and normalised
-/// (`assets/sounds/dashla-ding.wav`, from dashla-app `assets/sounds/traffic-light.wav`).
-fn dashla_ding() -> &'static [i16] {
-    static DING: OnceLock<Vec<i16>> = OnceLock::new();
-    DING.get_or_init(|| decode_wav_mono_16(include_bytes!("../assets/sounds/dashla-ding.wav")))
-}
-
-/// Pull the 16-bit mono samples out of a RIFF/WAVE file (the asset is written
-/// in exactly that shape; anything else yields silence rather than a panic).
+/// Pull the 16-bit mono samples out of a RIFF/WAVE file (the assets are
+/// written in exactly that shape; anything else yields silence, not a panic).
 fn decode_wav_mono_16(bytes: &[u8]) -> Vec<i16> {
     let mut offset = 12;
     while offset + 8 <= bytes.len() {
@@ -131,29 +156,11 @@ fn decode_wav_mono_16(bytes: &[u8]) -> Vec<i16> {
     Vec::new()
 }
 
-/// Play `source` faster or slower (linear interpolation), which shifts its
-/// pitch by `ratio` and shortens it accordingly.
-fn resample(source: &[i16], ratio: f32) -> Vec<f32> {
-    if source.is_empty() || ratio <= 0.0 {
-        return Vec::new();
-    }
-    let out_len = (source.len() as f32 / ratio) as usize;
-    (0..out_len)
-        .map(|index| {
-            let position = index as f32 * ratio;
-            let left = position.floor() as usize;
-            let frac = position - left as f32;
-            let a = source[left.min(source.len() - 1)] as f32;
-            let b = source[(left + 1).min(source.len() - 1)] as f32;
-            (a + (b - a) * frac) / i16::MAX as f32
-        })
-        .collect()
-}
-
-/// One synthesised note of `ms` at `hz`, shaped by `style`.
-fn synth_note(style: CueStyle, hz: f32, ms: u32) -> Vec<f32> {
+/// One sine note with a short ramp at both ends and a touch of second
+/// harmonic so it does not read as a test tone.
+fn synth_note(hz: f32, ms: u32) -> Vec<f32> {
     let count = (SAMPLE_RATE as f32 * ms as f32 / 1000.0) as usize;
-    let ramp = (SAMPLE_RATE as f32 * 0.006) as usize;
+    let ramp = (SAMPLE_RATE as f32 * 0.008) as usize;
     (0..count)
         .map(|index| {
             let t = index as f32 / SAMPLE_RATE as f32;
@@ -168,61 +175,36 @@ fn synth_note(style: CueStyle, hz: f32, ms: u32) -> Vec<f32> {
                 1.0
             };
             let phase = 2.0 * PI * hz * t;
-            let (wave, decay) = match style {
-                CueStyle::Chime => (phase.sin() * 0.85 + (2.0 * phase).sin() * 0.15, 1.0),
-                CueStyle::Marimba => (
-                    phase.sin() * 0.8 + (4.0 * phase).sin() * 0.2 * (-t / 0.03).exp(),
-                    (-t / 0.11).exp(),
-                ),
-                CueStyle::Glass => (
-                    phase.sin() * 0.6
-                        + (2.76 * phase).sin() * 0.25 * (-t / 0.06).exp()
-                        + (5.4 * phase).sin() * 0.15 * (-t / 0.03).exp(),
-                    (-t / 0.14).exp(),
-                ),
-                CueStyle::Dashla => (0.0, 0.0),
-            };
-            wave * attack * release * decay * PEAK
+            (phase.sin() * 0.85 + (2.0 * phase).sin() * 0.15) * attack * release * PEAK
         })
         .collect()
 }
 
-/// Mix `note` into `out` starting at `offset`, growing `out` as needed.
-fn mix_at(out: &mut Vec<f32>, offset: usize, note: &[f32]) {
-    if out.len() < offset + note.len() {
-        out.resize(offset + note.len(), 0.0);
-    }
-    for (index, sample) in note.iter().enumerate() {
-        out[offset + index] += sample;
-    }
+fn to_i16(samples: Vec<f32>) -> Vec<i16> {
+    samples
+        .into_iter()
+        .map(|sample| (sample.clamp(-1.0, 1.0) * i16::MAX as f32) as i16)
+        .collect()
 }
 
 /// Mono 16-bit samples of the cue in `style`.
 pub fn samples(style: CueStyle, cue: Cue) -> Vec<i16> {
-    let gap = (SAMPLE_RATE * NOTE_GAP_MS / 1000) as usize;
-    let mut mixed: Vec<f32> = Vec::new();
-    for (index, ratio) in figure(cue).iter().enumerate() {
-        let note = match style {
-            CueStyle::Dashla => {
-                let mut note = resample(dashla_ding(), *ratio);
-                // Two overlapping dings would clip; keep headroom.
-                for sample in &mut note {
-                    *sample *= 0.8;
-                }
-                note
-            }
-            CueStyle::Chime => synth_note(style, CHIME_DO * ratio, 110),
-            CueStyle::Marimba => synth_note(style, MARIMBA_DO * ratio, 260),
-            CueStyle::Glass => synth_note(style, GLASS_DO * ratio, 300),
-        };
-        mix_at(&mut mixed, index * gap, &note);
+    if let Some(bytes) = style.asset(cue) {
+        return decode_wav_mono_16(bytes);
     }
-    let limit = (SAMPLE_RATE * MAX_CUE_MS / 1000) as usize;
-    mixed.truncate(limit);
-    mixed
-        .into_iter()
-        .map(|sample| (sample.clamp(-1.0, 1.0) * i16::MAX as f32) as i16)
-        .collect()
+    match cue {
+        Cue::Cancel => to_i16(synth_note(CANCEL_HZ, 90)),
+        Cue::Start => {
+            let mut out = synth_note(CHIME_DO, 90);
+            out.extend(synth_note(CHIME_MI, 120));
+            to_i16(out)
+        }
+        Cue::Stop => {
+            let mut out = synth_note(CHIME_MI, 90);
+            out.extend(synth_note(CHIME_DO, 120));
+            to_i16(out)
+        }
+    }
 }
 
 /// Duration of the cue in milliseconds.
@@ -232,6 +214,9 @@ pub fn cue_duration_ms(style: CueStyle, cue: Cue) -> u32 {
 
 /// The cue as a RIFF/WAVE file in memory (PCM, mono, 16-bit).
 pub fn wav_bytes(style: CueStyle, cue: Cue) -> Vec<u8> {
+    if let Some(bytes) = style.asset(cue) {
+        return bytes.to_vec();
+    }
     let samples = samples(style, cue);
     let data_len = (samples.len() * 2) as u32;
     let mut bytes = Vec::with_capacity(44 + data_len as usize);
@@ -302,7 +287,7 @@ mod macos {
     pub(super) fn play_on_main_thread(bytes: &[u8]) {
         let data = NSData::with_bytes(bytes);
         let Some(sound) = NSSound::initWithData(NSSound::alloc(), &data) else {
-            tracing::warn!("Sound cue: NSSound rejected the synthesised WAV");
+            tracing::warn!("Sound cue: NSSound rejected the WAV");
             return;
         };
         sound.setVolume(super::VOLUME);
@@ -341,17 +326,11 @@ mod tests {
     }
 
     #[test]
-    fn start_rises_and_stop_falls() {
-        assert!(figure(Cue::Start)[0] < figure(Cue::Start)[1]);
-        assert!(figure(Cue::Stop)[0] > figure(Cue::Stop)[1]);
-        assert_eq!(figure(Cue::Cancel).len(), 1);
-    }
-
-    #[test]
-    fn dashla_asset_decodes() {
-        let ding = dashla_ding();
-        assert!(ding.len() > SAMPLE_RATE as usize / 2, "asset too short");
-        assert!(ding.iter().any(|sample| sample.unsigned_abs() > 10_000));
+    fn asset_styles_have_distinct_start_and_stop_sounds_except_dashla() {
+        for style in CueStyle::ALL {
+            let same = samples(style, Cue::Start) == samples(style, Cue::Stop);
+            assert_eq!(same, style == CueStyle::Dashla, "{style:?}");
+        }
     }
 
     #[test]
@@ -364,16 +343,16 @@ mod tests {
     }
 
     #[test]
-    fn wav_header_describes_the_samples() {
-        let bytes = wav_bytes(CueStyle::Chime, Cue::Start);
-        assert_eq!(&bytes[0..4], b"RIFF");
-        assert_eq!(&bytes[8..12], b"WAVE");
-        let data_len = u32::from_le_bytes([bytes[40], bytes[41], bytes[42], bytes[43]]) as usize;
-        assert_eq!(data_len, bytes.len() - 44);
-        assert_eq!(data_len, samples(CueStyle::Chime, Cue::Start).len() * 2);
-        assert_eq!(
-            decode_wav_mono_16(&bytes),
-            samples(CueStyle::Chime, Cue::Start)
-        );
+    fn wav_bytes_decode_back_to_the_samples() {
+        for style in CueStyle::ALL {
+            let bytes = wav_bytes(style, Cue::Start);
+            assert_eq!(&bytes[0..4], b"RIFF");
+            assert_eq!(&bytes[8..12], b"WAVE");
+            assert_eq!(
+                decode_wav_mono_16(&bytes),
+                samples(style, Cue::Start),
+                "{style:?}"
+            );
+        }
     }
 }
