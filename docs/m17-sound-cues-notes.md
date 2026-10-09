@@ -17,7 +17,19 @@ audible part with a 120 ms fade, peak-normalised to -1 dBFS):
 | positive | mixkit-positive.wav | mixkit-remove.wav | Mixkit sfx 951 / 2576 |
 | confirm | mixkit-correct.wav | mixkit-confirm.wav | Mixkit sfx 2870 / 2867 |
 | arcade | kenney-maximize.wav | kenney-minimize.wav | Kenney Interface Sounds maximize_006 / minimize_006, CC0 |
+| bleep | mixkit-bleep.wav | mixkit-bleep-confirm.wav | Mixkit sfx 2521 / 2520 |
+| success | mixkit-success.wav | mixkit-double-beep.wav | Mixkit sfx 2865 / 2868 |
+| magic | mixkit-arcade-magic.wav | mixkit-magic-ring.wav | Mixkit sfx 2869 / 2344 |
+| bells | mixkit-bell.wav | mixkit-happy-bells.wav | Mixkit sfx 933 / 937 |
+| select | mixkit-select.wav | mixkit-digital.wav | Mixkit sfx 2573 / 2866 |
+| pixel | kenney-pixel-up.wav | kenney-pixel-down.wav | Kenney maximize_007 / minimize_007, CC0 |
+| window | kenney-open.wav | kenney-close.wav | Kenney open_002 / close_002, CC0 |
 | chime | synthesised do → mi | mi → do | — |
+
+m20: the Dashla stop cue is `dashla-ding-reverse.wav`: the original is a 332 Hz note at 0 ms and a
+166 Hz note at 135 ms (same bell, an octave apart). The reverse plays the low note's own segment
+first and the high note rebuilt from that segment resampled an octave up at the same 135 ms gap, so
+pitches and timbre are the original's, only the order is swapped.
 
 Cancel is a synthesised 392 Hz tap for every style. Mixkit previews were fetched from
 `assets.mixkit.co/active_storage/sfx/<id>/<id>-preview.mp3` and converted with ffmpeg.

@@ -559,7 +559,14 @@
     "capsuleSoundStyle_interface": "界面启动 / 返回（Mixkit）",
     "capsuleSoundStyle_positive": "正向提示（Mixkit）",
     "capsuleSoundStyle_confirm": "答对 / 确认（Mixkit）",
-    "capsuleSoundStyle_arcade": "复古琶音（Kenney）"
+    "capsuleSoundStyle_arcade": "复古琶音（Kenney）",
+    "capsuleSoundStyle_bleep": "高科技哔声（Mixkit）",
+    "capsuleSoundStyle_success": "成功音 / 双哔（Mixkit）",
+    "capsuleSoundStyle_magic": "魔法提示（Mixkit）",
+    "capsuleSoundStyle_bells": "铃声（Mixkit）",
+    "capsuleSoundStyle_select": "选项点选（Mixkit）",
+    "capsuleSoundStyle_pixel": "像素双音（Kenney）",
+    "capsuleSoundStyle_window": "开窗 / 关窗（Kenney）"
   },
   "contextFamilies": {
     "email": "邮件",

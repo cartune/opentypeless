@@ -28,17 +28,38 @@ pub enum CueStyle {
     Confirm,
     /// Kenney Interface Sounds "maximize_006" / "minimize_006" (CC0).
     Arcade,
+    /// Mixkit "High tech bleep" / "High tech bleep confirmation".
+    Bleep,
+    /// Mixkit "Success software tone" / "Double beep tone alert".
+    Success,
+    /// Mixkit "Arcade magic notification" / "Magic notification ring".
+    Magic,
+    /// Mixkit "Bell notification" / "Happy bells notification".
+    Bells,
+    /// Mixkit "Interface option select" / "Digital quick tone".
+    Select,
+    /// Kenney "maximize_007" / "minimize_007": two tiny notes up, then down.
+    Pixel,
+    /// Kenney "open_002" / "close_002".
+    Window,
     /// Synthesised sine chime, do → mi and back.
     Chime,
 }
 
 impl CueStyle {
-    pub const ALL: [CueStyle; 6] = [
+    pub const ALL: [CueStyle; 13] = [
         CueStyle::Dashla,
         CueStyle::Interface,
         CueStyle::Positive,
         CueStyle::Confirm,
         CueStyle::Arcade,
+        CueStyle::Bleep,
+        CueStyle::Success,
+        CueStyle::Magic,
+        CueStyle::Bells,
+        CueStyle::Select,
+        CueStyle::Pixel,
+        CueStyle::Window,
         CueStyle::Chime,
     ];
 
@@ -48,6 +69,13 @@ impl CueStyle {
             "positive" => CueStyle::Positive,
             "confirm" => CueStyle::Confirm,
             "arcade" => CueStyle::Arcade,
+            "bleep" => CueStyle::Bleep,
+            "success" => CueStyle::Success,
+            "magic" => CueStyle::Magic,
+            "bells" => CueStyle::Bells,
+            "select" => CueStyle::Select,
+            "pixel" => CueStyle::Pixel,
+            "window" => CueStyle::Window,
             "chime" => CueStyle::Chime,
             _ => CueStyle::Dashla,
         }
@@ -60,6 +88,13 @@ impl CueStyle {
             CueStyle::Positive => "positive",
             CueStyle::Confirm => "confirm",
             CueStyle::Arcade => "arcade",
+            CueStyle::Bleep => "bleep",
+            CueStyle::Success => "success",
+            CueStyle::Magic => "magic",
+            CueStyle::Bells => "bells",
+            CueStyle::Select => "select",
+            CueStyle::Pixel => "pixel",
+            CueStyle::Window => "window",
             CueStyle::Chime => "chime",
         }
     }
@@ -71,7 +106,14 @@ impl CueStyle {
             CueStyle::Positive => 2,
             CueStyle::Confirm => 3,
             CueStyle::Arcade => 4,
-            CueStyle::Chime => 5,
+            CueStyle::Bleep => 5,
+            CueStyle::Success => 6,
+            CueStyle::Magic => 7,
+            CueStyle::Bells => 8,
+            CueStyle::Select => 9,
+            CueStyle::Pixel => 10,
+            CueStyle::Window => 11,
+            CueStyle::Chime => 12,
         }
     }
 
@@ -85,8 +127,11 @@ impl CueStyle {
     /// The bundled WAV for `cue`, when the style is asset based.
     fn asset(self, cue: Cue) -> Option<&'static [u8]> {
         let bytes: &'static [u8] = match (self, cue) {
-            (CueStyle::Dashla, Cue::Start | Cue::Stop) => {
-                include_bytes!("../assets/sounds/dashla-ding.wav")
+            (CueStyle::Dashla, Cue::Start) => include_bytes!("../assets/sounds/dashla-ding.wav"),
+            // The same two notes the other way round (low 166 Hz, then the
+            // high 332 Hz note rebuilt from the same bell an octave up).
+            (CueStyle::Dashla, Cue::Stop) => {
+                include_bytes!("../assets/sounds/dashla-ding-reverse.wav")
             }
             (CueStyle::Interface, Cue::Start) => {
                 include_bytes!("../assets/sounds/mixkit-interface-start.wav")
@@ -112,6 +157,40 @@ impl CueStyle {
             (CueStyle::Arcade, Cue::Stop) => {
                 include_bytes!("../assets/sounds/kenney-minimize.wav")
             }
+            (CueStyle::Bleep, Cue::Start) => include_bytes!("../assets/sounds/mixkit-bleep.wav"),
+            (CueStyle::Bleep, Cue::Stop) => {
+                include_bytes!("../assets/sounds/mixkit-bleep-confirm.wav")
+            }
+            (CueStyle::Success, Cue::Start) => {
+                include_bytes!("../assets/sounds/mixkit-success.wav")
+            }
+            (CueStyle::Success, Cue::Stop) => {
+                include_bytes!("../assets/sounds/mixkit-double-beep.wav")
+            }
+            (CueStyle::Magic, Cue::Start) => {
+                include_bytes!("../assets/sounds/mixkit-arcade-magic.wav")
+            }
+            (CueStyle::Magic, Cue::Stop) => {
+                include_bytes!("../assets/sounds/mixkit-magic-ring.wav")
+            }
+            (CueStyle::Bells, Cue::Start) => include_bytes!("../assets/sounds/mixkit-bell.wav"),
+            (CueStyle::Bells, Cue::Stop) => {
+                include_bytes!("../assets/sounds/mixkit-happy-bells.wav")
+            }
+            (CueStyle::Select, Cue::Start) => {
+                include_bytes!("../assets/sounds/mixkit-select.wav")
+            }
+            (CueStyle::Select, Cue::Stop) => {
+                include_bytes!("../assets/sounds/mixkit-digital.wav")
+            }
+            (CueStyle::Pixel, Cue::Start) => {
+                include_bytes!("../assets/sounds/kenney-pixel-up.wav")
+            }
+            (CueStyle::Pixel, Cue::Stop) => {
+                include_bytes!("../assets/sounds/kenney-pixel-down.wav")
+            }
+            (CueStyle::Window, Cue::Start) => include_bytes!("../assets/sounds/kenney-open.wav"),
+            (CueStyle::Window, Cue::Stop) => include_bytes!("../assets/sounds/kenney-close.wav"),
             _ => return None,
         };
         Some(bytes)
@@ -326,10 +405,13 @@ mod tests {
     }
 
     #[test]
-    fn asset_styles_have_distinct_start_and_stop_sounds_except_dashla() {
+    fn every_style_has_distinct_start_and_stop_sounds() {
         for style in CueStyle::ALL {
-            let same = samples(style, Cue::Start) == samples(style, Cue::Stop);
-            assert_eq!(same, style == CueStyle::Dashla, "{style:?}");
+            assert_ne!(
+                samples(style, Cue::Start),
+                samples(style, Cue::Stop),
+                "{style:?}"
+            );
         }
     }
 

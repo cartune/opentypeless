@@ -35,13 +35,33 @@ export interface LearnedPayload {
   mainVisible: boolean
 }
 export type CapsuleWaveformStyle = 'siri' | 'mono' | 'bars'
-export type CapsuleSoundStyle = 'dashla' | 'interface' | 'positive' | 'confirm' | 'arcade' | 'chime'
+export type CapsuleSoundStyle =
+  | 'dashla'
+  | 'interface'
+  | 'positive'
+  | 'confirm'
+  | 'arcade'
+  | 'bleep'
+  | 'success'
+  | 'magic'
+  | 'bells'
+  | 'select'
+  | 'pixel'
+  | 'window'
+  | 'chime'
 export const CAPSULE_SOUND_STYLES: CapsuleSoundStyle[] = [
   'dashla',
   'interface',
   'positive',
   'confirm',
   'arcade',
+  'bleep',
+  'success',
+  'magic',
+  'bells',
+  'select',
+  'pixel',
+  'window',
   'chime',
 ]
 

@@ -559,7 +559,14 @@
     "capsuleSoundStyle_interface": "Interface start / back (Mixkit)",
     "capsuleSoundStyle_positive": "Positive notification (Mixkit)",
     "capsuleSoundStyle_confirm": "Correct / confirm (Mixkit)",
-    "capsuleSoundStyle_arcade": "Retro arpeggio (Kenney)"
+    "capsuleSoundStyle_arcade": "Retro arpeggio (Kenney)",
+    "capsuleSoundStyle_bleep": "High-tech bleep (Mixkit)",
+    "capsuleSoundStyle_success": "Success / double beep (Mixkit)",
+    "capsuleSoundStyle_magic": "Magic notification (Mixkit)",
+    "capsuleSoundStyle_bells": "Bells (Mixkit)",
+    "capsuleSoundStyle_select": "Option select (Mixkit)",
+    "capsuleSoundStyle_pixel": "Pixel two-note (Kenney)",
+    "capsuleSoundStyle_window": "Open / close (Kenney)"
   },
   "contextFamilies": {
     "email": "Email",
