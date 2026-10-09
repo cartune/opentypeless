@@ -35,6 +35,8 @@ export interface LearnedPayload {
   mainVisible: boolean
 }
 export type CapsuleWaveformStyle = 'siri' | 'mono' | 'bars'
+export type CapsuleSoundStyle = 'dashla' | 'chime' | 'marimba' | 'glass'
+export const CAPSULE_SOUND_STYLES: CapsuleSoundStyle[] = ['dashla', 'chime', 'marimba', 'glass']
 
 export type VoiceMode = 'dictate' | 'ask' | 'translate'
 
@@ -324,6 +326,7 @@ export interface AppConfig {
   edit_learning_enabled: boolean
   /** Short tones when recording starts, stops or is cancelled. */
   capsule_sound_enabled: boolean
+  capsule_sound_style: CapsuleSoundStyle
   /** Run RNNoise on microphone input before speech recognition. */
   noise_suppression_enabled: boolean
   /** Lower the system output volume while the microphone is open (macOS). */
@@ -915,6 +918,7 @@ const defaultConfig: AppConfig = {
   capsule_waveform_style: 'siri',
   edit_learning_enabled: true,
   capsule_sound_enabled: true,
+  capsule_sound_style: 'dashla',
   usage_pricing: [],
   correction_rules_exact_apply: true,
 }

@@ -773,6 +773,8 @@ pub struct PipelineHandle {
     edit_learning: Arc<crate::edit_learning::EditLearning>,
     /// Mirrors `capsule_sound_enabled` so stop/abort need no config load.
     sound_cues_enabled: Arc<AtomicBool>,
+    /// Mirrors `capsule_sound_style` (`CueStyle::as_u8`).
+    sound_cue_style: Arc<AtomicU8>,
     preloaded_config: Arc<Mutex<Option<storage::AppConfig>>>,
     preloaded_app_ctx: Arc<Mutex<Option<RecordingContext>>>,
     preloaded_dictionary: Arc<Mutex<Option<Vec<llm::DictionaryTerm>>>>,
@@ -1120,6 +1122,7 @@ impl PipelineHandle {
             llm_abort: Arc::new(tokio::sync::Notify::new()),
             edit_learning: Arc::new(crate::edit_learning::EditLearning::default()),
             sound_cues_enabled: Arc::new(AtomicBool::new(true)),
+            sound_cue_style: Arc::new(AtomicU8::new(0)),
             preloaded_config: Arc::new(Mutex::new(None)),
             preloaded_app_ctx: Arc::new(Mutex::new(None)),
             preloaded_dictionary: Arc::new(Mutex::new(None)),
@@ -1134,12 +1137,23 @@ impl PipelineHandle {
         }
     }
 
-    pub fn set_sound_cues_enabled(&self, enabled: bool) {
+    /// Remember the cue settings from the config a run started with.
+    pub fn set_sound_cues(&self, enabled: bool, style: &str) {
         self.sound_cues_enabled.store(enabled, Ordering::SeqCst);
+        self.sound_cue_style.store(
+            crate::sound_cues::CueStyle::parse(style).as_u8(),
+            Ordering::SeqCst,
+        );
     }
 
-    pub fn sound_cues_enabled(&self) -> bool {
-        self.sound_cues_enabled.load(Ordering::SeqCst)
+    /// Play a cue with the settings of the current run.
+    pub fn sound_cue(&self, cue: crate::sound_cues::Cue) {
+        crate::sound_cues::play(
+            &self.app_handle,
+            self.sound_cues_enabled.load(Ordering::SeqCst),
+            crate::sound_cues::CueStyle::from_u8(self.sound_cue_style.load(Ordering::SeqCst)),
+            cue,
+        );
     }
 
     fn set_state(&self, new_state: PipelineState) {
@@ -1249,11 +1263,7 @@ impl PipelineHandle {
         // Force state to Idle — emits pipeline:state event to sync frontend
         self.set_state(PipelineState::Idle);
         if was_active {
-            crate::sound_cues::play(
-                &self.app_handle,
-                self.sound_cues_enabled(),
-                crate::sound_cues::Cue::Cancel,
-            );
+            self.sound_cue(crate::sound_cues::Cue::Cancel);
             let _ = self
                 .app_handle
                 .emit("pipeline:error", crate::error::cancelled_user_error());
@@ -1558,6 +1568,12 @@ impl PipelineHandle {
         // Start the platform audio backend before connecting STT. Both readiness
         // operations are then polled concurrently, so speech captured while a
         // network provider connects remains queued instead of being clipped.
+        // The start cue goes out before capture ducks the system output.
+        self.set_sound_cues(
+            config_data.capsule_sound_enabled,
+            &config_data.capsule_sound_style,
+        );
+        self.sound_cue(crate::sound_cues::Cue::Start);
         let config = AudioConfig::for_app_config(&config_data);
         let (mut handle, mut audio_rx) = match AudioCaptureHandle::start(config) {
             Ok(result) => result,
@@ -1745,12 +1761,6 @@ impl PipelineHandle {
             .force_translate
             .then(|| TranslationOperationState::new(config_data.translation.active_target.clone()));
         self.set_state(PipelineState::Recording);
-        self.set_sound_cues_enabled(config_data.capsule_sound_enabled);
-        crate::sound_cues::play(
-            &self.app_handle,
-            config_data.capsule_sound_enabled,
-            crate::sound_cues::Cue::Start,
-        );
         let _ = self.app_handle.emit("pipeline:voice_mode", voice_mode);
         let _ = self
             .app_handle
@@ -2037,11 +2047,6 @@ impl PipelineHandle {
             return Ok(());
         }
         self.active_deadline_session_id.store(0, Ordering::SeqCst);
-        crate::sound_cues::play(
-            &self.app_handle,
-            self.sound_cues_enabled(),
-            crate::sound_cues::Cue::Stop,
-        );
         let _ = self
             .app_handle
             .emit("pipeline:state", PipelineState::Transcribing);
@@ -2098,6 +2103,8 @@ impl PipelineHandle {
             }
             *handle = None;
         }
+        // Capture is gone, so the system output is back to full volume.
+        self.sound_cue(crate::sound_cues::Cue::Stop);
         let stt_control = self
             .stt_session
             .lock()

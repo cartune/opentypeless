@@ -312,11 +312,7 @@ pub fn abort_ask_flow(app: &tauri::AppHandle) {
     if let Some(mut session) = session {
         session.handle.stop();
         if let Some(pipeline) = app.try_state::<crate::pipeline::PipelineHandle>() {
-            crate::sound_cues::play(
-                app,
-                pipeline.sound_cues_enabled(),
-                crate::sound_cues::Cue::Cancel,
-            );
+            pipeline.sound_cue(crate::sound_cues::Cue::Cancel);
         }
     }
     emit_capsule_state(app, PipelineState::Idle);
@@ -1196,6 +1192,12 @@ pub(crate) async fn start_reserved_ask_dictation(
             Some(client.inner().clone()),
         )
         .map_err(|e| e.to_string())?;
+        // Cue first: capture ducks the system output right after.
+        {
+            let pipeline = app.state::<crate::pipeline::PipelineHandle>();
+            pipeline.set_sound_cues(config.capsule_sound_enabled, &config.capsule_sound_style);
+            pipeline.sound_cue(crate::sound_cues::Cue::Start);
+        }
         let (mut handle, mut audio_rx) =
             AudioCaptureHandle::start(AudioConfig::for_app_config(&config))
             .map_err(|e| map_audio_capture_error(&e.to_string()))?;
@@ -1279,11 +1281,6 @@ pub(crate) async fn start_reserved_ask_dictation(
         }
 
         emit_capsule_state(&app, PipelineState::AskRecording);
-        crate::sound_cues::play(
-            &app,
-            config.capsule_sound_enabled,
-            crate::sound_cues::Cue::Start,
-        );
         let _ = app.emit("recording:deadline", recording_deadline.event);
         let state_inner = state.0.clone();
         let deadline_state_inner = state.0.clone();
@@ -1509,12 +1506,8 @@ pub async fn stop_ask_dictation(
     let result = async {
         session.handle.stop();
         emit_capsule_state(&app, PipelineState::AskThinking);
-        crate::sound_cues::play(
-            &app,
-            app.state::<crate::pipeline::PipelineHandle>()
-                .sound_cues_enabled(),
-            crate::sound_cues::Cue::Stop,
-        );
+        app.state::<crate::pipeline::PipelineHandle>()
+            .sound_cue(crate::sound_cues::Cue::Stop);
 
         let finalize_timed_out = tokio::select! {
             _ = session.done.notified() => false,

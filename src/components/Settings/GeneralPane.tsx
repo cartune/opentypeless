@@ -1,13 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown, MessageCircle } from 'lucide-react'
-import { isMacPlatform, useAppStore } from '../../stores/appStore'
+import { CAPSULE_SOUND_STYLES, isMacPlatform, useAppStore } from '../../stores/appStore'
 import type { HotkeyMode, OutputMode, ShortcutBinding } from '../../stores/appStore'
 import {
   getPlatformCapabilities,
   getHotkeyStatus,
   resumeHotkey,
   startAskFlow,
+  previewSoundCue,
 } from '../../lib/tauri'
 import type { HotkeyStatus } from '../../lib/tauri'
 import { SegmentedControl } from './shared/SegmentedControl'
@@ -281,6 +282,31 @@ export function GeneralPane() {
               onChange={(checked) => updateConfig({ capsule_sound_enabled: checked })}
               label={t('settings.capsuleSound')}
             />
+            {config.capsule_sound_enabled && (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[13px] text-text-primary">
+                  {t('settings.capsuleSoundStyle')}
+                </span>
+                <select
+                  aria-label={t('settings.capsuleSoundStyle')}
+                  value={config.capsule_sound_style}
+                  onChange={(event) => {
+                    const style = CAPSULE_SOUND_STYLES.find((s) => s === event.target.value)
+                    if (!style) return
+                    updateConfig({ capsule_sound_style: style })
+                    // Hear it right away; the next recording uses it too.
+                    void previewSoundCue(style).catch(() => {})
+                  }}
+                  className="px-2 py-1.5 bg-bg-secondary border border-border rounded-[8px] text-[12px] text-text-primary outline-none focus:border-border-focus transition-colors"
+                >
+                  {CAPSULE_SOUND_STYLES.map((style) => (
+                    <option key={style} value={style}>
+                      {t(`settings.capsuleSoundStyle_${style}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             {isMac && (
               <>
                 <Toggle

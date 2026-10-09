@@ -552,7 +552,12 @@
     "capsuleWaveformStyleSiri": "彩色波浪（Siri 風格）",
     "capsuleWaveformStyleMono": "單色波浪",
     "capsuleWaveformStyleBars": "音量條紋（即時音量）",
-    "capsuleSound": "錄音開始與結束提示音"
+    "capsuleSound": "錄音開始與結束提示音",
+    "capsuleSoundStyle": "提示音樣式",
+    "capsuleSoundStyle_dashla": "Dashla 紅燈起步",
+    "capsuleSoundStyle_chime": "清脆雙音",
+    "capsuleSoundStyle_marimba": "木琴",
+    "capsuleSoundStyle_glass": "玻璃鈴"
   },
   "contextFamilies": {
     "email": "郵件",

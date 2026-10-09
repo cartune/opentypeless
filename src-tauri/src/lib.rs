@@ -1023,7 +1023,10 @@ pub fn run() {
             // Load initial config to get hotkey
             let mut initial_config =
                 tauri::async_runtime::block_on(config_manager.load()).unwrap_or_default();
-            pipeline_handle.set_sound_cues_enabled(initial_config.capsule_sound_enabled);
+            pipeline_handle.set_sound_cues(
+                initial_config.capsule_sound_enabled,
+                &initial_config.capsule_sound_style,
+            );
             sync_auto_start_preference(&app_handle, &config_manager, &mut initial_config);
             app.manage(config_manager);
             app.manage(history_store);
@@ -1355,6 +1358,7 @@ pub fn run() {
             commands::config::set_capsule_auto_hide,
             commands::capsule::set_capsule_glass,
             commands::capsule::animate_capsule_frame,
+            sound_cues::preview_sound_cue,
             commands::config::get_session_token,
             commands::config::set_session_token,
         ])

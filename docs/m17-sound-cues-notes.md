@@ -1,8 +1,24 @@
 # M17 — Sound cues when recording starts and stops
 
-Date: 2026-10-10. Branch `m17-sound-cues` (on top of m16).
+Date: 2026-10-10. Branches `m17-sound-cues` (first cut) and `m18-sound-styles` (styles, Dashla ding, ducking-safe timing).
 
 ## What changed
+
+### m18: styles, the Dashla ding, louder and outside the ducking window
+
+- Four cue styles, `capsule_sound_style` (default `dashla`): **dashla** reuses the 紅燈起步 ding
+  from dashla-app (`assets/sounds/traffic-light.wav`, trimmed to 700 ms, faded, normalised into
+  `src-tauri/assets/sounds/dashla-ding.wav`) and plays it do → mi (second note pitch-shifted a
+  major third by resampling) for start, mi → do for stop, a fourth below alone for cancel.
+  **chime** (sine), **marimba** (struck, fast decay) and **glass** (bell, inharmonic partials)
+  are synthesised with the same do/mi figure.
+- Settings → General → 提示音樣式 is a select; choosing a style saves it and plays start + stop
+  as a preview (`preview_sound_cue` command). The pipeline reads the style from config at every
+  run, so the choice applies to the next recording without a restart.
+- Timing: the start cue is played **before** audio capture starts (capture is what ducks the
+  system output), and the stop cue **after** capture has been torn down (which restores it), so
+  neither cue is played at the ducked level. NSSound volume is 1.0 and synthesised peaks 0.6.
+
 
 - `src-tauri/src/sound_cues.rs`: three short tones synthesised in memory as 44.1 kHz mono PCM
   WAV (nothing bundled, nothing to license): **start** is a rising fifth (659 → 988 Hz, 115 ms),

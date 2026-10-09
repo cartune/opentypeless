@@ -552,7 +552,12 @@
     "capsuleWaveformStyleSiri": "Colour waves (Siri style)",
     "capsuleWaveformStyleMono": "Single-colour waves",
     "capsuleWaveformStyleBars": "Level bars (live volume)",
-    "capsuleSound": "Sound cues when recording starts and stops"
+    "capsuleSound": "Sound cues when recording starts and stops",
+    "capsuleSoundStyle": "Sound style",
+    "capsuleSoundStyle_dashla": "Dashla traffic-light ding",
+    "capsuleSoundStyle_chime": "Clean chime",
+    "capsuleSoundStyle_marimba": "Marimba",
+    "capsuleSoundStyle_glass": "Glass bell"
   },
   "contextFamilies": {
     "email": "Email",

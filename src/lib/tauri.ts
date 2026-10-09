@@ -566,6 +566,11 @@ export interface CapsuleFrameAnimation {
  * window itself, so growing, shrinking and collapsing have to happen on the
  * NSWindow rather than in CSS. Resolves once scheduled, not when finished.
  */
+/** Play the start and stop cues of a style so the user can hear it before choosing. */
+export async function previewSoundCue(style: string): Promise<void> {
+  return invoke('preview_sound_cue', { style })
+}
+
 export async function animateCapsuleFrame(frame: CapsuleFrameAnimation): Promise<void> {
   return invoke('animate_capsule_frame', {
     width: frame.width,
