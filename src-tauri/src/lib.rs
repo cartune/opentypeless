@@ -15,6 +15,7 @@ pub mod pipeline;
 pub mod platform;
 pub mod recording_deadline;
 pub mod selection;
+pub mod sound_cues;
 pub mod storage;
 pub mod stt;
 pub mod tray;
@@ -1022,6 +1023,7 @@ pub fn run() {
             // Load initial config to get hotkey
             let mut initial_config =
                 tauri::async_runtime::block_on(config_manager.load()).unwrap_or_default();
+            pipeline_handle.set_sound_cues_enabled(initial_config.capsule_sound_enabled);
             sync_auto_start_preference(&app_handle, &config_manager, &mut initial_config);
             app.manage(config_manager);
             app.manage(history_store);

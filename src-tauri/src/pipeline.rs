@@ -771,6 +771,8 @@ pub struct PipelineHandle {
     llm_abort: Arc<tokio::sync::Notify>,
     /// Watches the target field after insertion to learn from the user's edits.
     edit_learning: Arc<crate::edit_learning::EditLearning>,
+    /// Mirrors `capsule_sound_enabled` so stop/abort need no config load.
+    sound_cues_enabled: Arc<AtomicBool>,
     preloaded_config: Arc<Mutex<Option<storage::AppConfig>>>,
     preloaded_app_ctx: Arc<Mutex<Option<RecordingContext>>>,
     preloaded_dictionary: Arc<Mutex<Option<Vec<llm::DictionaryTerm>>>>,
@@ -1117,6 +1119,7 @@ impl PipelineHandle {
             stt_audio_bytes: Arc::new(AtomicU64::new(0)),
             llm_abort: Arc::new(tokio::sync::Notify::new()),
             edit_learning: Arc::new(crate::edit_learning::EditLearning::default()),
+            sound_cues_enabled: Arc::new(AtomicBool::new(true)),
             preloaded_config: Arc::new(Mutex::new(None)),
             preloaded_app_ctx: Arc::new(Mutex::new(None)),
             preloaded_dictionary: Arc::new(Mutex::new(None)),
@@ -1129,6 +1132,14 @@ impl PipelineHandle {
             shared_client,
             pipeline_lock: Arc::new(tokio::sync::Mutex::new(())),
         }
+    }
+
+    pub fn set_sound_cues_enabled(&self, enabled: bool) {
+        self.sound_cues_enabled.store(enabled, Ordering::SeqCst);
+    }
+
+    pub fn sound_cues_enabled(&self) -> bool {
+        self.sound_cues_enabled.load(Ordering::SeqCst)
     }
 
     fn set_state(&self, new_state: PipelineState) {
@@ -1238,6 +1249,11 @@ impl PipelineHandle {
         // Force state to Idle — emits pipeline:state event to sync frontend
         self.set_state(PipelineState::Idle);
         if was_active {
+            crate::sound_cues::play(
+                &self.app_handle,
+                self.sound_cues_enabled(),
+                crate::sound_cues::Cue::Cancel,
+            );
             let _ = self
                 .app_handle
                 .emit("pipeline:error", crate::error::cancelled_user_error());
@@ -1729,6 +1745,12 @@ impl PipelineHandle {
             .force_translate
             .then(|| TranslationOperationState::new(config_data.translation.active_target.clone()));
         self.set_state(PipelineState::Recording);
+        self.set_sound_cues_enabled(config_data.capsule_sound_enabled);
+        crate::sound_cues::play(
+            &self.app_handle,
+            config_data.capsule_sound_enabled,
+            crate::sound_cues::Cue::Start,
+        );
         let _ = self.app_handle.emit("pipeline:voice_mode", voice_mode);
         let _ = self
             .app_handle
@@ -2015,6 +2037,11 @@ impl PipelineHandle {
             return Ok(());
         }
         self.active_deadline_session_id.store(0, Ordering::SeqCst);
+        crate::sound_cues::play(
+            &self.app_handle,
+            self.sound_cues_enabled(),
+            crate::sound_cues::Cue::Stop,
+        );
         let _ = self
             .app_handle
             .emit("pipeline:state", PipelineState::Transcribing);

@@ -78,7 +78,7 @@ objc2_06 = { package = "objc2", version = "0.6", default-features = false, featu
 block2_06 = { package = "block2", version = "0.6", default-features = false, features = ["std"] }
 objc2-avf-audio = { version = "0.3.2", default-features = false, features = ["std", "AVAudioEngine", "AVAudioNode", "AVAudioIONode", "AVAudioBuffer", "AVAudioFormat", "AVAudioTime", "AVAudioTypes", "block2"] }
 objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSError", "NSObject", "NSGeometry", "NSArray", "NSEnumerator"] }
-objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSWindow", "NSAnimationContext", "NSAnimation", "NSResponder", "NSScreen", "objc2-quartz-core", "block2"] }
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSWindow", "NSAnimationContext", "NSAnimation", "NSResponder", "NSScreen", "NSSound", "objc2-quartz-core", "block2"] }
 objc2-quartz-core = { version = "0.3.2", default-features = false, features = ["std", "CAMediaTimingFunction"] }
 objc2-audio-toolbox = { version = "0.3.2", default-features = false, features = ["std", "AUComponent", "AudioOutputUnit", "AudioUnitProperties"] }
 

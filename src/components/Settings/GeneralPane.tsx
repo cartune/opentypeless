@@ -276,6 +276,11 @@ export function GeneralPane() {
               onChange={(checked) => updateConfig({ capsule_auto_hide: checked })}
               label={t('settings.hideCapsuleWhenIdle')}
             />
+            <Toggle
+              checked={config.capsule_sound_enabled}
+              onChange={(checked) => updateConfig({ capsule_sound_enabled: checked })}
+              label={t('settings.capsuleSound')}
+            />
             {isMac && (
               <>
                 <Toggle

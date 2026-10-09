@@ -311,6 +311,13 @@ pub fn abort_ask_flow(app: &tauri::AppHandle) {
     let (session, _was_starting) = state.abort_starting_or_recording();
     if let Some(mut session) = session {
         session.handle.stop();
+        if let Some(pipeline) = app.try_state::<crate::pipeline::PipelineHandle>() {
+            crate::sound_cues::play(
+                app,
+                pipeline.sound_cues_enabled(),
+                crate::sound_cues::Cue::Cancel,
+            );
+        }
     }
     emit_capsule_state(app, PipelineState::Idle);
     let _ = app.emit("pipeline:error", crate::error::cancelled_user_error());
@@ -1272,6 +1279,11 @@ pub(crate) async fn start_reserved_ask_dictation(
         }
 
         emit_capsule_state(&app, PipelineState::AskRecording);
+        crate::sound_cues::play(
+            &app,
+            config.capsule_sound_enabled,
+            crate::sound_cues::Cue::Start,
+        );
         let _ = app.emit("recording:deadline", recording_deadline.event);
         let state_inner = state.0.clone();
         let deadline_state_inner = state.0.clone();
@@ -1497,6 +1509,12 @@ pub async fn stop_ask_dictation(
     let result = async {
         session.handle.stop();
         emit_capsule_state(&app, PipelineState::AskThinking);
+        crate::sound_cues::play(
+            &app,
+            app.state::<crate::pipeline::PipelineHandle>()
+                .sound_cues_enabled(),
+            crate::sound_cues::Cue::Stop,
+        );
 
         let finalize_timed_out = tokio::select! {
             _ = session.done.notified() => false,

@@ -551,7 +551,8 @@
     "capsuleWaveformStyle": "波形樣式",
     "capsuleWaveformStyleSiri": "彩色波浪（Siri 風格）",
     "capsuleWaveformStyleMono": "單色波浪",
-    "capsuleWaveformStyleBars": "音量條紋（即時音量）"
+    "capsuleWaveformStyleBars": "音量條紋（即時音量）",
+    "capsuleSound": "錄音開始與結束提示音"
   },
   "contextFamilies": {
     "email": "郵件",

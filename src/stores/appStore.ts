@@ -322,6 +322,8 @@ export interface AppConfig {
   capsule_waveform_style: CapsuleWaveformStyle
   /** Learn dictionary words and correction rules from the words the user replaces after dictation (macOS). */
   edit_learning_enabled: boolean
+  /** Short tones when recording starts, stops or is cancelled. */
+  capsule_sound_enabled: boolean
   /** Run RNNoise on microphone input before speech recognition. */
   noise_suppression_enabled: boolean
   /** Lower the system output volume while the microphone is open (macOS). */
@@ -912,6 +914,7 @@ const defaultConfig: AppConfig = {
   capsule_glass_style: 'clear',
   capsule_waveform_style: 'siri',
   edit_learning_enabled: true,
+  capsule_sound_enabled: true,
   usage_pricing: [],
   correction_rules_exact_apply: true,
 }

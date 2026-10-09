@@ -408,6 +408,9 @@ pub struct AppConfig {
     /// rules from the words the user replaces (macOS, needs Accessibility).
     #[serde(default = "default_true")]
     pub edit_learning_enabled: bool,
+    /// Short tones when recording starts, stops or is cancelled.
+    #[serde(default = "default_true")]
+    pub capsule_sound_enabled: bool,
     /// Run RNNoise on microphone input before STT (off by default until
     /// verified on real hardware; see docs/m7-noise-notes.md).
     pub noise_suppression_enabled: bool,
@@ -543,6 +546,7 @@ impl Default for AppConfig {
             capsule_glass_style: "clear".to_string(),
             capsule_waveform_style: default_capsule_waveform_style(),
             edit_learning_enabled: true,
+            capsule_sound_enabled: true,
             usage_pricing: Vec::new(),
             correction_rules_exact_apply: true,
         }

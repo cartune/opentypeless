@@ -551,7 +551,8 @@
     "capsuleWaveformStyle": "Waveform style",
     "capsuleWaveformStyleSiri": "Colour waves (Siri style)",
     "capsuleWaveformStyleMono": "Single-colour waves",
-    "capsuleWaveformStyleBars": "Level bars (live volume)"
+    "capsuleWaveformStyleBars": "Level bars (live volume)",
+    "capsuleSound": "Sound cues when recording starts and stops"
   },
   "contextFamilies": {
     "email": "Email",
