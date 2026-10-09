@@ -285,7 +285,8 @@
     "timing": "{{stt}} · {{llm}}",
     "noAudioHint": "沒收到聲音，檢查麥克風",
     "commandMode": "指令",
-    "commandThinking": "處理指令中…"
+    "commandThinking": "處理指令中…",
+    "learnedPending": "已記下 {{pairs}}，再修一次就套用"
   },
   "settings": {
     "title": "設定",
@@ -609,7 +610,10 @@
     "importFailed": "匯入字典失敗",
     "importComplete": "已匯入 {{count}} 項",
     "exportFailed": "匯出字典失敗",
-    "howItWorks": "詞條會作為詞彙提示傳給語音辨識，並要求 AI 使用該拼法。常被聽錯的詞可填寫「聽起來像」。更正規則會把聽錯的詞語替換成正確寫法。"
+    "howItWorks": "詞條會作為詞彙提示傳給語音辨識，並要求 AI 使用該拼法。常被聽錯的詞可填寫「聽起來像」。更正規則會把聽錯的詞語替換成正確寫法。",
+    "pendingBadge": "待確認",
+    "pendingHint": "從您的修改記下的規則，再修正一次（或在這裡打開）才會套用",
+    "learnedPendingToast": "已記下您在 {{app}} 的修正：{{pairs}}。再修正一次就會自動套用"
   },
   "scenes": {
     "signInToBrowse": "登入以瀏覽場景包。",

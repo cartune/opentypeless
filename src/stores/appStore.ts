@@ -25,6 +25,8 @@ export interface LearnedItem {
   ruleDisabled: boolean
   /** Nothing to add: the word and the rule were both already there. */
   alreadyKnown: boolean
+  /** Noted once; the same fix again turns it into a rule. */
+  rulePending: boolean
 }
 
 export interface LearnedPayload {
@@ -186,7 +188,8 @@ export interface InsertResult {
   message: string | null
 }
 
-export type DictionarySource = 'manual' | 'learned'
+/** `pending`: seen once from the user's edits; applies after a second sighting. */
+export type DictionarySource = 'manual' | 'learned' | 'pending'
 
 export interface DictionaryEntry {
   id: number

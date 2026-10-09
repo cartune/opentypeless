@@ -285,7 +285,8 @@
     "timing": "{{stt}} · {{llm}}",
     "noAudioHint": "No audio — check mic",
     "commandMode": "명령",
-    "commandThinking": "처리 중..."
+    "commandThinking": "처리 중...",
+    "learnedPending": "Noted {{pairs}}; one more fix and it applies"
   },
   "settings": {
     "title": "설정",
@@ -609,7 +610,10 @@
     "importFailed": "사전을 가져오지 못했습니다",
     "importComplete": "{{count}}개 항목을 가져왔습니다",
     "exportFailed": "사전을 내보내지 못했습니다",
-    "howItWorks": "Words are sent to speech recognition as vocabulary hints and to the AI as required spellings. Add a “sounds like” pronunciation for terms that are often misheard. Correction rules replace a misheard phrase with the right one."
+    "howItWorks": "Words are sent to speech recognition as vocabulary hints and to the AI as required spellings. Add a “sounds like” pronunciation for terms that are often misheard. Correction rules replace a misheard phrase with the right one.",
+    "pendingBadge": "Pending",
+    "pendingHint": "Noted from your edits; applies after you make the same fix again (or switch it on here)",
+    "learnedPendingToast": "Noted your fix in {{app}}: {{pairs}}. Make it once more and it will apply automatically"
   },
   "scenes": {
     "signInToBrowse": "씬 팩을 둘러보려면 로그인하세요.",

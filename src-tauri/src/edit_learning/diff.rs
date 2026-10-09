@@ -41,7 +41,11 @@ const MAX_SIDE_CHARS: usize = 24;
 /// Longest Latin phrase (in words) of a learned pair.
 const MAX_LATIN_WORDS: usize = 3;
 /// Longest CJK side of a learned pair; terms are short, phrases are edits.
-const MAX_CJK_CHARS: usize = 8;
+const MAX_CJK_CHARS: usize = 6;
+/// A one-character dictated side (大, 你, 援) matches everywhere; never learn it.
+const MIN_FROM_CHARS: usize = 2;
+/// Latin → Chinese fixes stay short.
+const MAX_LATIN_TO_CJK_CHARS: usize = 4;
 /// Largest diff table we are willing to fill (cells).
 const MAX_DP_CELLS: usize = 4_000_000;
 /// How similar the caret-anchored slice must be to the inserted text.
@@ -162,6 +166,7 @@ pub fn learn_edits(baseline: &[char], current: &[char]) -> Vec<LearnedEdit> {
     }
     let mut edits: Vec<LearnedEdit> = Vec::new();
     for hunk in replacements {
+        let hunk = widen_single_cjk_char(hunk, baseline, current);
         let from = trim_edges(&baseline[hunk.b_start..hunk.b_end]);
         let to = trim_edges(&current[hunk.c_start..hunk.c_end]);
         if !is_learnable_pair(&from, &to) {
@@ -339,6 +344,42 @@ fn merge_touching(hunks: &mut Vec<Hunk>) {
     *hunks = merged;
 }
 
+/// A one-character Chinese slip (池典 → 辭典) must not become a rule for that
+/// character alone; take the shared neighbour (left first, else right) so
+/// the rule stays scoped to the word it was fixed in.
+fn widen_single_cjk_char(hunk: Hunk, baseline: &[char], current: &[char]) -> Hunk {
+    let single = hunk.b_end - hunk.b_start == 1
+        && hunk.c_end - hunk.c_start == 1
+        && is_cjk(baseline[hunk.b_start])
+        && is_cjk(current[hunk.c_start]);
+    if !single {
+        return hunk;
+    }
+    let left_shared = hunk.b_start > 0
+        && hunk.c_start > 0
+        && baseline[hunk.b_start - 1] == current[hunk.c_start - 1]
+        && is_cjk(baseline[hunk.b_start - 1]);
+    if left_shared {
+        return Hunk {
+            b_start: hunk.b_start - 1,
+            c_start: hunk.c_start - 1,
+            ..hunk
+        };
+    }
+    let right_shared = hunk.b_end < baseline.len()
+        && hunk.c_end < current.len()
+        && baseline[hunk.b_end] == current[hunk.c_end]
+        && is_cjk(baseline[hunk.b_end]);
+    if right_shared {
+        return Hunk {
+            b_end: hunk.b_end + 1,
+            c_end: hunk.c_end + 1,
+            ..hunk
+        };
+    }
+    hunk
+}
+
 fn trim_edges(chars: &[char]) -> String {
     chars
         .iter()
@@ -347,11 +388,24 @@ fn trim_edges(chars: &[char]) -> String {
         .to_string()
 }
 
-fn is_learnable_pair(from: &str, to: &str) -> bool {
+/// Characters that carry grammar rather than meaning. A dictated side made
+/// only of these is a wording preference (你→您, 就還→才), never a slip.
+const FUNCTION_CHARS: &str =
+    "的了是在就才要再還你您我他她它們這那有不也都很會可以和跟與把被對沒好嗎呢吧啊喔哦欸嘿呀吶嘛過著";
+/// Longest difference in character count between two Chinese sides.
+const MAX_CJK_LENGTH_DIFF: usize = 2;
+/// Latin-to-Latin fixes must keep at least this much of the spelling unless
+/// the corrected side looks like a product or person name.
+const MIN_LATIN_SIMILARITY: f32 = 0.5;
+
+/// Would learning `from → to` as a global replacement be safe? Only edits
+/// that look like a recognition slip qualify: short, not a single character,
+/// not a change of wording, and (for Chinese) sounding like what was said.
+pub fn is_learnable_pair(from: &str, to: &str) -> bool {
     if from.is_empty() || to.is_empty() || from == to {
         return false;
     }
-    [from, to].iter().all(|side| {
+    let shape_ok = [from, to].iter().all(|side| {
         let count = side.chars().count();
         let cjk = side.chars().any(is_cjk);
         count <= MAX_SIDE_CHARS
@@ -362,7 +416,75 @@ fn is_learnable_pair(from: &str, to: &str) -> bool {
             } else {
                 side.split_whitespace().count() <= MAX_LATIN_WORDS
             }
-    })
+    });
+    if !shape_ok || from.chars().count() < MIN_FROM_CHARS {
+        return false;
+    }
+    // Case or spacing only (model → Model) would restyle every occurrence.
+    if loose(from) == loose(to) {
+        return false;
+    }
+    let from_cjk = from.chars().any(is_cjk);
+    let to_cjk = to.chars().any(is_cjk);
+    if from_cjk
+        && from
+            .chars()
+            .all(|c| FUNCTION_CHARS.contains(c) || !is_cjk(c))
+    {
+        return false;
+    }
+    match (from_cjk, to_cjk) {
+        (true, true) => {
+            let from_len = from.chars().count();
+            let to_len = to.chars().count();
+            if from_len.abs_diff(to_len) > MAX_CJK_LENGTH_DIFF {
+                return false;
+            }
+            // The same characters in another order is the user rephrasing.
+            if sorted_chars(from) == sorted_chars(to) {
+                return false;
+            }
+            match super::phonetic::sounds_alike(from, to) {
+                Some(alike) => alike,
+                None => char_overlap(from, to) >= MIN_LATIN_SIMILARITY,
+            }
+        }
+        // 尚寧 → Sunny, T 塔 → TITA: a name the recogniser could not spell.
+        (true, false) => is_term_like(to),
+        // Yuma → 魚媽: the reverse slip, only for short names.
+        (false, true) => is_term_like(from) && to.chars().count() <= MAX_LATIN_TO_CJK_CHARS,
+        (false, false) => {
+            is_term_like(to)
+                || similarity(
+                    &loose(from).chars().collect::<Vec<_>>(),
+                    &loose(to).chars().collect::<Vec<_>>(),
+                ) >= MIN_LATIN_SIMILARITY
+        }
+    }
+}
+
+fn loose(text: &str) -> String {
+    text.chars()
+        .filter(|c| !c.is_whitespace())
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+fn sorted_chars(text: &str) -> Vec<char> {
+    let mut chars: Vec<char> = text.chars().filter(|c| !c.is_whitespace()).collect();
+    chars.sort_unstable();
+    chars
+}
+
+fn char_overlap(a: &str, b: &str) -> f32 {
+    let a_chars: Vec<char> = a.chars().collect();
+    let shared = b.chars().filter(|c| a_chars.contains(c)).count();
+    shared as f32 / a_chars.len().max(b.chars().count()).max(1) as f32
+}
+
+/// Brand and person names: an uppercase letter or a digit somewhere.
+fn is_term_like(text: &str) -> bool {
+    text.chars().any(|c| c.is_uppercase() || c.is_ascii_digit())
 }
 
 fn similarity(a: &[char], b: &[char]) -> f32 {
@@ -458,19 +580,40 @@ mod tests {
 
     #[test]
     fn joins_cjk_hunks_split_by_a_shared_character() {
-        let edits = learn_edits(&chars("明天開會討論一下"), &chars("明天會議討論一下"));
-        assert_eq!(pairs(&edits), vec![("開會".into(), "會議".into())]);
+        let edits = learn_edits(&chars("去找魚寶媽聊聊"), &chars("去找漁寶馬聊聊"));
+        assert_eq!(pairs(&edits), vec![("魚寶媽".into(), "漁寶馬".into())]);
+    }
+
+    #[test]
+    fn single_character_slips_learn_with_their_neighbour() {
+        let edits = learn_edits(&chars("明天開會討論一下"), &chars("明天開匯討論一下"));
+        assert_eq!(pairs(&edits), vec![("開會".into(), "開匯".into())]);
+        let edits = learn_edits(&chars("池典裡有這個字"), &chars("辭典裡有這個字"));
+        assert_eq!(pairs(&edits), vec![("池典".into(), "辭典".into())]);
+    }
+
+    #[test]
+    fn wording_changes_are_not_learned() {
+        assert!(learn_edits(&chars("明天開會討論一下"), &chars("明天會議討論一下")).is_empty());
+        assert!(learn_edits(
+            &chars("請把 api 的 pr 先合併"),
+            &chars("請把 API 的 PR 先合併")
+        )
+        .is_empty());
     }
 
     #[test]
     fn learns_two_separate_fixes() {
         let edits = learn_edits(
-            &chars("請把 api 的 pr 先合併"),
-            &chars("請把 API 的 PR 先合併"),
+            &chars("我們今天下午會用 ngnix 和 reddis 來部署這個服務和資料庫"),
+            &chars("我們今天下午會用 Nginx 和 Redis 來部署這個服務和資料庫"),
         );
         assert_eq!(
             pairs(&edits),
-            vec![("api".into(), "API".into()), ("pr".into(), "PR".into())]
+            vec![
+                ("ngnix".into(), "Nginx".into()),
+                ("reddis".into(), "Redis".into())
+            ]
         );
     }
 
@@ -524,6 +667,38 @@ mod tests {
             &chars("第一，先做這個。第二，然後我們改成完全不同的做法。"),
         );
         assert!(edits.is_empty());
+    }
+
+    #[test]
+    fn learnable_pairs_are_recognition_slips_only() {
+        for (from, to) in [
+            ("池點", "辭典"),
+            ("卡通", "Cartune"),
+            ("尚寧", "Sunny"),
+            ("T 塔", "TITA"),
+            ("腿好", "推好人"),
+            ("RockfatherX", "GrokBot X API"),
+            ("Yuma", "魚媽"),
+        ] {
+            assert!(is_learnable_pair(from, to), "{from} -> {to}");
+        }
+        for (from, to) in [
+            ("你", "您"),
+            ("就還", "才"),
+            ("要再", "需要"),
+            ("援", "持"),
+            ("崔", "Threads"),
+            ("大", "魚寶魚媽知名"),
+            ("魚寶魚媽知名", "魚媽魚寶之名"),
+            ("model", "Model"),
+            ("哎呦", "車友"),
+            ("自由", "支援"),
+            ("這個", "那個"),
+            ("mode l", "model"),
+            ("open type less", "OpenTypeless"),
+        ] {
+            assert!(!is_learnable_pair(from, to), "{from} -> {to}");
+        }
     }
 
     #[test]

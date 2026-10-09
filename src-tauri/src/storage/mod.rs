@@ -2473,11 +2473,45 @@ impl DictionaryStore {
         Ok(())
     }
 
+    /// Enabling a pending (seen-once) rule by hand confirms it.
     pub async fn set_correction_enabled(&self, id: i64, enabled: bool) -> Result<()> {
         let conn = self.conn.lock().unwrap_or_else(|e| e.into_inner());
         conn.execute(
-            "UPDATE correction_rules SET enabled = ?2 WHERE id = ?1",
+            "UPDATE correction_rules SET enabled = ?2,
+                source = CASE WHEN ?2 = 1 AND source = 'pending' THEN 'learned' ELSE source END
+             WHERE id = ?1",
             rusqlite::params![id, if enabled { 1 } else { 0 }],
+        )?;
+        Ok(())
+    }
+
+    /// Store a rule switched off, waiting for a second sighting.
+    pub async fn add_pending_correction(
+        &self,
+        pattern: &str,
+        replacement: &str,
+        source: &str,
+    ) -> Result<()> {
+        let pattern = validate_dictionary_text(pattern, 120, "correction_pattern")?;
+        let replacement = validate_dictionary_text(replacement, 120, "correction_replacement")?;
+        let identity = normalized_correction_identity(&pattern, &replacement);
+        let conn = self.conn.lock().unwrap_or_else(|e| e.into_inner());
+        if correction_identity_exists(&conn, &identity, None)? {
+            anyhow::bail!("correction_duplicate");
+        }
+        conn.execute(
+            "INSERT INTO correction_rules (pattern, replacement, enabled, source) VALUES (?1, ?2, 0, ?3)",
+            rusqlite::params![pattern, replacement, source],
+        )?;
+        Ok(())
+    }
+
+    /// Second sighting: switch the rule on and mark it learned.
+    pub async fn confirm_correction(&self, id: i64, source: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap_or_else(|e| e.into_inner());
+        conn.execute(
+            "UPDATE correction_rules SET enabled = 1, source = ?2 WHERE id = ?1",
+            rusqlite::params![id, source],
         )?;
         Ok(())
     }

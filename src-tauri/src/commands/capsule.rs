@@ -74,6 +74,12 @@ pub enum CapsuleFrameAnchor {
     Left,
 }
 
+/// Smallest frame side AppKit honours for a borderless window.
+pub const MIN_FRAME_SIDE: f64 = 10.0;
+/// Distance from the bottom of the work area to the pill when it has to be
+/// put back on a screen. Mirrors `CAPSULE_BOTTOM_MARGIN` in useCapsuleResize.
+pub const CAPSULE_BOTTOM_MARGIN: f64 = 80.0;
+
 /// A window frame in AppKit terms: bottom-left origin, logical points.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CapsuleFrame {
@@ -93,13 +99,16 @@ pub fn anchored_frame(
     height: f64,
     anchor: CapsuleFrameAnchor,
 ) -> CapsuleFrame {
+    // AppKit refuses to make a window smaller than about 10 pt a side: it keeps
+    // the origin and pads the frame instead, which moved the centre 2 pt down
+    // and right on every collapse and let the pill crawl off the screen.
     let width = if width.is_finite() {
-        width.max(1.0)
+        width.max(MIN_FRAME_SIDE)
     } else {
         current.width
     };
     let height = if height.is_finite() {
-        height.max(1.0)
+        height.max(MIN_FRAME_SIDE)
     } else {
         current.height
     };
@@ -113,6 +122,45 @@ pub fn anchored_frame(
         y,
         width,
         height,
+    }
+}
+
+/// If the frame's centre is on no screen (an earlier drift, a display that
+/// went away), put it at the bottom centre of the nearest screen's visible
+/// area; otherwise leave it alone. `screens` are visible frames in AppKit
+/// coordinates.
+pub fn recover_offscreen_frame(frame: CapsuleFrame, screens: &[CapsuleFrame]) -> CapsuleFrame {
+    if screens.is_empty() {
+        return frame;
+    }
+    let cx = frame.x + frame.width / 2.0;
+    let cy = frame.y + frame.height / 2.0;
+    let contains = |screen: &CapsuleFrame| {
+        cx >= screen.x
+            && cx <= screen.x + screen.width
+            && cy >= screen.y
+            && cy <= screen.y + screen.height
+    };
+    if screens.iter().any(contains) {
+        return frame;
+    }
+    let distance = |screen: &CapsuleFrame| {
+        let dx = (screen.x - cx).max(0.0).max(cx - (screen.x + screen.width));
+        let dy = (screen.y - cy)
+            .max(0.0)
+            .max(cy - (screen.y + screen.height));
+        dx * dx + dy * dy
+    };
+    let nearest = screens
+        .iter()
+        .min_by(|a, b| distance(a).total_cmp(&distance(b)))
+        .copied()
+        .unwrap_or(screens[0]);
+    CapsuleFrame {
+        x: nearest.x + (nearest.width - frame.width) / 2.0,
+        y: nearest.y + CAPSULE_BOTTOM_MARGIN,
+        width: frame.width,
+        height: frame.height,
     }
 }
 
@@ -214,6 +262,23 @@ fn animate_frame_on_main_thread(
         height,
         anchor,
     );
+    let screens: Vec<CapsuleFrame> = {
+        // SAFETY: run_on_main_thread put us on the main thread.
+        let mtm = unsafe { objc2_06::MainThreadMarker::new_unchecked() };
+        objc2_app_kit::NSScreen::screens(mtm)
+            .iter()
+            .map(|screen| {
+                let visible = screen.visibleFrame();
+                CapsuleFrame {
+                    x: visible.origin.x,
+                    y: visible.origin.y,
+                    width: visible.size.width,
+                    height: visible.size.height,
+                }
+            })
+            .collect()
+    };
+    let next = recover_offscreen_frame(next, &screens);
     let rect = NSRect::new(
         NSPoint::new(next.x, next.y),
         NSSize::new(next.width, next.height),
@@ -330,7 +395,8 @@ mod tests {
         let back = anchored_frame(next, 36.0, 36.0, CapsuleFrameAnchor::Center);
         assert_eq!(back, PILL);
         let tall = anchored_frame(PILL, 36.0, 6.0, CapsuleFrameAnchor::Center);
-        assert_eq!(tall.y, 65.0);
+        assert_eq!(tall.height, MIN_FRAME_SIDE);
+        assert_eq!(tall.y, 63.0);
     }
 
     #[test]
@@ -341,10 +407,65 @@ mod tests {
     }
 
     #[test]
+    fn collapsing_below_appkits_minimum_keeps_the_centre_fixed() {
+        // 36 → 6 → 36 used to end 2 pt down and right because AppKit padded
+        // the 6 pt request to 10 pt from the origin.
+        let collapsed = anchored_frame(PILL, 6.0, 6.0, CapsuleFrameAnchor::Center);
+        assert_eq!(collapsed.width, MIN_FRAME_SIDE);
+        assert_eq!(collapsed.height, MIN_FRAME_SIDE);
+        assert_eq!(
+            collapsed.x + collapsed.width / 2.0,
+            PILL.x + PILL.width / 2.0
+        );
+        assert_eq!(
+            collapsed.y + collapsed.height / 2.0,
+            PILL.y + PILL.height / 2.0
+        );
+        let back = anchored_frame(collapsed, 36.0, 36.0, CapsuleFrameAnchor::Center);
+        assert_eq!(back, PILL);
+    }
+
+    #[test]
+    fn offscreen_frames_return_to_the_nearest_screens_bottom_centre() {
+        let laptop = CapsuleFrame {
+            x: 0.0,
+            y: 55.0,
+            width: 1512.0,
+            height: 894.0,
+        };
+        let external = CapsuleFrame {
+            x: 1512.0,
+            y: -98.0,
+            width: 1920.0,
+            height: 1080.0,
+        };
+        let on_screen = CapsuleFrame {
+            x: 2454.0,
+            y: 0.0,
+            width: 36.0,
+            height: 36.0,
+        };
+        assert_eq!(
+            recover_offscreen_frame(on_screen, &[laptop, external]),
+            on_screen
+        );
+        let below_external = CapsuleFrame {
+            x: 2551.0,
+            y: -120.0,
+            width: 36.0,
+            height: 36.0,
+        };
+        let recovered = recover_offscreen_frame(below_external, &[laptop, external]);
+        assert_eq!(recovered.x, 1512.0 + (1920.0 - 36.0) / 2.0);
+        assert_eq!(recovered.y, -98.0 + CAPSULE_BOTTOM_MARGIN);
+        assert_eq!(recover_offscreen_frame(below_external, &[]), below_external);
+    }
+
+    #[test]
     fn invalid_sizes_fall_back_to_the_current_frame() {
         let next = anchored_frame(PILL, f64::NAN, 0.0, CapsuleFrameAnchor::Center);
         assert_eq!(next.width, 36.0);
-        assert_eq!(next.height, 1.0);
+        assert_eq!(next.height, MIN_FRAME_SIDE);
         assert_eq!(frame_alpha(None), 1.0);
         assert_eq!(frame_alpha(Some(-2.0)), 0.0);
         assert_eq!(frame_alpha(Some(f64::NAN)), 1.0);

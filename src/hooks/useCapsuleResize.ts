@@ -198,7 +198,9 @@ export function getCapsuleNoticeSize(notice: PipelineNotice | null): CapsuleSize
   return { width, height: 36 }
 }
 /** Pill size (before padding) the window shrinks to when it scales away. */
-export const CAPSULE_COLLAPSED_SIZE: CapsuleSize = { width: 6, height: 6 }
+// 10 pt is the smallest frame AppKit honours; asking for less padded the
+// window from its origin and walked the pill off the screen over time.
+export const CAPSULE_COLLAPSED_SIZE: CapsuleSize = { width: 10, height: 10 }
 
 export interface CapsuleLayoutInput {
   contextMenuOpen: boolean

@@ -278,6 +278,16 @@ export function DictionaryPane() {
     }
   }
 
+  const pendingBadge = (
+    <span
+      className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-bg-tertiary px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary"
+      title={t('dictionary.pendingHint')}
+    >
+      <Sparkles size={10} />
+      {t('dictionary.pendingBadge')}
+    </span>
+  )
+
   const learnedBadge = (
     <span
       className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-accent"
@@ -606,6 +616,7 @@ export function DictionaryPane() {
                       <p className="flex min-w-0 items-center gap-1.5 text-text-primary">
                         <span className="min-w-0 truncate">{rule.pattern}</span>
                         {rule.source === 'learned' && learnedBadge}
+                        {rule.source === 'pending' && pendingBadge}
                       </p>
                       <p className="truncate text-[12px] text-text-secondary">{rule.replacement}</p>
                     </div>

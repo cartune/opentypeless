@@ -199,11 +199,24 @@ export function useTauriEvents() {
       const describe = (items: LearnedPayload['items']) =>
         items.map((item) => `${item.from} → ${item.to}`).join('、')
       const learned = payload.items.filter((item) => !item.alreadyKnown)
+      // A first sighting is only noted; the pill and toast say so.
+      const pendingOnly =
+        learned.length > 0 &&
+        learned.every((item) => item.rulePending && !item.ruleAdded && !item.ruleDisabled)
       // An edit to a word that was already known still gets acknowledged.
       const pairs = describe(learned.length > 0 ? learned : payload.items)
-      const capsuleKey = learned.length > 0 ? 'capsule.learned' : 'capsule.learnedKnown'
+      const capsuleKey =
+        learned.length === 0
+          ? 'capsule.learnedKnown'
+          : pendingOnly
+            ? 'capsule.learnedPending'
+            : 'capsule.learned'
       const toastKey =
-        learned.length > 0 ? 'dictionary.learnedToast' : 'dictionary.learnedKnownToast'
+        learned.length === 0
+          ? 'dictionary.learnedKnownToast'
+          : pendingOnly
+            ? 'dictionary.learnedPendingToast'
+            : 'dictionary.learnedToast'
       if (window.location.hash === '#capsule') {
         // The pill tells the user only when the main window is not there to.
         if (!payload.mainVisible) {
@@ -215,7 +228,8 @@ export function useTauriEvents() {
       }
       if (learned.length > 0) useAppStore.getState().bumpDictionaryRevision()
       if (payload.mainVisible) {
-        if (learned.length > 0) window.location.hash = '#/settings?pane=dictionary'
+        // Only a confirmed rule is worth pulling the user over to the dictionary.
+        if (learned.length > 0 && !pendingOnly) window.location.hash = '#/settings?pane=dictionary'
         toast.learned(t(toastKey, { app: payload.appLabel, pairs }))
       }
     })

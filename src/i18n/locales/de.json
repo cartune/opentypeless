@@ -285,7 +285,8 @@
     "timing": "{{stt}} · {{llm}}",
     "noAudioHint": "No audio — check mic",
     "commandMode": "Command",
-    "commandThinking": "Working on it..."
+    "commandThinking": "Working on it...",
+    "learnedPending": "Noted {{pairs}}; one more fix and it applies"
   },
   "settings": {
     "title": "Einstellungen",
@@ -609,7 +610,10 @@
     "importFailed": "Wörterbuch konnte nicht importiert werden",
     "importComplete": "{{count}} Einträge importiert",
     "exportFailed": "Wörterbuch konnte nicht exportiert werden",
-    "howItWorks": "Words are sent to speech recognition as vocabulary hints and to the AI as required spellings. Add a “sounds like” pronunciation for terms that are often misheard. Correction rules replace a misheard phrase with the right one."
+    "howItWorks": "Words are sent to speech recognition as vocabulary hints and to the AI as required spellings. Add a “sounds like” pronunciation for terms that are often misheard. Correction rules replace a misheard phrase with the right one.",
+    "pendingBadge": "Pending",
+    "pendingHint": "Noted from your edits; applies after you make the same fix again (or switch it on here)",
+    "learnedPendingToast": "Noted your fix in {{app}}: {{pairs}}. Make it once more and it will apply automatically"
   },
   "scenes": {
     "signInToBrowse": "Melden Sie sich an, um Szenen-Pakete zu durchsuchen.",

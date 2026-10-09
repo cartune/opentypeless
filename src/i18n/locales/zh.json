@@ -285,7 +285,8 @@
     "timing": "{{stt}} · {{llm}}",
     "noAudioHint": "没收到声音，检查麦克风",
     "commandMode": "指令",
-    "commandThinking": "处理指令中…"
+    "commandThinking": "处理指令中…",
+    "learnedPending": "已记下 {{pairs}}，再修一次就应用"
   },
   "settings": {
     "title": "设置",
@@ -609,7 +610,10 @@
     "importFailed": "导入词典失败",
     "importComplete": "已导入 {{count}} 项",
     "exportFailed": "导出词典失败",
-    "howItWorks": "词条会作为词汇提示发送给语音识别，并要求 AI 使用该拼写。常被听错的词可填写“听起来像”。更正规则会把听错的短语替换成正确写法。"
+    "howItWorks": "词条会作为词汇提示发送给语音识别，并要求 AI 使用该拼写。常被听错的词可填写“听起来像”。更正规则会把听错的短语替换成正确写法。",
+    "pendingBadge": "待确认",
+    "pendingHint": "从您的修改记下的规则，再修正一次（或在这里打开）才会应用",
+    "learnedPendingToast": "已记下您在 {{app}} 的修正：{{pairs}}。再修正一次就会自动应用"
   },
   "scenes": {
     "signInToBrowse": "登录以浏览场景包。",

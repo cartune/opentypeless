@@ -8,6 +8,7 @@
 //! pure; this module only schedules reads and writes the results.
 
 pub mod diff;
+pub mod phonetic;
 
 #[cfg(target_os = "macos")]
 pub mod ax;
@@ -30,6 +31,8 @@ pub const MAX_WATCH: Duration = Duration::from_secs(120);
 pub const LEARNED_EVENT: &str = "learning:learned";
 pub const SOURCE_MANUAL: &str = "manual";
 pub const SOURCE_LEARNED: &str = "learned";
+/// Seen once; becomes a learned rule when the same fix is made again.
+pub const SOURCE_PENDING: &str = "pending";
 
 /// What to watch after one dictation was inserted.
 #[derive(Debug, Clone)]
@@ -49,6 +52,8 @@ pub struct LearnedItem {
     pub rule_added: bool,
     /// An earlier learned rule said the opposite; it was switched off instead.
     pub rule_disabled: bool,
+    /// First sighting: noted, applied only after the same fix happens again.
+    pub rule_pending: bool,
     /// Nothing to add: the word and the rule were both already there.
     pub already_known: bool,
 }
@@ -191,47 +196,65 @@ fn apply(app: &tauri::AppHandle, request: &WatchRequest, edits: Vec<diff::Learne
             word_added: false,
             rule_added: false,
             rule_disabled: false,
+            rule_pending: false,
             already_known: false,
         };
-        // Same normalisation as the store's duplicate checks (NFKC, trim, case).
-        let word_known = words.iter().any(|entry| {
-            crate::storage::normalized_dictionary_identity(&entry.word)
-                == crate::storage::normalized_dictionary_identity(&edit.to)
-        });
-        if should_add_word(&edit.to) && !word_known {
-            item.word_added = tauri::async_runtime::block_on(store.add_with_source(
-                &edit.to,
-                None,
-                SOURCE_LEARNED,
-            ))
-            .is_ok();
-        }
         let forward = crate::storage::normalized_correction_identity(&edit.from, &edit.to);
         let backward = crate::storage::normalized_correction_identity(&edit.to, &edit.from);
         let identity = |rule: &crate::storage::CorrectionRule| {
             crate::storage::normalized_correction_identity(&rule.pattern, &rule.replacement)
         };
-        if let Some(reverse) = rules.iter().find(|rule| {
-            rule.enabled && rule.source == SOURCE_LEARNED && identity(rule) == backward
-        }) {
-            item.rule_disabled =
-                tauri::async_runtime::block_on(store.set_correction_enabled(reverse.id, false))
-                    .is_ok();
-        } else if !rules.iter().any(|rule| identity(rule) == forward) {
-            item.rule_added = tauri::async_runtime::block_on(store.add_correction_with_source(
+        // One edit is a note; the same edit twice is a rule. Nothing is
+        // applied, and no word is added, until the second sighting.
+        if let Some(reverse) = rules.iter().find(|rule| identity(rule) == backward) {
+            if reverse.source == SOURCE_PENDING {
+                // Changed their mind before it ever applied: forget the note.
+                item.rule_disabled =
+                    tauri::async_runtime::block_on(store.remove_correction(reverse.id)).is_ok();
+            } else if reverse.enabled && reverse.source == SOURCE_LEARNED {
+                item.rule_disabled =
+                    tauri::async_runtime::block_on(store.set_correction_enabled(reverse.id, false))
+                        .is_ok();
+            }
+        } else if let Some(existing) = rules.iter().find(|rule| identity(rule) == forward) {
+            if existing.source == SOURCE_PENDING {
+                item.rule_added = tauri::async_runtime::block_on(
+                    store.confirm_correction(existing.id, SOURCE_LEARNED),
+                )
+                .is_ok();
+            }
+        } else {
+            item.rule_pending = tauri::async_runtime::block_on(store.add_pending_correction(
                 &edit.from,
                 &edit.to,
-                SOURCE_LEARNED,
+                SOURCE_PENDING,
             ))
             .is_ok();
         }
-        item.already_known = !(item.word_added || item.rule_added || item.rule_disabled);
+        if item.rule_added {
+            // Same normalisation as the store's duplicate checks (NFKC, trim, case).
+            let word_known = words.iter().any(|entry| {
+                crate::storage::normalized_dictionary_identity(&entry.word)
+                    == crate::storage::normalized_dictionary_identity(&edit.to)
+            });
+            if should_add_word(&edit.to) && !word_known {
+                item.word_added = tauri::async_runtime::block_on(store.add_with_source(
+                    &edit.to,
+                    None,
+                    SOURCE_LEARNED,
+                ))
+                .is_ok();
+            }
+        }
+        item.already_known =
+            !(item.word_added || item.rule_added || item.rule_disabled || item.rule_pending);
         tracing::info!(
-            "Edit learning: {:?} -> {:?} (word={}, rule={}, disabled={}, known={})",
+            "Edit learning: {:?} -> {:?} (word={}, rule={}, pending={}, disabled={}, known={})",
             item.from,
             item.to,
             item.word_added,
             item.rule_added,
+            item.rule_pending,
             item.rule_disabled,
             item.already_known
         );
@@ -320,6 +343,7 @@ mod tests {
                 word_added: true,
                 rule_added: false,
                 rule_disabled: false,
+                rule_pending: false,
                 already_known: false,
             }],
             app_label: "Notes".into(),
