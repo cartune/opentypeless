@@ -2,6 +2,54 @@ use super::{CommandMatch, SearchMatch};
 use crate::voice_intent::normalize::{trim_command_payload, NormalizedUtterance};
 use crate::voice_intent::SearchProvider;
 
+/// Reply-shaped requests ("跟他說…"): a draft of the reply, consulted only
+/// by the Ask shortcut so ordinary dictation that opens with 跟他說 is never
+/// rewritten as a draft.
+pub(crate) const REPLY_PREFIXES: &[&str] = &[
+    "tell them that…",
+    "幫我跟他說",
+    "幫我跟她說",
+    "幫我跟他們說",
+    "幫我告訴他",
+    "幫我告訴她",
+    "幫我回他",
+    "幫我回她",
+    "幫我回應",
+    "幫我回",
+    "跟他們說",
+    "跟對方說",
+    "跟他說",
+    "跟她說",
+    "跟他講",
+    "跟她講",
+    "告訴他們",
+    "告訴對方",
+    "告訴他",
+    "告訴她",
+    "回覆他",
+    "回覆她",
+    "回覆對方",
+    "回他說",
+    "回她說",
+    "回他",
+    "回她",
+    "回應說",
+    "回說",
+];
+
+pub(super) fn match_reply(view: &NormalizedUtterance<'_>) -> CommandMatch<String> {
+    for prefix in REPLY_PREFIXES {
+        if !view.starts_with_prefix(prefix, false) {
+            continue;
+        }
+        return view
+            .payload_after_prefix(prefix)
+            .map(CommandMatch::Matched)
+            .unwrap_or(CommandMatch::MissingPayload);
+    }
+    CommandMatch::NoMatch
+}
+
 pub(super) fn match_draft(view: &NormalizedUtterance<'_>) -> CommandMatch<String> {
     for prefix in [
         "寫一封",
@@ -21,35 +69,6 @@ pub(super) fn match_draft(view: &NormalizedUtterance<'_>) -> CommandMatch<String
         "幫我生成",
         "生成一段",
         "生成一封",
-        // Reply-shaped requests: "tell them that…" is a draft of the reply.
-        "幫我跟他說",
-        "幫我跟她說",
-        "幫我跟他們說",
-        "幫我告訴他",
-        "幫我告訴她",
-        "幫我回他",
-        "幫我回她",
-        "幫我回應",
-        "幫我回",
-        "跟他們說",
-        "跟對方說",
-        "跟他說",
-        "跟她說",
-        "跟他講",
-        "跟她講",
-        "告訴他們",
-        "告訴對方",
-        "告訴他",
-        "告訴她",
-        "回覆他",
-        "回覆她",
-        "回覆對方",
-        "回他說",
-        "回她說",
-        "回他",
-        "回她",
-        "回應說",
-        "回說",
     ] {
         if !view.starts_with_prefix(prefix, false) {
             continue;

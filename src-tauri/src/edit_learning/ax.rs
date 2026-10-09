@@ -129,13 +129,39 @@ impl FocusedField {
     }
 }
 
-/// Length of the live text selection (UTF-16 units) in the focused element
-/// of `pid`. `None` when the app has no focused element, the element has no
-/// text selection, or Accessibility is unavailable, so callers treat `None`
-/// as "nothing known" rather than "no selection".
-pub fn focused_selection_length(pid: u32) -> Option<usize> {
+/// The focused element's role and live text selection length (UTF-16 units).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FocusedSelection {
+    pub role: Option<String>,
+    pub selection_len_utf16: usize,
+}
+
+impl FocusedSelection {
+    /// Typing would overwrite text the user has selected inside an editable
+    /// field. A selection in a read-only view (a chat bubble, a web page) is
+    /// not at risk: keystrokes go to the composer, not into the bubble.
+    pub fn typing_would_overwrite_selection(&self) -> bool {
+        const EDITABLE_ROLES: [&str; 4] =
+            ["AXTextField", "AXTextArea", "AXComboBox", "AXSearchField"];
+        self.selection_len_utf16 > 0
+            && self
+                .role
+                .as_deref()
+                .is_some_and(|role| EDITABLE_ROLES.contains(&role))
+    }
+}
+
+/// Role and selection of the focused element of `pid`. `None` when the app
+/// has no focused element, the element reports no text selection, or
+/// Accessibility is unavailable, so callers treat `None` as "nothing known"
+/// rather than "no selection".
+pub fn focused_selection(pid: u32) -> Option<FocusedSelection> {
     let field = FocusedField::try_capture(pid).ok()?;
-    selected_range(field.element).map(|range| range.length as usize)
+    let range = selected_range(field.element)?;
+    Some(FocusedSelection {
+        role: copy_string_attribute(field.element, "AXRole"),
+        selection_len_utf16: range.length as usize,
+    })
 }
 
 /// The element's `AXSelectedTextRange`, when it reports one.
@@ -212,4 +238,33 @@ fn cfstring_to_string(value: CFTypeRef) -> Option<String> {
         )
     };
     Some(String::from_utf16_lossy(&buffer))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::FocusedSelection;
+
+    #[test]
+    fn only_a_selection_inside_an_editable_field_blocks_typing() {
+        let editable = FocusedSelection {
+            role: Some("AXTextArea".to_string()),
+            selection_len_utf16: 5,
+        };
+        let bubble = FocusedSelection {
+            role: Some("AXStaticText".to_string()),
+            selection_len_utf16: 5,
+        };
+        let caret_only = FocusedSelection {
+            role: Some("AXTextField".to_string()),
+            selection_len_utf16: 0,
+        };
+        let unknown = FocusedSelection {
+            role: None,
+            selection_len_utf16: 5,
+        };
+        assert!(editable.typing_would_overwrite_selection());
+        assert!(!bubble.typing_would_overwrite_selection());
+        assert!(!caret_only.typing_would_overwrite_selection());
+        assert!(!unknown.typing_would_overwrite_selection());
+    }
 }

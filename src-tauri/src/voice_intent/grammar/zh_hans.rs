@@ -2,6 +2,52 @@ use super::{CommandMatch, SearchMatch};
 use crate::voice_intent::normalize::{trim_command_payload, NormalizedUtterance};
 use crate::voice_intent::SearchProvider;
 
+/// Reply-shaped requests ("跟他说…"): see `zh_hant::REPLY_PREFIXES`.
+pub(crate) const REPLY_PREFIXES: &[&str] = &[
+    "tell them that…",
+    "帮我跟他说",
+    "帮我跟她说",
+    "帮我跟他们说",
+    "帮我告诉他",
+    "帮我告诉她",
+    "帮我回他",
+    "帮我回她",
+    "帮我回应",
+    "帮我回",
+    "跟他们说",
+    "跟对方说",
+    "跟他说",
+    "跟她说",
+    "跟他讲",
+    "跟她讲",
+    "告诉他们",
+    "告诉对方",
+    "告诉他",
+    "告诉她",
+    "回复他",
+    "回复她",
+    "回复对方",
+    "回他说",
+    "回她说",
+    "回他",
+    "回她",
+    "回应说",
+    "回说",
+];
+
+pub(super) fn match_reply(view: &NormalizedUtterance<'_>) -> CommandMatch<String> {
+    for prefix in REPLY_PREFIXES {
+        if !view.starts_with_prefix(prefix, false) {
+            continue;
+        }
+        return view
+            .payload_after_prefix(prefix)
+            .map(CommandMatch::Matched)
+            .unwrap_or(CommandMatch::MissingPayload);
+    }
+    CommandMatch::NoMatch
+}
+
 pub(super) fn match_draft(view: &NormalizedUtterance<'_>) -> CommandMatch<String> {
     for prefix in [
         "写一封",
@@ -19,35 +65,6 @@ pub(super) fn match_draft(view: &NormalizedUtterance<'_>) -> CommandMatch<String
         "帮我生成",
         "生成一段",
         "生成一封",
-        // Reply-shaped requests: "tell them that…" is a draft of the reply.
-        "帮我跟他说",
-        "帮我跟她说",
-        "帮我跟他们说",
-        "帮我告诉他",
-        "帮我告诉她",
-        "帮我回他",
-        "帮我回她",
-        "帮我回应",
-        "帮我回",
-        "跟他们说",
-        "跟对方说",
-        "跟他说",
-        "跟她说",
-        "跟他讲",
-        "跟她讲",
-        "告诉他们",
-        "告诉对方",
-        "告诉他",
-        "告诉她",
-        "回复他",
-        "回复她",
-        "回复对方",
-        "回他说",
-        "回她说",
-        "回他",
-        "回她",
-        "回应说",
-        "回说",
     ] {
         if !view.starts_with_prefix(prefix, false) {
             continue;

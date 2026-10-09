@@ -2,25 +2,38 @@ use super::{CommandMatch, SearchMatch};
 use crate::voice_intent::normalize::{trim_command_payload, NormalizedUtterance};
 use crate::voice_intent::SearchProvider;
 
+/// Reply-shaped requests ("tell them…"): a draft of the reply, consulted only
+/// by the Ask shortcut so dictation that opens with "tell him" stays dictation.
+pub(crate) const REPLY_PREFIXES: &[&str] = &[
+    "reply that",
+    "reply saying",
+    "respond that",
+    "respond with",
+    "respond saying",
+    "tell him",
+    "tell her",
+    "tell them",
+    "let him know",
+    "let her know",
+    "let them know",
+    "say that",
+];
+
+pub(super) fn match_reply(view: &NormalizedUtterance<'_>) -> CommandMatch<String> {
+    for prefix in REPLY_PREFIXES {
+        if !view.starts_with_prefix(prefix, true) {
+            continue;
+        }
+        return view
+            .payload_after_prefix(prefix)
+            .map(CommandMatch::Matched)
+            .unwrap_or(CommandMatch::MissingPayload);
+    }
+    CommandMatch::NoMatch
+}
+
 pub(super) fn match_draft(view: &NormalizedUtterance<'_>) -> CommandMatch<String> {
-    for prefix in [
-        "reply with",
-        "reply that",
-        "reply saying",
-        "respond that",
-        "respond with",
-        "respond saying",
-        "tell him",
-        "tell her",
-        "tell them",
-        "let him know",
-        "let her know",
-        "let them know",
-        "say that",
-        "compose",
-        "draft",
-        "write",
-    ] {
+    for prefix in ["reply with", "compose", "draft", "write"] {
         if !view.starts_with_prefix(prefix, true) {
             continue;
         }

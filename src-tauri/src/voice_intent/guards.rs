@@ -35,6 +35,12 @@ pub(crate) fn has_command_signal(locale: CommandLocale, raw: &str) -> bool {
     if contains_ascii_command_signal(&normalized) {
         return true;
     }
+    if super::grammar::reply_prefixes(locale)
+        .iter()
+        .any(|prefix| normalized.trim_start().starts_with(prefix))
+    {
+        return true;
+    }
     match locale {
         CommandLocale::En => false,
         CommandLocale::ZhHans => [
@@ -262,33 +268,8 @@ pub(crate) fn has_quoted_or_reported_command(locale: CommandLocale, raw: &str) -
 /// Only the leading reply verb is removed so reported speech later in the
 /// utterance still trips the guard.
 fn strip_reply_prefix(locale: CommandLocale, normalized: &str) -> &str {
-    let prefixes: &[&str] = match locale {
-        CommandLocale::En => &[],
-        CommandLocale::ZhHans => &[
-            "帮我跟他们说",
-            "帮我跟他说",
-            "帮我跟她说",
-            "跟他们说",
-            "跟对方说",
-            "跟他说",
-            "跟她说",
-            "回他说",
-            "回她说",
-        ],
-        CommandLocale::ZhHant => &[
-            "幫我跟他們說",
-            "幫我跟他說",
-            "幫我跟她說",
-            "跟他們說",
-            "跟對方說",
-            "跟他說",
-            "跟她說",
-            "回他說",
-            "回她說",
-        ],
-    };
     let trimmed = normalized.trim_start();
-    prefixes
+    super::grammar::reply_prefixes(locale)
         .iter()
         .find_map(|prefix| trimmed.strip_prefix(prefix))
         .unwrap_or(normalized)

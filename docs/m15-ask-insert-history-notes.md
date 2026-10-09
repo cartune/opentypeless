@@ -18,9 +18,13 @@ Date: 2026-10-09. Branch `m15-ask-insert-history` (on top of m14).
 
 - **Capture** (`commands/ask.rs`): the Ask shortcut captures the selection when
   `selected_text_enabled || voice_routing_flags.command_mode`.
-- **Grammar** (`voice_intent/grammar/{zh_hant,zh_hans,en}.rs`): reply-shaped draft prefixes —
-  跟他說 / 跟她說 / 跟他們說 / 跟對方說 / 告訴他 / 回他說 / 幫我回 / 幫我跟他說 …; tell him / tell
-  her / tell them / reply that / respond with / let them know / say that ….
+- **Grammar** (`voice_intent/grammar/{zh_hant,zh_hans,en}.rs`): a separate `match_reply` /
+  `REPLY_PREFIXES` list — 跟他說 / 跟她說 / 跟他們說 / 跟對方說 / 告訴他 / 回他說 / 幫我回 /
+  幫我跟他說 …; tell him / tell her / tell them / reply that / respond with / let them know / say
+  that …. Only the Ask routes consult it: dictation that opens with 跟他說 / tell him stays
+  `DictateInsert` (`match_draft` is unchanged). Reply prefixes count as command signals so the
+  automatic (`multi`) STT language still resolves a locale; a script-neutral reply such as
+  告訴她… resolves to Traditional instead of Ambiguous.
 - **Guard** (`voice_intent/guards.rs`): a *leading* reply verb (跟他說…) is stripped before the
   quoted-or-reported check, so "跟他說 X" is an instruction while "他說「改成正式語氣」" is still
   reported speech.
@@ -32,10 +36,12 @@ Date: 2026-10-09. Branch `m15-ask-insert-history` (on top of m14).
   requested language (翻譯成英文 / in English) and output only the finished text.
 - **Insert-or-popup** (`voice_intent/executor.rs`, `pipeline.rs`, `edit_learning/ax.rs`): new
   backend probe `insert_target_ready`. For drafts on macOS it reads the target app's focused
-  element via Accessibility; a live non-empty text selection there means typing would overwrite
-  it, so the draft is copied and shown in the Ask popup with fallback reason
-  `insert_target_unavailable` ("未直接輸入（欄位中有選取的文字），結果已複製"). No AX data → insert as
-  before. Dictation and selection rewrites are not gated.
+  element via Accessibility (`focused_selection`: role + `AXSelectedTextRange` length). Only a
+  non-empty selection inside an editable role (AXTextField / AXTextArea / AXComboBox /
+  AXSearchField) blocks typing: the draft is copied and shown in the Ask popup with fallback
+  reason `insert_target_unavailable` ("未直接輸入（欄位中有選取的文字），結果已複製"). A selection
+  in a read-only view (a chat bubble) or no AX data → insert as before. Dictation and selection
+  rewrites are not gated.
 - **History** (`storage/mod.rs`, `commands/backup.rs`, `pipeline.rs`): columns `intent_kind` and
   `selected_text` (ALTER on open, INSERT/SELECT/restore, backup optional fields). Ask commands and
   popup answers fill them; dictation rows leave them NULL.

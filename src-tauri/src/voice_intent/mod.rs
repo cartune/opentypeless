@@ -255,12 +255,29 @@ fn route_ask(
             Some(locale),
             Some(RouteFallbackReason::MissingPayload),
         ),
-        CommandMatch::NoMatch => fallback_intent(
-            VoiceMode::Ask,
-            false,
-            Some(locale),
-            discussed_command_reason(locale, request.utterance),
-        ),
+        CommandMatch::NoMatch => match grammar::match_reply(locale, view) {
+            CommandMatch::Matched(payload) if request.flags.draft_insert => intent(
+                VoiceIntentKind::DraftInsert,
+                VoiceOutputPlacement::InsertAtCursor,
+                grammar::exact_confidence(view),
+                None,
+                Some(payload),
+                Some(locale),
+                None,
+            ),
+            CommandMatch::Matched(_) => fallback_intent(
+                VoiceMode::Ask,
+                false,
+                Some(locale),
+                Some(RouteFallbackReason::FeatureDisabled),
+            ),
+            _ => fallback_intent(
+                VoiceMode::Ask,
+                false,
+                Some(locale),
+                discussed_command_reason(locale, request.utterance),
+            ),
+        },
     }
 }
 
@@ -289,7 +306,11 @@ fn route_ask_with_selection(
     if !translation && !rewrite {
         // "跟他說…" / "tell them…" with a message selected: draft the reply at
         // the cursor, using the selection as context. Nothing is replaced.
-        if let CommandMatch::Matched(payload) = grammar::match_draft(locale, view) {
+        let draft = match grammar::match_draft(locale, view) {
+            CommandMatch::NoMatch => grammar::match_reply(locale, view),
+            matched => matched,
+        };
+        if let CommandMatch::Matched(payload) = draft {
             if request.flags.draft_insert {
                 return intent(
                     VoiceIntentKind::DraftInsert,
@@ -436,6 +457,13 @@ fn resolve_locale(mode: SpeechLanguageMode<'_>, utterance: &str) -> LocaleResolu
     }
 }
 
+fn starts_with_reply_prefix(locale: CommandLocale, utterance: &str) -> bool {
+    let trimmed = utterance.trim_start();
+    grammar::reply_prefixes(locale)
+        .iter()
+        .any(|prefix| trimmed.starts_with(prefix))
+}
+
 fn resolve_automatic_locale(utterance: &str) -> LocaleResolution {
     if !has_any_supported_command_signal(utterance) {
         return LocaleResolution::NoCommand;
@@ -459,6 +487,14 @@ fn resolve_automatic_locale(utterance: &str) -> LocaleResolution {
         .filter(|character| "寫幫覆說發這譯選條簡個潤擴彙總釋麼為哪則郵".contains(*character))
         .count();
     match (simplified, traditional) {
+        // A reply verb such as 告訴她 / 回他 carries no script hint; both
+        // Chinese grammars treat it the same, so Traditional stands in.
+        (0, 0) if starts_with_reply_prefix(CommandLocale::ZhHant, utterance) => {
+            LocaleResolution::Supported(CommandLocale::ZhHant)
+        }
+        (0, 0) if starts_with_reply_prefix(CommandLocale::ZhHans, utterance) => {
+            LocaleResolution::Supported(CommandLocale::ZhHans)
+        }
         (0, 0) => LocaleResolution::Ambiguous,
         (0, _) => LocaleResolution::Supported(CommandLocale::ZhHant),
         (_, 0) => LocaleResolution::Supported(CommandLocale::ZhHans),
@@ -716,14 +752,50 @@ mod tests {
             );
             assert!(routed.payload.is_some(), "{utterance}");
         }
-        // Without a selection the same reply still drafts.
+        // Without a selection the same reply still drafts, also when the STT
+        // language is automatic (the user's `multi` setting).
+        for mode in [
+            SpeechLanguageMode::Explicit("zh-TW"),
+            SpeechLanguageMode::Automatic,
+        ] {
+            let routed =
+                VoiceIntentRouter::route(request(VoiceMode::Ask, "告訴她我明天會到", false, mode));
+            assert_eq!(routed.kind, VoiceIntentKind::DraftInsert, "{mode:?}");
+        }
         let routed = VoiceIntentRouter::route(request(
             VoiceMode::Ask,
-            "跟他說這個方法還蠻讚的",
+            "tell them the method works great",
             false,
-            SpeechLanguageMode::Explicit("zh-TW"),
+            SpeechLanguageMode::Automatic,
         ));
         assert_eq!(routed.kind, VoiceIntentKind::DraftInsert);
+    }
+
+    #[test]
+    fn voice_intent_grammar_reply_prefixes_never_turn_dictation_into_a_draft() {
+        for (utterance, language) in [
+            ("跟他說我明天會到", "zh-TW"),
+            ("跟他說改成下午三點", "zh-TW"),
+            ("告訴她我明天會到", "zh-TW"),
+            ("跟他说我明天会到", "zh-CN"),
+            ("tell him I'll be late", "en"),
+            ("say that again", "en"),
+            ("跟他說我明天會到", "multi"),
+            ("tell them the build is ready", "multi"),
+        ] {
+            let routed = VoiceIntentRouter::route(request(
+                VoiceMode::Dictate,
+                utterance,
+                false,
+                SpeechLanguageMode::Explicit(language),
+            ));
+            assert_eq!(routed.kind, VoiceIntentKind::DictateInsert, "{utterance}");
+            assert_eq!(
+                routed.placement,
+                VoiceOutputPlacement::InsertAtCursor,
+                "{utterance}"
+            );
+        }
     }
 
     #[test]

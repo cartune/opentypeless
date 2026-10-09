@@ -945,13 +945,14 @@ impl crate::voice_intent::executor::VoiceExecutionBackend for PipelineVoiceExecu
             let Some(pid) = self.target_guard.process_id else {
                 return Ok(());
             };
-            let selected = tokio::task::block_in_place(|| {
-                crate::edit_learning::ax::focused_selection_length(pid)
-            });
-            match selected {
-                Some(length) if length > 0 => Err(format!(
-                    "focused field in {} has {length} selected characters",
-                    self.app_name
+            let focused =
+                tokio::task::block_in_place(|| crate::edit_learning::ax::focused_selection(pid));
+            match focused {
+                Some(selection) if selection.typing_would_overwrite_selection() => Err(format!(
+                    "focused {} in {} has {} selected characters",
+                    selection.role.as_deref().unwrap_or("element"),
+                    self.app_name,
+                    selection.selection_len_utf16
                 )),
                 _ => Ok(()),
             }

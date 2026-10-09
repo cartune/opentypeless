@@ -29,6 +29,28 @@ pub(crate) fn match_draft(
     }
 }
 
+/// The reply prefixes of a locale, longest first, for the command-signal and
+/// reported-speech guards.
+pub(crate) fn reply_prefixes(locale: CommandLocale) -> &'static [&'static str] {
+    match locale {
+        CommandLocale::En => en::REPLY_PREFIXES,
+        CommandLocale::ZhHans => zh_hans::REPLY_PREFIXES,
+        CommandLocale::ZhHant => zh_hant::REPLY_PREFIXES,
+    }
+}
+
+/// Reply-shaped drafts ("跟他說…", "tell them…"). Ask routes only.
+pub(crate) fn match_reply(
+    locale: CommandLocale,
+    view: &NormalizedUtterance<'_>,
+) -> CommandMatch<String> {
+    match locale {
+        CommandLocale::En => en::match_reply(view),
+        CommandLocale::ZhHans => zh_hans::match_reply(view),
+        CommandLocale::ZhHant => zh_hant::match_reply(view),
+    }
+}
+
 pub(crate) fn matches_rewrite(locale: CommandLocale, view: &NormalizedUtterance<'_>) -> bool {
     match locale {
         CommandLocale::En => en::matches_rewrite(view),
