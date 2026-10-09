@@ -216,7 +216,7 @@ pub(crate) fn has_quoted_or_reported_command(locale: CommandLocale, raw: &str) -
     if !has_command_signal(locale, raw) {
         return false;
     }
-    let normalized = raw.to_lowercase();
+    let normalized = strip_reply_prefix(locale, &raw.to_lowercase()).to_string();
     let reported = match locale {
         CommandLocale::En => [
             " said ",
@@ -255,6 +255,43 @@ pub(crate) fn has_quoted_or_reported_command(locale: CommandLocale, raw: &str) -
         .any(|marker| normalized.contains(marker)),
     };
     reported || has_balanced_command_quotes(raw)
+}
+
+/// "跟他說…" / "tell him…" opens a reply the user wants drafted; the 他說
+/// inside it is the instruction itself, not someone else's quoted words.
+/// Only the leading reply verb is removed so reported speech later in the
+/// utterance still trips the guard.
+fn strip_reply_prefix(locale: CommandLocale, normalized: &str) -> &str {
+    let prefixes: &[&str] = match locale {
+        CommandLocale::En => &[],
+        CommandLocale::ZhHans => &[
+            "帮我跟他们说",
+            "帮我跟他说",
+            "帮我跟她说",
+            "跟他们说",
+            "跟对方说",
+            "跟他说",
+            "跟她说",
+            "回他说",
+            "回她说",
+        ],
+        CommandLocale::ZhHant => &[
+            "幫我跟他們說",
+            "幫我跟他說",
+            "幫我跟她說",
+            "跟他們說",
+            "跟對方說",
+            "跟他說",
+            "跟她說",
+            "回他說",
+            "回她說",
+        ],
+    };
+    let trimmed = normalized.trim_start();
+    prefixes
+        .iter()
+        .find_map(|prefix| trimmed.strip_prefix(prefix))
+        .unwrap_or(normalized)
 }
 
 fn has_balanced_command_quotes(raw: &str) -> bool {

@@ -1424,6 +1424,14 @@ pub struct HistoryEntry {
     pub active_scene_prompt_truncated: bool,
     pub output_status: Option<String>,
     pub output_error: Option<String>,
+    /// Voice intent that produced the row (`draft_insert`, `open_question`, ...).
+    /// `None` for dictation rows and rows written before it was tracked.
+    #[serde(default)]
+    pub intent_kind: Option<String>,
+    /// Selected text the Ask shortcut used as context, already truncated to
+    /// the privacy budget. `None` when nothing was selected.
+    #[serde(default)]
+    pub selected_text: Option<String>,
     /// Per-run latency, provider and usage metrics. Flattened into the entry
     /// so the frontend sees plain nullable fields. All optional: older rows and
     /// providers without usage reporting leave them `None`.
@@ -1591,9 +1599,11 @@ impl HistoryStore {
                     audio_bytes,
                     audio_seconds,
                     llm_prompt_tokens,
-                    llm_completion_tokens
+                    llm_completion_tokens,
+                    intent_kind,
+                    selected_text
                 )
-             VALUES (?1, '', '', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28)",
+             VALUES (?1, '', '', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30)",
                 rusqlite::params![
                     entry.created_at,
                     entry.context_profile_id,
@@ -1623,6 +1633,8 @@ impl HistoryStore {
                     entry.metrics.audio_seconds,
                     entry.metrics.llm_prompt_tokens,
                     entry.metrics.llm_completion_tokens,
+                    entry.intent_kind,
+                    entry.selected_text,
                 ],
             )?;
         }
@@ -1799,7 +1811,9 @@ impl HistoryStore {
                 audio_bytes,
                 audio_seconds,
                 llm_prompt_tokens,
-                llm_completion_tokens
+                llm_completion_tokens,
+                intent_kind,
+                selected_text
              FROM history ORDER BY id DESC LIMIT ?1 OFFSET ?2",
         )?;
         let rows = stmt.query_map(rusqlite::params![limit, offset], |row| {
@@ -1825,6 +1839,8 @@ impl HistoryStore {
                 active_scene_prompt_truncated: row.get(16)?,
                 output_status: row.get(17)?,
                 output_error: row.get(18)?,
+                intent_kind: row.get(29)?,
+                selected_text: row.get(30)?,
                 metrics: HistoryRunMetrics {
                     stt_ms: row.get(19)?,
                     llm_ms: row.get(20)?,
@@ -1934,8 +1950,10 @@ impl HistoryStore {
                             audio_bytes,
                             audio_seconds,
                             llm_prompt_tokens,
-                            llm_completion_tokens
-                        ) VALUES (?1, '', '', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28)",
+                            llm_completion_tokens,
+                            intent_kind,
+                            selected_text
+                        ) VALUES (?1, '', '', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30)",
                         rusqlite::params![
                             entry.created_at,
                             entry.context_profile_id,
@@ -1965,6 +1983,8 @@ impl HistoryStore {
                             entry.metrics.audio_seconds,
                             entry.metrics.llm_prompt_tokens,
                             entry.metrics.llm_completion_tokens,
+                            entry.intent_kind,
+                            entry.selected_text,
                         ],
                     )?;
                 }
@@ -2127,6 +2147,8 @@ fn ensure_history_optional_columns(conn: &Connection) -> Result<()> {
             "llm_completion_tokens",
             "ALTER TABLE history ADD COLUMN llm_completion_tokens INTEGER",
         ),
+        ("intent_kind", "ALTER TABLE history ADD COLUMN intent_kind TEXT"),
+        ("selected_text", "ALTER TABLE history ADD COLUMN selected_text TEXT"),
     ] {
         if !columns.contains(name) {
             conn.execute(ddl, [])?;
@@ -3724,6 +3746,8 @@ mod tests {
             active_scene_prompt_truncated: false,
             output_status: None,
             output_error: None,
+            intent_kind: None,
+            selected_text: None,
             metrics: HistoryRunMetrics::default(),
         }
     }

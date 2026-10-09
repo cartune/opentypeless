@@ -36,7 +36,8 @@
     "copiedInstead": "挿入せずにコピーしました",
     "routeDisabled": "この機能は無効です",
     "searchOpened": "{{provider}} 検索を開きました",
-    "send": "質問"
+    "send": "質問",
+    "noInputTarget": "Not inserted (the field has text selected); result copied"
   },
   "errors": {
     "stt_timeout": "音声認識がタイムアウトしました。もう一度お試しください。",
@@ -745,7 +746,12 @@
     },
     "timingStt": "STT {{value}}",
     "timingLlm": "AI {{value}}",
-    "tokens": "{{value}} tok"
+    "tokens": "{{value}} tok",
+    "selectedTextLabel": "Selected text",
+    "commandLabel": "Command",
+    "outputLabel": "Output",
+    "modeAsk": "Ask",
+    "modeCommand": "Command"
   },
   "upgrade": {
     "title": "アップグレード",

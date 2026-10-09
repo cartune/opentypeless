@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore, type HistoryEntry } from '../../../stores/appStore'
 import { addCorrectionRule, clearHistory, getCorrectionRules } from '../../../lib/tauri'
+import { copyTextToClipboard } from '../../../lib/clipboard'
 import { History } from '../index'
 
 vi.mock('framer-motion', () => ({
@@ -20,6 +21,10 @@ vi.mock('framer-motion', () => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
+}))
+
+vi.mock('../../../lib/clipboard', () => ({
+  copyTextToClipboard: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('../../../lib/tauri', () => ({
@@ -136,5 +141,62 @@ describe('History correction creation', () => {
       expect(useAppStore.getState().history).toEqual([])
     })
     confirmSpy.mockRestore()
+  })
+})
+
+describe('History ask entries', () => {
+  afterEach(cleanup)
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(copyTextToClipboard).mockResolvedValue(undefined)
+  })
+
+  it('shows selection, command and output as separate blocks for a command run', () => {
+    useAppStore.setState({
+      history: [
+        {
+          ...entry,
+          id: 7,
+          intent_kind: 'draft_insert',
+          selected_text: 'Saw this post from a user on Reddit',
+          raw_text: '跟他說這個方法還蠻讚的，翻譯成英文',
+          polished_text: 'This method is great.',
+        },
+      ],
+      correctionRules: [],
+    })
+
+    render(<History />)
+
+    const body = document.querySelector('[data-history-entry-kind="command"]')
+    expect(body).not.toBeNull()
+    expect(screen.getByText('history.modeCommand')).toBeInTheDocument()
+    expect(screen.getByText('Saw this post from a user on Reddit')).toBeInTheDocument()
+    expect(screen.getByText('跟他說這個方法還蠻讚的，翻譯成英文')).toBeInTheDocument()
+    expect(screen.getByText('This method is great.')).toBeInTheDocument()
+  })
+
+  it('treats legacy popup rows as ask entries and copies the output natively', async () => {
+    useAppStore.setState({
+      history: [
+        {
+          ...entry,
+          id: 8,
+          output_status: 'popup',
+          raw_text: '台北今天幾度',
+          polished_text: '大約 28 度。',
+        },
+      ],
+      correctionRules: [],
+    })
+
+    render(<History />)
+
+    expect(document.querySelector('[data-history-entry-kind="ask"]')).not.toBeNull()
+    expect(screen.getByText('history.modeAsk')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Copy text/ }))
+    expect(copyTextToClipboard).toHaveBeenCalledWith('大約 28 度。')
+    await waitFor(() => expect(screen.getByText('history.copied')).toBeInTheDocument())
   })
 })

@@ -820,6 +820,13 @@ pub(crate) struct AskVoiceCommandOutcome {
     pub execution: crate::voice_intent::executor::VoiceExecutionResult,
 }
 
+/// Which voice intent produced a history row and the selection it used.
+#[derive(Debug, Clone, Default)]
+struct HistoryIntentContext {
+    intent_kind: Option<String>,
+    selected_text: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct HistoryOutputMetadata {
     status: Option<String>,
@@ -924,6 +931,35 @@ impl crate::voice_intent::executor::VoiceExecutionBackend for PipelineVoiceExecu
         tokio::task::spawn_blocking(move || detector.restore_target_application(&guard))
             .await
             .map_err(|error| error.to_string())
+    }
+
+    async fn insert_target_ready(&mut self) -> std::result::Result<(), String> {
+        // Only drafts are gated: dictation always types, and selection
+        // rewrites verify the selection themselves. A draft typed while the
+        // user still has text selected in the field would overwrite it.
+        if self.intent_kind != crate::voice_intent::VoiceIntentKind::DraftInsert {
+            return Ok(());
+        }
+        #[cfg(target_os = "macos")]
+        {
+            let Some(pid) = self.target_guard.process_id else {
+                return Ok(());
+            };
+            let selected = tokio::task::block_in_place(|| {
+                crate::edit_learning::ax::focused_selection_length(pid)
+            });
+            match selected {
+                Some(length) if length > 0 => Err(format!(
+                    "focused field in {} has {length} selected characters",
+                    self.app_name
+                )),
+                _ => Ok(()),
+            }
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            Ok(())
+        }
     }
 
     async fn insert_at_cursor(&mut self, text: &str) -> std::result::Result<(), String> {
@@ -2217,6 +2253,7 @@ impl PipelineHandle {
                 error: polish_outcome.history_output_error,
             },
             metrics,
+            HistoryIntentContext::default(),
         )
         .await;
 
@@ -2895,6 +2932,13 @@ impl PipelineHandle {
             String::new()
         };
 
+        let history_intent = HistoryIntentContext {
+            intent_kind: Some(voice_intent.kind.as_str().to_string()),
+            selected_text: selected_text
+                .as_deref()
+                .filter(|text| !text.trim().is_empty())
+                .map(str::to_string),
+        };
         let outcome = self
             .polish_text(PolishTextInput {
                 raw_text: utterance,
@@ -2948,6 +2992,7 @@ impl PipelineHandle {
                 error: outcome.history_output_error.clone(),
             },
             metrics,
+            history_intent,
         )
         .await;
         Ok(AskVoiceCommandOutcome {
@@ -2957,6 +3002,7 @@ impl PipelineHandle {
     }
 
     /// Record a popup Ask answer in history so its BYOK token usage is counted.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) async fn record_ask_answer_history(
         &self,
         config: &storage::AppConfig,
@@ -2965,6 +3011,8 @@ impl PipelineHandle {
         answer: &str,
         llm_elapsed: std::time::Duration,
         llm_usage: Option<&llm::LlmUsage>,
+        intent_kind: crate::voice_intent::VoiceIntentKind,
+        selected_text: Option<&str>,
     ) {
         let metrics = storage::HistoryRunMetrics {
             stt_ms: None,
@@ -2990,6 +3038,12 @@ impl PipelineHandle {
                 error: None,
             },
             metrics,
+            HistoryIntentContext {
+                intent_kind: Some(intent_kind.as_str().to_string()),
+                selected_text: selected_text
+                    .filter(|text| !text.trim().is_empty())
+                    .map(str::to_string),
+            },
         )
         .await;
     }
@@ -3005,6 +3059,7 @@ impl PipelineHandle {
         config: &storage::AppConfig,
         output: HistoryOutputMetadata,
         metrics: storage::HistoryRunMetrics,
+        intent: HistoryIntentContext,
     ) {
         let policy = config.history_retention_policy();
         if !policy.enabled {
@@ -3034,6 +3089,8 @@ impl PipelineHandle {
             active_scene_prompt_truncated: scene_diagnostics.prompt_truncated,
             output_status: output.status,
             output_error: output.error,
+            intent_kind: intent.intent_kind,
+            selected_text: intent.selected_text,
             metrics,
         };
         if let Err(e) = self

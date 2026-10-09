@@ -1066,6 +1066,8 @@ pub async fn ask_anything(
                     &answer.text,
                     answer.llm_elapsed,
                     answer.usage.as_ref(),
+                    voice_intent.kind,
+                    None,
                 )
                 .await;
             Ok(answer.text)
@@ -1127,7 +1129,11 @@ pub(crate) async fn start_reserved_ask_dictation(
         let recording_context = app
             .state::<crate::app_detector::ContextDetectorHandle>()
             .snapshot_for_recording_enabled(config.context_adaptation_enabled);
-        let selected_text = if include_selected_text && config.selected_text_enabled {
+        // Command mode needs the selection to translate, rewrite or reply to
+        // it, so it captures even when the privacy toggle for plain Ask is off.
+        let selected_text = if include_selected_text
+            && (config.selected_text_enabled || config.voice_routing_flags.command_mode)
+        {
             tokio::task::block_in_place(crate::selection::capture_selected_text)
         } else {
             None
@@ -1596,9 +1602,10 @@ pub async fn stop_ask_dictation(
                 | VoiceIntentKind::RewriteSelection
                 | VoiceIntentKind::TranslateSelection
         ) {
+            // A draft keeps the selection too: a reply is written against the
+            // message the user selected.
             let selected_text_for_command = selected_text_metadata
                 .as_ref()
-                .filter(|_| voice_intent.kind != VoiceIntentKind::DraftInsert)
                 .map(|selected_text| selected_text.text.clone());
             let outcome = app
                 .state::<crate::pipeline::PipelineHandle>()
@@ -1617,8 +1624,8 @@ pub async fn stop_ask_dictation(
                 voice_intent.kind,
                 AskDictationResultMetadata::from_command_execution(
                     &outcome.execution,
-                    used_selected_text && voice_intent.kind != VoiceIntentKind::DraftInsert,
-                    selected_text_truncated && voice_intent.kind != VoiceIntentKind::DraftInsert,
+                    used_selected_text,
+                    selected_text_truncated,
                 ),
             ));
         }
@@ -1645,6 +1652,10 @@ pub async fn stop_ask_dictation(
                 &answer.text,
                 answer.llm_elapsed,
                 answer.usage.as_ref(),
+                voice_intent.kind,
+                selected_text_metadata
+                    .as_ref()
+                    .map(|selected_text| selected_text.text.as_str()),
             )
             .await;
 

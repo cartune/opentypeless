@@ -5,10 +5,47 @@ import { Search, Copy, Trash2, MoreHorizontal } from 'lucide-react'
 import { spring } from '../../lib/animations'
 import { useAppStore, type HistoryEntry } from '../../stores/appStore'
 import { addCorrectionRule, clearHistory, getCorrectionRules } from '../../lib/tauri'
+import { copyTextToClipboard } from '../../lib/clipboard'
+import { historyEntryKind } from './entryKind'
 import { toast } from '../toast-service'
 import { AppContextMeta } from './AppContextMeta'
 import { RunTimingMeta } from './RunTimingMeta'
 import { CreateCorrectionDialog } from './CreateCorrectionDialog'
+
+/**
+ * Ask / command runs read as a conversation: what was selected, what the
+ * user asked for, and what came out. Dictation rows stay a single line.
+ */
+function AskEntryBody({ entry }: { entry: HistoryEntry }) {
+  const { t } = useTranslation()
+  const kind = historyEntryKind(entry)
+  const labelClass = 'text-[10px] font-medium uppercase tracking-wider text-text-tertiary mb-0.5'
+  return (
+    <div className="space-y-2" data-history-entry-kind={kind}>
+      <span className="inline-flex items-center rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent">
+        {kind === 'command' ? t('history.modeCommand') : t('history.modeAsk')}
+      </span>
+      {entry.selected_text && (
+        <div className="rounded-[8px] border-l-2 border-border bg-bg-secondary px-2.5 py-1.5">
+          <p className={labelClass}>{t('history.selectedTextLabel')}</p>
+          <p className="text-[12px] text-text-secondary leading-relaxed whitespace-pre-wrap line-clamp-3">
+            {entry.selected_text}
+          </p>
+        </div>
+      )}
+      <div>
+        <p className={labelClass}>{t('history.commandLabel')}</p>
+        <p className="text-[12px] text-text-secondary leading-relaxed">{entry.raw_text}</p>
+      </div>
+      <div>
+        <p className={labelClass}>{t('history.outputLabel')}</p>
+        <p className="text-[13px] text-text-primary leading-relaxed whitespace-pre-wrap">
+          {entry.polished_text}
+        </p>
+      </div>
+    </div>
+  )
+}
 
 export function History() {
   const history = useAppStore((s) => s.history)
@@ -49,6 +86,7 @@ export function History() {
             (h) =>
               h.polished_text.includes(search) ||
               h.raw_text.includes(search) ||
+              (h.selected_text ?? '').includes(search) ||
               h.context_label.includes(search),
           )
         : history,
@@ -56,8 +94,7 @@ export function History() {
   )
 
   const handleCopy = (id: number, text: string) => {
-    navigator.clipboard
-      .writeText(text)
+    copyTextToClipboard(text)
       .then(() => {
         setCopiedId(id)
         setTimeout(() => setCopiedId(null), 1500)
@@ -173,9 +210,13 @@ export function History() {
                       className="group flex items-start gap-3 px-3 py-2.5 rounded-[10px] hover:bg-bg-secondary transition-colors"
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] text-text-primary leading-relaxed">
-                          {entry.polished_text}
-                        </p>
+                        {historyEntryKind(entry) === 'dictation' ? (
+                          <p className="text-[13px] text-text-primary leading-relaxed">
+                            {entry.polished_text}
+                          </p>
+                        ) : (
+                          <AskEntryBody entry={entry} />
+                        )}
                         <AppContextMeta
                           iconKey={entry.context_icon_key}
                           family={entry.context_family}

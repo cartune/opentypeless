@@ -36,7 +36,8 @@
     "copiedInstead": "Copiado em vez de inserido",
     "routeDisabled": "Esta função está desativada",
     "searchOpened": "Pesquisa do {{provider}} aberta",
-    "send": "Perguntar"
+    "send": "Perguntar",
+    "noInputTarget": "Not inserted (the field has text selected); result copied"
   },
   "errors": {
     "stt_timeout": "O reconhecimento de fala expirou. Tente novamente.",
@@ -745,7 +746,12 @@
     },
     "timingStt": "STT {{value}}",
     "timingLlm": "AI {{value}}",
-    "tokens": "{{value}} tok"
+    "tokens": "{{value}} tok",
+    "selectedTextLabel": "Selected text",
+    "commandLabel": "Command",
+    "outputLabel": "Output",
+    "modeAsk": "Ask",
+    "modeCommand": "Command"
   },
   "upgrade": {
     "title": "Atualizar",

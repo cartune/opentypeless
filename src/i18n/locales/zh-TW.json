@@ -36,7 +36,8 @@
     "copiedInstead": "未插入，結果已複製",
     "routeDisabled": "此功能路徑已停用",
     "searchOpened": "已開啟 {{provider}} 搜尋",
-    "send": "提問"
+    "send": "提問",
+    "noInputTarget": "未直接輸入（欄位中有選取的文字），結果已複製"
   },
   "errors": {
     "stt_timeout": "語音辨識超時，請重試。",
@@ -745,7 +746,12 @@
     },
     "timingStt": "辨識 {{value}}",
     "timingLlm": "潤飾 {{value}}",
-    "tokens": "{{value}} tok"
+    "tokens": "{{value}} tok",
+    "selectedTextLabel": "框選內容",
+    "commandLabel": "指令",
+    "outputLabel": "輸出",
+    "modeAsk": "問答",
+    "modeCommand": "指令"
   },
   "upgrade": {
     "title": "升級",

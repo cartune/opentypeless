@@ -36,7 +36,8 @@
     "copiedInstead": "Copiado en lugar de insertado",
     "routeDisabled": "Esta función está desactivada",
     "searchOpened": "Búsqueda de {{provider}} abierta",
-    "send": "Preguntar"
+    "send": "Preguntar",
+    "noInputTarget": "Not inserted (the field has text selected); result copied"
   },
   "errors": {
     "stt_timeout": "El reconocimiento de voz agotó el tiempo de espera. Inténtalo de nuevo.",
@@ -745,7 +746,12 @@
     },
     "timingStt": "STT {{value}}",
     "timingLlm": "AI {{value}}",
-    "tokens": "{{value}} tok"
+    "tokens": "{{value}} tok",
+    "selectedTextLabel": "Selected text",
+    "commandLabel": "Command",
+    "outputLabel": "Output",
+    "modeAsk": "Ask",
+    "modeCommand": "Command"
   },
   "upgrade": {
     "title": "Mejorar",

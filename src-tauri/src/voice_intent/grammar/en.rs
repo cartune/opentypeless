@@ -3,7 +3,24 @@ use crate::voice_intent::normalize::{trim_command_payload, NormalizedUtterance};
 use crate::voice_intent::SearchProvider;
 
 pub(super) fn match_draft(view: &NormalizedUtterance<'_>) -> CommandMatch<String> {
-    for prefix in ["reply with", "compose", "draft", "write"] {
+    for prefix in [
+        "reply with",
+        "reply that",
+        "reply saying",
+        "respond that",
+        "respond with",
+        "respond saying",
+        "tell him",
+        "tell her",
+        "tell them",
+        "let him know",
+        "let her know",
+        "let them know",
+        "say that",
+        "compose",
+        "draft",
+        "write",
+    ] {
         if !view.starts_with_prefix(prefix, true) {
             continue;
         }

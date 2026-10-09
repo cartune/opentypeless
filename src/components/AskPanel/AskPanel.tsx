@@ -9,6 +9,7 @@ import {
   takePendingAskMessage,
 } from '../../lib/tauri'
 import type { AskDictationResult, AskDictationStartResult } from '../../lib/tauri'
+import { copyTextToClipboard } from '../../lib/clipboard'
 
 interface AskPanelProps {
   embedded?: boolean
@@ -290,8 +291,7 @@ export function AskPanel({ embedded = false, showHeader = true, title = 'Ask' }:
 
   const copyAnswer = useCallback(() => {
     if (!answer) return
-    navigator.clipboard
-      .writeText(answer)
+    copyTextToClipboard(answer)
       .then(() => {
         setCopied(true)
         if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
@@ -328,7 +328,9 @@ export function AskPanel({ embedded = false, showHeader = true, title = 'Ask' }:
         ? result.fallbackReason === 'target_changed' ||
           result.fallbackReason === 'focus_restore_failed'
           ? t('ask.targetChanged')
-          : t('ask.copiedInstead')
+          : result.fallbackReason === 'insert_target_unavailable'
+            ? t('ask.noInputTarget')
+            : t('ask.copiedInstead')
         : result?.usedSelectedText
           ? result.selectedTextTruncated
             ? t('ask.usingSelectedTextTruncated')

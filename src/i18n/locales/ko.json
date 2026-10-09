@@ -36,7 +36,8 @@
     "copiedInstead": "삽입하지 않고 복사했습니다",
     "routeDisabled": "이 기능은 비활성화되었습니다",
     "searchOpened": "{{provider}} 검색을 열었습니다",
-    "send": "질문"
+    "send": "질문",
+    "noInputTarget": "Not inserted (the field has text selected); result copied"
   },
   "errors": {
     "stt_timeout": "음성 인식 시간이 초과되었습니다. 다시 시도해 주세요.",
@@ -745,7 +746,12 @@
     },
     "timingStt": "STT {{value}}",
     "timingLlm": "AI {{value}}",
-    "tokens": "{{value}} tok"
+    "tokens": "{{value}} tok",
+    "selectedTextLabel": "Selected text",
+    "commandLabel": "Command",
+    "outputLabel": "Output",
+    "modeAsk": "Ask",
+    "modeCommand": "Command"
   },
   "upgrade": {
     "title": "업그레이드",

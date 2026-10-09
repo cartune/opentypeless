@@ -119,30 +119,41 @@ impl FocusedField {
             tracing::debug!("Edit learning: AXValue of {role:?} is not a string");
             return Err(-3);
         };
-        let caret_utf16 = copy_attribute(self.element, "AXSelectedTextRange")
-            .ok()
-            .and_then(|range| {
-                let mut out = CFRange {
-                    location: 0,
-                    length: 0,
-                };
-                let ok = unsafe {
-                    AXValueGetValue(
-                        range,
-                        AX_VALUE_TYPE_CFRANGE,
-                        &mut out as *mut CFRange as *mut c_void,
-                    )
-                };
-                unsafe { CFRelease(range) };
-                (ok != 0 && out.location >= 0 && out.length >= 0)
-                    .then(|| (out.location + out.length) as usize)
-            });
+        let caret_utf16 =
+            selected_range(self.element).map(|range| (range.location + range.length) as usize);
         Ok(FieldRead {
             value,
             role,
             caret_utf16,
         })
     }
+}
+
+/// Length of the live text selection (UTF-16 units) in the focused element
+/// of `pid`. `None` when the app has no focused element, the element has no
+/// text selection, or Accessibility is unavailable, so callers treat `None`
+/// as "nothing known" rather than "no selection".
+pub fn focused_selection_length(pid: u32) -> Option<usize> {
+    let field = FocusedField::try_capture(pid).ok()?;
+    selected_range(field.element).map(|range| range.length as usize)
+}
+
+/// The element's `AXSelectedTextRange`, when it reports one.
+fn selected_range(element: AXUIElementRef) -> Option<CFRange> {
+    let range = copy_attribute(element, "AXSelectedTextRange").ok()?;
+    let mut out = CFRange {
+        location: 0,
+        length: 0,
+    };
+    let ok = unsafe {
+        AXValueGetValue(
+            range,
+            AX_VALUE_TYPE_CFRANGE,
+            &mut out as *mut CFRange as *mut c_void,
+        )
+    };
+    unsafe { CFRelease(range) };
+    (ok != 0 && out.location >= 0 && out.length >= 0).then_some(out)
 }
 
 impl Drop for FocusedField {

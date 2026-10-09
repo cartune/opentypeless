@@ -287,6 +287,27 @@ fn route_ask_with_selection(
     let translation = grammar::matches_translation(locale, view);
     let rewrite = !translation && grammar::matches_rewrite(locale, view);
     if !translation && !rewrite {
+        // "跟他說…" / "tell them…" with a message selected: draft the reply at
+        // the cursor, using the selection as context. Nothing is replaced.
+        if let CommandMatch::Matched(payload) = grammar::match_draft(locale, view) {
+            if request.flags.draft_insert {
+                return intent(
+                    VoiceIntentKind::DraftInsert,
+                    VoiceOutputPlacement::InsertAtCursor,
+                    grammar::exact_confidence(view),
+                    None,
+                    Some(payload),
+                    Some(locale),
+                    None,
+                );
+            }
+            return fallback_intent(
+                VoiceMode::Ask,
+                true,
+                Some(locale),
+                Some(RouteFallbackReason::FeatureDisabled),
+            );
+        }
         return nondestructive();
     }
     if !request.flags.command_mode
@@ -668,6 +689,41 @@ mod tests {
                 "{utterance}"
             );
         }
+    }
+
+    #[test]
+    fn voice_intent_grammar_ask_with_selection_drafts_replies_at_the_cursor() {
+        for (utterance, language) in [
+            ("跟他說這個方法還蠻讚的，然後翻譯成英文", "zh-TW"),
+            ("告訴她我明天會到", "zh-TW"),
+            ("幫我回他說沒問題", "zh-TW"),
+            ("跟他说这个方法还蛮赞的", "zh-CN"),
+            ("tell them the method works great", "en"),
+            ("reply that I will be there tomorrow", "en"),
+            ("let her know the build is ready", "en"),
+        ] {
+            let routed = VoiceIntentRouter::route(request(
+                VoiceMode::Ask,
+                utterance,
+                true,
+                SpeechLanguageMode::Explicit(language),
+            ));
+            assert_eq!(routed.kind, VoiceIntentKind::DraftInsert, "{utterance}");
+            assert_eq!(
+                routed.placement,
+                VoiceOutputPlacement::InsertAtCursor,
+                "{utterance}"
+            );
+            assert!(routed.payload.is_some(), "{utterance}");
+        }
+        // Without a selection the same reply still drafts.
+        let routed = VoiceIntentRouter::route(request(
+            VoiceMode::Ask,
+            "跟他說這個方法還蠻讚的",
+            false,
+            SpeechLanguageMode::Explicit("zh-TW"),
+        ));
+        assert_eq!(routed.kind, VoiceIntentKind::DraftInsert);
     }
 
     #[test]

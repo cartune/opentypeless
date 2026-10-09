@@ -36,7 +36,8 @@
     "copiedInstead": "Скопировано вместо вставки",
     "routeDisabled": "Эта функция отключена",
     "searchOpened": "Поиск {{provider}} открыт",
-    "send": "Спросить"
+    "send": "Спросить",
+    "noInputTarget": "Not inserted (the field has text selected); result copied"
   },
   "errors": {
     "stt_timeout": "Время распознавания речи истекло. Попробуйте еще раз.",
@@ -745,7 +746,12 @@
     },
     "timingStt": "STT {{value}}",
     "timingLlm": "AI {{value}}",
-    "tokens": "{{value}} tok"
+    "tokens": "{{value}} tok",
+    "selectedTextLabel": "Selected text",
+    "commandLabel": "Command",
+    "outputLabel": "Output",
+    "modeAsk": "Ask",
+    "modeCommand": "Command"
   },
   "upgrade": {
     "title": "Обновить",

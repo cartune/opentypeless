@@ -9,6 +9,7 @@ import {
   takePendingAskMessage,
 } from '../../../lib/tauri'
 import type { AskDictationResult } from '../../../lib/tauri'
+import { copyTextToClipboard } from '../../../lib/clipboard'
 
 const tauriEventMock = vi.hoisted(() => {
   type Listener = (event: { payload: unknown }) => void
@@ -54,6 +55,10 @@ const tauriWindowMock = vi.hoisted(() => {
     },
   }
 })
+
+vi.mock('../../../lib/clipboard', () => ({
+  copyTextToClipboard: vi.fn().mockResolvedValue(undefined),
+}))
 
 vi.mock('../../../lib/tauri', () => ({
   startAskDictation: vi.fn(),
@@ -280,11 +285,7 @@ describe('AskPanel', () => {
   })
 
   it('copies the hotkey answer from the popup', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined)
-    Object.defineProperty(window.navigator, 'clipboard', {
-      value: { writeText },
-      configurable: true,
-    })
+    const writeText = vi.mocked(copyTextToClipboard).mockResolvedValue(undefined)
 
     render(<AskPanel />)
 

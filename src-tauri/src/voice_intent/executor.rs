@@ -25,6 +25,9 @@ pub enum VoiceExecutionFallbackReason {
     SelectionLost,
     FocusRestoreFailed,
     OutputFailed,
+    /// The focused field would lose a live selection (or there is no field to
+    /// type into), so the output went to the popup instead of the keyboard.
+    InsertTargetUnavailable,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -49,6 +52,12 @@ pub struct VoiceExecutionRequest<'a> {
 pub trait VoiceExecutionBackend: Send {
     fn target_matches(&mut self, guard: &TargetAppGuard) -> bool;
     async fn restore_target(&mut self, guard: &TargetAppGuard) -> Result<bool, String>;
+    /// Whether typing at the cursor right now is safe. The default accepts;
+    /// backends that can inspect the focused field refuse when typing would
+    /// overwrite a live selection the user did not ask to replace.
+    async fn insert_target_ready(&mut self) -> Result<(), String> {
+        Ok(())
+    }
     async fn insert_at_cursor(&mut self, text: &str) -> Result<(), String>;
     async fn replace_selection(&mut self, text: &str) -> Result<(), String>;
     async fn popup_answer(&mut self, text: &str) -> Result<(), String>;
@@ -120,6 +129,29 @@ async fn execute_insert(
             None,
             VoiceExecutionStatus::CopiedFallback,
             Some(VoiceExecutionFallbackReason::TargetChanged),
+        );
+    }
+
+    if let Err(reason) = backend.insert_target_ready().await {
+        tracing::info!(
+            "Voice output: not typing at the cursor ({reason}); showing the result instead"
+        );
+        let copied = backend
+            .copy_to_clipboard(request.generated_output)
+            .await
+            .is_ok();
+        if request.restore_target_before_insert {
+            let _ = backend.popup_answer(request.generated_output).await;
+        }
+        return result(
+            request.intent,
+            None,
+            if copied {
+                VoiceExecutionStatus::CopiedFallback
+            } else {
+                VoiceExecutionStatus::Failed
+            },
+            Some(VoiceExecutionFallbackReason::InsertTargetUnavailable),
         );
     }
 
@@ -319,6 +351,7 @@ mod tests {
         restore_succeeds: bool,
         popup_fails: bool,
         insert_fails: bool,
+        insert_target_unavailable: bool,
         copy_fails: bool,
         opened_url: Option<String>,
     }
@@ -333,6 +366,15 @@ mod tests {
         async fn restore_target(&mut self, _guard: &TargetAppGuard) -> Result<bool, String> {
             self.actions.push("restore_target");
             Ok(self.restore_succeeds)
+        }
+
+        async fn insert_target_ready(&mut self) -> Result<(), String> {
+            if self.insert_target_unavailable {
+                self.actions.push("insert_target_ready");
+                Err("live selection".to_string())
+            } else {
+                Ok(())
+            }
         }
 
         async fn insert_at_cursor(&mut self, _text: &str) -> Result<(), String> {
@@ -459,6 +501,29 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[tokio::test]
+    async fn voice_intent_executor_shows_draft_instead_of_typing_over_a_live_selection() {
+        let intent = intent(VoiceIntentKind::DraftInsert);
+        let mut backend = FakeBackend {
+            target_matches: true,
+            insert_target_unavailable: true,
+            ..Default::default()
+        };
+        let result = execute_voice_intent(
+            request(&intent, "draft", false, false, VoiceRoutingFlags::default()),
+            &mut backend,
+        )
+        .await;
+
+        assert_eq!(result.status, VoiceExecutionStatus::CopiedFallback);
+        assert_eq!(
+            result.fallback_reason,
+            Some(VoiceExecutionFallbackReason::InsertTargetUnavailable)
+        );
+        assert!(!backend.actions.contains(&"insert_at_cursor"));
+        assert!(backend.actions.contains(&"copy_to_clipboard"));
     }
 
     #[tokio::test]

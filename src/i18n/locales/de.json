@@ -36,7 +36,8 @@
     "copiedInstead": "Kopiert statt eingefügt",
     "routeDisabled": "Diese Funktion ist deaktiviert",
     "searchOpened": "{{provider}}-Suche geöffnet",
-    "send": "Fragen"
+    "send": "Fragen",
+    "noInputTarget": "Not inserted (the field has text selected); result copied"
   },
   "errors": {
     "stt_timeout": "Die Spracherkennung ist abgelaufen. Bitte versuchen Sie es erneut.",
@@ -745,7 +746,12 @@
     },
     "timingStt": "STT {{value}}",
     "timingLlm": "AI {{value}}",
-    "tokens": "{{value}} tok"
+    "tokens": "{{value}} tok",
+    "selectedTextLabel": "Selected text",
+    "commandLabel": "Command",
+    "outputLabel": "Output",
+    "modeAsk": "Ask",
+    "modeCommand": "Command"
   },
   "upgrade": {
     "title": "Upgrade",

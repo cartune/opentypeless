@@ -139,6 +139,10 @@ export interface HistoryEntry {
   active_scene_prompt_truncated: boolean
   output_status: string | null
   output_error: string | null
+  /** Voice intent that produced the row (`draft_insert`, `open_question`, ...); null for dictation. */
+  intent_kind?: string | null
+  /** Selected text the Ask shortcut used as context (already truncated). */
+  selected_text?: string | null
   // Per-run metrics (nullable; absent on rows written before they were tracked)
   stt_ms?: number | null
   llm_ms?: number | null

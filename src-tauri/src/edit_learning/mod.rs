@@ -10,7 +10,7 @@
 pub mod diff;
 
 #[cfg(target_os = "macos")]
-mod ax;
+pub mod ax;
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;

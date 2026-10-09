@@ -45,6 +45,10 @@ pub struct BackupHistoryEntry {
     output_status: Option<String>,
     #[serde(default)]
     output_error: Option<String>,
+    #[serde(default)]
+    intent_kind: Option<String>,
+    #[serde(default)]
+    selected_text: Option<String>,
     // Pre-context backups used app_name instead of a normalized context label.
     #[serde(default)]
     app_name: Option<String>,
@@ -126,6 +130,16 @@ impl BackupHistoryEntry {
                 self.output_error,
                 2_000,
                 "backup_history_output_error",
+            )?,
+            intent_kind: optional_backup_string(
+                self.intent_kind,
+                64,
+                "backup_history_intent_kind",
+            )?,
+            selected_text: optional_backup_string(
+                self.selected_text,
+                MAX_HISTORY_TEXT_CHARS,
+                "backup_history_selected_text",
             )?,
             metrics: HistoryRunMetrics::default(),
         })

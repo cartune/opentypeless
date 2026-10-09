@@ -439,6 +439,7 @@ export type VoiceExecutionFallbackReason =
   | 'selection_lost'
   | 'focus_restore_failed'
   | 'output_failed'
+  | 'insert_target_unavailable'
 
 export type AskResultOutput =
   | 'popupAnswer'
