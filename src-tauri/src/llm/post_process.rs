@@ -15,20 +15,43 @@ pub struct PostProcessOptions {
     pub apply_correction_rules: bool,
 }
 
-// zhhz converters keep internal scratch buffers (not Sync), so cache one per thread.
-thread_local! {
-    static S2TWP: zhhz::Converter = zhhz::Converter::new(zhhz::Config::S2twp);
-    static TW2SP: zhhz::Converter = zhhz::Converter::new(zhhz::Config::Tw2sp);
+// zhhz converters keep internal scratch buffers (not Sync). Building one
+// takes seconds (the OpenCC tables are large), and a per-thread cache meant
+// every tokio worker paid that price on its first dictation: the first run
+// after launch averaged 3 s of output time. One shared converter behind a
+// mutex, built once at startup (`warm_up`), keeps conversion to microseconds.
+use std::sync::{LazyLock, Mutex};
+
+static S2TWP: LazyLock<Mutex<zhhz::Converter>> =
+    LazyLock::new(|| Mutex::new(zhhz::Converter::new(zhhz::Config::S2twp)));
+static TW2SP: LazyLock<Mutex<zhhz::Converter>> =
+    LazyLock::new(|| Mutex::new(zhhz::Converter::new(zhhz::Config::Tw2sp)));
+
+/// Build the converters now (call once from a background thread at startup).
+pub fn warm_up() {
+    let started = std::time::Instant::now();
+    let _ = to_traditional("預熱");
+    let _ = to_simplified("预热");
+    tracing::info!(
+        "Script converters ready in {}ms",
+        started.elapsed().as_millis()
+    );
 }
 
 /// Simplified -> Traditional (Taiwan phrases). Latin text passes through.
 pub fn to_traditional(text: &str) -> String {
-    S2TWP.with(|converter| converter.convert(text))
+    S2TWP
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .convert(text)
 }
 
 /// Traditional (Taiwan) -> Simplified. Latin text passes through.
 pub fn to_simplified(text: &str) -> String {
-    TW2SP.with(|converter| converter.convert(text))
+    TW2SP
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .convert(text)
 }
 
 fn replace_ascii_case_insensitive(text: &str, pattern: &str, replacement: &str) -> String {

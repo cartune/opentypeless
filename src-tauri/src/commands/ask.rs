@@ -736,6 +736,8 @@ fn build_ask_stt_config(
         ),
         provider_region: (config.stt_provider == stt::aliyun_qwen3_asr::ALIYUN_QWEN3_ASR_PROVIDER)
             .then(|| config.stt_aliyun_qwen_region.clone()),
+        shadow_model: None,
+        shadow_sink: None,
     }
 }
 

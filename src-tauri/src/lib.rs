@@ -1035,6 +1035,11 @@ pub fn run() {
             app.manage(shared_client);
             app.manage(context_detector);
             app.manage(pipeline_handle);
+            // The OpenCC tables take seconds to build; do it before the first dictation.
+            std::thread::Builder::new()
+                .name("script-warm-up".into())
+                .spawn(llm::post_process::warm_up)
+                .ok();
             app.manage(commands::ask::AskDictationState::default());
             app.manage(HotkeyModeCache(Arc::new(Mutex::new(
                 initial_config.hotkey_mode.clone(),

@@ -174,6 +174,10 @@ export interface HistoryEntry {
   intent_kind?: string | null
   /** Selected text the Ask shortcut used as context (already truncated). */
   selected_text?: string | null
+  /** Background second transcription of the same audio, for the accuracy comparison. */
+  shadow_model?: string | null
+  shadow_text?: string | null
+  shadow_ms?: number | null
   // Per-run metrics (nullable; absent on rows written before they were tracked)
   stt_ms?: number | null
   llm_ms?: number | null
@@ -354,6 +358,10 @@ export interface AppConfig {
   /** Short tones when recording starts, stops or is cancelled. */
   capsule_sound_enabled: boolean
   capsule_sound_style: CapsuleSoundStyle
+  /** Send the transcript to OpenAI as a predicted output (faster polish). */
+  llm_predicted_outputs: boolean
+  /** Transcribe with the other OpenAI model too and keep it in History (cost-capped). */
+  stt_shadow_enabled: boolean
   /** Run RNNoise on microphone input before speech recognition. */
   noise_suppression_enabled: boolean
   /** Lower the system output volume while the microphone is open (macOS). */
@@ -946,6 +954,8 @@ const defaultConfig: AppConfig = {
   edit_learning_enabled: true,
   capsule_sound_enabled: true,
   capsule_sound_style: 'dashla',
+  llm_predicted_outputs: true,
+  stt_shadow_enabled: true,
   usage_pricing: [],
   correction_rules_exact_apply: true,
 }

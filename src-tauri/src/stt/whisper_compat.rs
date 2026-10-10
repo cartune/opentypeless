@@ -44,6 +44,54 @@ pub struct TranscriptionRequestFields {
     pub mime_type: &'static str,
 }
 
+/// One transcription request without retries (the shadow path).
+async fn post_transcription(
+    client: &reqwest::Client,
+    endpoint: &str,
+    api_key: &str,
+    fields: &TranscriptionRequestFields,
+    payload: Vec<u8>,
+    extra_fields: &[(String, String)],
+) -> Result<String, String> {
+    let file_part = reqwest::multipart::Part::bytes(payload)
+        .file_name(fields.file_name)
+        .mime_str(fields.mime_type)
+        .map_err(|e| e.to_string())?;
+    let mut form = reqwest::multipart::Form::new()
+        .text("model", fields.model.clone())
+        .part("file", file_part);
+    if let Some(lang) = fields.language.clone() {
+        form = form.text("language", lang);
+    }
+    if let Some(prompt) = fields.prompt.clone() {
+        form = form.text("prompt", prompt);
+    }
+    for (key, value) in extra_fields {
+        form = form.text(key.clone(), value.clone());
+    }
+    let mut request = client
+        .post(endpoint)
+        .multipart(form)
+        .timeout(std::time::Duration::from_secs(60));
+    if !api_key.trim().is_empty() {
+        request = request.header("Authorization", format!("Bearer {api_key}"));
+    }
+    let resp = request.send().await.map_err(|e| e.to_string())?;
+    let status = resp.status();
+    let body = resp.text().await.unwrap_or_default();
+    if !status.is_success() {
+        let end = body
+            .char_indices()
+            .take_while(|&(i, _)| i < 200)
+            .last()
+            .map(|(i, c)| i + c.len_utf8())
+            .unwrap_or(body.len());
+        return Err(format!("HTTP {}: {}", status, &body[..end]));
+    }
+    let v: serde_json::Value = serde_json::from_str(&body).map_err(|e| e.to_string())?;
+    Ok(v["text"].as_str().unwrap_or("").trim().to_string())
+}
+
 pub fn transcription_request_fields(
     provider: &WhisperCompatConfig,
     config: &SttConfig,
@@ -323,6 +371,44 @@ impl SttProvider for WhisperCompatProvider {
             encode_start.elapsed().as_millis(),
             fields.model
         );
+
+        if let (Some(shadow_model), Some(sink)) = (&config.shadow_model, &config.shadow_sink) {
+            let mut shadow_config = config.clone();
+            shadow_config.model_override = Some(shadow_model.clone());
+            let shadow_fields = transcription_request_fields(
+                &self.provider_config,
+                &shadow_config,
+                opus_data.is_some(),
+            );
+            let payload = opus_data
+                .clone()
+                .unwrap_or_else(|| Self::build_wav(&pcm, config.sample_rate));
+            let (tx, rx) = tokio::sync::oneshot::channel();
+            *sink.lock().unwrap_or_else(|e| e.into_inner()) = Some(rx);
+            let client = self.client.clone();
+            let endpoint = self.provider_config.endpoint.clone();
+            let api_key = config.api_key.clone();
+            let extra = self.provider_config.extra_fields.clone();
+            let model = shadow_model.clone();
+            tokio::spawn(async move {
+                let started = std::time::Instant::now();
+                let result = post_transcription(
+                    &client,
+                    &endpoint,
+                    &api_key,
+                    &shadow_fields,
+                    payload,
+                    &extra,
+                )
+                .await;
+                let _ = tx.send(super::ShadowTranscript {
+                    model,
+                    text: result.as_ref().ok().cloned().filter(|t| !t.is_empty()),
+                    elapsed_ms: started.elapsed().as_millis() as u64,
+                    error: result.err(),
+                });
+            });
+        }
 
         let mut attempt = 0u32;
         loop {

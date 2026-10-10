@@ -232,18 +232,19 @@ export function UsagePane() {
 }
 
 function UsageRow({ row, pricing }: { row: UsageByModel; pricing: UsagePrice[] }) {
+  const { t } = useTranslation()
   const cost = estimateRowCost(row, pricing)
   return (
     <tr className="border-t border-border/60">
       <td className="px-3 py-2">
         <span className="font-mono text-[11px]">{row.model || row.provider}</span>
         <span className="ml-1.5 rounded-full bg-bg-secondary px-1.5 py-0.5 text-[10px] uppercase text-text-tertiary">
-          {row.kind}
+          {row.kind === 'stt_shadow' ? t('usage.shadowKind') : row.kind}
         </span>
       </td>
       <td className="text-right px-2 py-2 tabular-nums">{row.runs}</td>
       <td className="text-right px-2 py-2 tabular-nums">
-        {row.kind === 'stt' ? formatMinutes(row.audioSeconds) : '—'}
+        {row.kind === 'stt' || row.kind === 'stt_shadow' ? formatMinutes(row.audioSeconds) : '—'}
       </td>
       <td className="text-right px-2 py-2 tabular-nums">
         {row.kind === 'llm' ? formatTokens(row.promptTokens) : '—'}

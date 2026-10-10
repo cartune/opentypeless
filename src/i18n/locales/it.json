@@ -566,7 +566,11 @@
     "capsuleSoundStyle_bells": "Bells (Mixkit)",
     "capsuleSoundStyle_select": "Option select (Mixkit)",
     "capsuleSoundStyle_pixel": "Pixel two-note (Kenney)",
-    "capsuleSoundStyle_window": "Open / close (Kenney)"
+    "capsuleSoundStyle_window": "Open / close (Kenney)",
+    "llmPredictedOutputs": "Predicted outputs",
+    "llmPredictedOutputsDesc": "Send the transcript to OpenAI as a predicted output so unchanged parts are not regenerated. Affects speed and cost only; the model and prompt stay the same.",
+    "sttShadow": "Shadow transcription (model comparison)",
+    "sttShadowDesc": "Transcribe each dictation with the other OpenAI model too (whisper-1 ↔ gpt-4o-transcribe). The result is kept in History for comparison only and never affects the output. The experiment is capped."
   },
   "contextFamilies": {
     "email": "Email",
@@ -770,7 +774,10 @@
     "commandLabel": "Command",
     "outputLabel": "Output",
     "modeAsk": "Ask",
-    "modeCommand": "Command"
+    "modeCommand": "Command",
+    "shadowDiffCount": "Shadow: {{n}} / {{total}} runs differ",
+    "primaryLabel": "Primary",
+    "shadowEmpty": "(no result)"
   },
   "upgrade": {
     "title": "Aggiorna",
@@ -998,5 +1005,8 @@
       "openrouter": "OpenRouter",
       "cloud": "OpenTypeless Cloud"
     }
+  },
+  "usage": {
+    "shadowKind": "shadow"
   }
 }

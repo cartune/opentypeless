@@ -47,6 +47,31 @@ function AskEntryBody({ entry }: { entry: HistoryEntry }) {
   )
 }
 
+/**
+ * The primary transcript next to the background one so misrecognitions can
+ * be compared by eye. Neither is ground truth.
+ */
+function ShadowCompare({ entry }: { entry: HistoryEntry }) {
+  const { t } = useTranslation()
+  const labelClass =
+    'shrink-0 rounded-full bg-bg-tertiary px-1.5 py-0.5 text-[10px] text-text-tertiary'
+  return (
+    <div className="mt-1.5 space-y-1 text-[11px] leading-snug" data-testid="shadow-compare">
+      <p className="flex items-start gap-1.5 text-text-secondary">
+        <span className={labelClass}>{entry.stt_model ?? t('history.primaryLabel')}</span>
+        <span className="min-w-0 break-words">{entry.raw_text}</span>
+      </p>
+      <p className="flex items-start gap-1.5 text-text-secondary">
+        <span className={labelClass}>
+          {entry.shadow_model}
+          {entry.shadow_ms ? ` · ${(entry.shadow_ms / 1000).toFixed(1)}s` : ''}
+        </span>
+        <span className="min-w-0 break-words">{entry.shadow_text || t('history.shadowEmpty')}</span>
+      </p>
+    </div>
+  )
+}
+
 export function History() {
   const history = useAppStore((s) => s.history)
   const setHistory = useAppStore((s) => s.setHistory)
@@ -141,6 +166,14 @@ export function History() {
     }
   }
 
+  const shadowStats = useMemo(() => {
+    const withShadow = history.filter((h) => h.shadow_model)
+    return {
+      total: withShadow.length,
+      differ: withShadow.filter((h) => (h.shadow_text ?? '') !== h.raw_text).length,
+    }
+  }, [history])
+
   // Group by date
   const grouped = useMemo(() => {
     const map = new Map<string, typeof filtered>()
@@ -161,6 +194,11 @@ export function History() {
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border">
         <h2 className="text-[15px] font-medium">{t('history.title')}</h2>
+        {shadowStats.total > 0 && (
+          <span className="text-[11px] text-text-tertiary" data-testid="shadow-stats">
+            {t('history.shadowDiffCount', { n: shadowStats.differ, total: shadowStats.total })}
+          </span>
+        )}
       </div>
 
       {/* Search — jelly focus */}
@@ -233,6 +271,9 @@ export function History() {
                           llm_prompt_tokens={entry.llm_prompt_tokens}
                           llm_completion_tokens={entry.llm_completion_tokens}
                         />
+                        {entry.shadow_model && entry.shadow_text !== entry.raw_text && (
+                          <ShadowCompare entry={entry} />
+                        )}
                         {entry.output_status && outputStatusLabel(entry.output_status) && (
                           <p className="text-[11px] text-warning mt-1 leading-snug break-words">
                             {outputStatusLabel(entry.output_status)}

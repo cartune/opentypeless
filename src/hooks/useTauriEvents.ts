@@ -233,6 +233,12 @@ export function useTauriEvents() {
         toast.learned(t(toastKey, { app: payload.appLabel, pairs }))
       }
     })
+    addListener<number>('history:updated', () => {
+      // A shadow transcript arrived for a saved row; keep the list current.
+      getHistory(200, 0)
+        .then(setHistory)
+        .catch(() => {})
+    })
     addListener<void>('tray:settings', () => {
       window.location.hash = '#/settings'
     })

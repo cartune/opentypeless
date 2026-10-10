@@ -35,15 +35,38 @@ pub fn merge_usage(into: &mut Option<super::LlmUsage>, update: Option<super::Llm
     if update.completion_tokens.is_some() {
         target.completion_tokens = update.completion_tokens;
     }
+    if update.cached_tokens.is_some() {
+        target.cached_tokens = update.cached_tokens;
+    }
+    if update.accepted_prediction_tokens.is_some() {
+        target.accepted_prediction_tokens = update.accepted_prediction_tokens;
+    }
+    if update.rejected_prediction_tokens.is_some() {
+        target.rejected_prediction_tokens = update.rejected_prediction_tokens;
+    }
 }
 
 fn openai_usage(value: &Value) -> Option<super::LlmUsage> {
     let usage = value.as_object()?;
     let prompt_tokens = usage.get("prompt_tokens").and_then(Value::as_u64);
     let completion_tokens = usage.get("completion_tokens").and_then(Value::as_u64);
+    let cached_tokens = usage
+        .get("prompt_tokens_details")
+        .and_then(|d| d.get("cached_tokens"))
+        .and_then(Value::as_u64);
+    let details = usage.get("completion_tokens_details");
+    let accepted_prediction_tokens = details
+        .and_then(|d| d.get("accepted_prediction_tokens"))
+        .and_then(Value::as_u64);
+    let rejected_prediction_tokens = details
+        .and_then(|d| d.get("rejected_prediction_tokens"))
+        .and_then(Value::as_u64);
     (prompt_tokens.is_some() || completion_tokens.is_some()).then_some(super::LlmUsage {
         prompt_tokens,
         completion_tokens,
+        cached_tokens,
+        accepted_prediction_tokens,
+        rejected_prediction_tokens,
     })
 }
 
@@ -54,6 +77,7 @@ fn anthropic_usage(value: &Value) -> Option<super::LlmUsage> {
     (prompt_tokens.is_some() || completion_tokens.is_some()).then_some(super::LlmUsage {
         prompt_tokens,
         completion_tokens,
+        ..Default::default()
     })
 }
 
@@ -68,6 +92,17 @@ pub fn response_usage(kind: LlmApiKind, body: &Value) -> Option<super::LlmUsage>
 /// Whether to ask the server to append a usage chunk to the stream. Only
 /// api.openai.com is known to accept `stream_options`; OpenAI-compatible
 /// proxies may reject unknown fields with HTTP 400.
+/// Predicted Outputs exist on OpenAI's own endpoint for the gpt-4o and
+/// gpt-4.1 families only (never on reasoning models or other vendors).
+pub fn supports_predicted_outputs(provider: &str, base_url: &str, model: &str) -> bool {
+    if !is_direct_openai(provider, base_url) {
+        return false;
+    }
+    let model = model.trim().to_ascii_lowercase();
+    model.starts_with("gpt-4o") && !model.contains("transcribe") && !model.contains("tts")
+        || model.starts_with("gpt-4.1")
+}
+
 fn stream_usage_supported(provider: &str, base_url: &str) -> bool {
     is_direct_openai(provider, base_url)
 }
@@ -410,6 +445,7 @@ mod usage_tests {
             Some(super::super::LlmUsage {
                 prompt_tokens: Some(120),
                 completion_tokens: Some(32),
+                ..Default::default()
             })
         );
 
@@ -444,6 +480,7 @@ mod usage_tests {
             Some(super::super::LlmUsage {
                 prompt_tokens: Some(50),
                 completion_tokens: Some(40),
+                ..Default::default()
             })
         );
     }

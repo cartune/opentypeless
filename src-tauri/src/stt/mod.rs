@@ -62,6 +62,37 @@ pub struct SttConfig {
     /// Overrides the provider's default model (e.g. `gpt-4o-mini-transcribe`).
     pub model_override: Option<String>,
     pub upload_format: UploadFormat,
+    /// Second model to transcribe the same audio in the background, for the
+    /// accuracy comparison in History. Dictation only.
+    #[serde(default)]
+    pub shadow_model: Option<String>,
+    /// Where the provider leaves the receiver for the shadow transcript.
+    #[serde(skip)]
+    pub shadow_sink: Option<ShadowSink>,
+}
+
+/// Result of the background shadow transcription.
+#[derive(Debug, Clone)]
+pub struct ShadowTranscript {
+    pub model: String,
+    pub text: Option<String>,
+    pub elapsed_ms: u64,
+    pub error: Option<String>,
+}
+
+/// Shared slot: the provider puts the shadow receiver in, the pipeline takes it out.
+pub type ShadowSink =
+    std::sync::Arc<std::sync::Mutex<Option<tokio::sync::oneshot::Receiver<ShadowTranscript>>>>;
+
+/// The other member of the {whisper-1, gpt-4o-transcribe} pair, so flipping
+/// the primary model keeps the comparison meaningful.
+pub fn shadow_model_for(primary: Option<&str>) -> &'static str {
+    let primary = primary.map(str::trim).unwrap_or("").to_ascii_lowercase();
+    if primary.starts_with("gpt-4o") || primary.starts_with("gpt-transcribe") {
+        "whisper-1"
+    } else {
+        "gpt-4o-transcribe"
+    }
 }
 
 impl Default for SttConfig {
@@ -78,6 +109,8 @@ impl Default for SttConfig {
             prompt: None,
             model_override: None,
             upload_format: UploadFormat::Auto,
+            shadow_model: None,
+            shadow_sink: None,
         }
     }
 }

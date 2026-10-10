@@ -775,6 +775,8 @@ pub struct PipelineHandle {
     sound_cues_enabled: Arc<AtomicBool>,
     /// Mirrors `capsule_sound_style` (`CueStyle::as_u8`).
     sound_cue_style: Arc<AtomicU8>,
+    /// Where the STT provider parks the shadow transcript of the current run.
+    pending_shadow: Arc<Mutex<Option<stt::ShadowSink>>>,
     preloaded_config: Arc<Mutex<Option<storage::AppConfig>>>,
     preloaded_app_ctx: Arc<Mutex<Option<RecordingContext>>>,
     preloaded_dictionary: Arc<Mutex<Option<Vec<llm::DictionaryTerm>>>>,
@@ -823,6 +825,10 @@ pub(crate) struct AskVoiceCommandOutcome {
     pub text: String,
     pub execution: crate::voice_intent::executor::VoiceExecutionResult,
 }
+
+/// Hard ceiling for the shadow-STT experiment: audio seconds sent to the
+/// second model (8,000 minutes ≈ US$48 at whisper / gpt-4o-transcribe rates).
+const SHADOW_STT_MAX_AUDIO_SECONDS: f64 = 8_000.0 * 60.0;
 
 /// Which voice intent produced a history row and the selection it used.
 #[derive(Debug, Clone, Default)]
@@ -1123,6 +1129,7 @@ impl PipelineHandle {
             edit_learning: Arc::new(crate::edit_learning::EditLearning::default()),
             sound_cues_enabled: Arc::new(AtomicBool::new(true)),
             sound_cue_style: Arc::new(AtomicU8::new(0)),
+            pending_shadow: Arc::new(Mutex::new(None)),
             preloaded_config: Arc::new(Mutex::new(None)),
             preloaded_app_ctx: Arc::new(Mutex::new(None)),
             preloaded_dictionary: Arc::new(Mutex::new(None)),
@@ -1505,11 +1512,38 @@ impl PipelineHandle {
         );
         let stt_prompt =
             stt::prompt::build_stt_prompt(Some(config_data.stt_language.as_str()), &dict_words);
+        let shadow_model =
+            if config_data.stt_shadow_enabled && config_data.stt_provider == "openai-whisper" {
+                let used = self
+                    .app_handle
+                    .state::<storage::HistoryStore>()
+                    .shadow_audio_seconds()
+                    .await;
+                if used < SHADOW_STT_MAX_AUDIO_SECONDS {
+                    Some(stt::shadow_model_for(stt_model_override.as_deref()).to_string())
+                } else {
+                    tracing::warn!(
+                        "Shadow STT disabled: {:.0}s of shadow audio already used (cap {:.0}s)",
+                        used,
+                        SHADOW_STT_MAX_AUDIO_SECONDS
+                    );
+                    None
+                }
+            } else {
+                None
+            };
+        let shadow_sink = shadow_model.as_ref().map(|_| stt::ShadowSink::default());
+        *self
+            .pending_shadow
+            .lock()
+            .unwrap_or_else(|e| e.into_inner()) = shadow_sink.clone();
         let stt_config = SttConfig {
             api_key: stt_api_key,
             language: stt_language,
             prompt: stt_prompt,
             model_override: stt_model_override,
+            shadow_model,
+            shadow_sink,
             upload_format: stt::UploadFormat::from_config_value(&config_data.stt_upload_format),
             smart_format: true,
             sample_rate: 16000,
@@ -2277,20 +2311,27 @@ impl PipelineHandle {
         let _ = self.app_handle.emit("pipeline:context", app_ctx.summary());
 
         // Save to history
-        self.save_history(
-            &raw_text,
-            &final_text,
-            &app_ctx,
-            duration_ms,
-            &config,
-            HistoryOutputMetadata {
-                status: polish_outcome.history_output_status,
-                error: polish_outcome.history_output_error,
-            },
-            metrics,
-            HistoryIntentContext::default(),
-        )
-        .await;
+        let save_start = std::time::Instant::now();
+        let history_id = self
+            .save_history(
+                &raw_text,
+                &final_text,
+                &app_ctx,
+                duration_ms,
+                &config,
+                HistoryOutputMetadata {
+                    status: polish_outcome.history_output_status,
+                    error: polish_outcome.history_output_error,
+                },
+                metrics,
+                HistoryIntentContext::default(),
+            )
+            .await;
+        tracing::info!(
+            "[Pipeline Timing] save: {}ms",
+            save_start.elapsed().as_millis()
+        );
+        self.attach_shadow_transcript(history_id);
 
         if let Some(control) = &stt_control {
             self.clear_stt_session(control.id);
@@ -2536,6 +2577,7 @@ impl PipelineHandle {
         };
         let req = PolishRequest {
             raw_text: provider_text.to_string(),
+            predicted_outputs: config.llm_predicted_outputs,
             context: app_ctx.summary(),
             dictionary,
             correction_rules,
@@ -2764,10 +2806,13 @@ impl PipelineHandle {
                     already_copied: false,
                     popup_fallback_enabled,
                 };
+                let post_start = std::time::Instant::now();
                 let final_output = llm::post_process::post_process_final_text(
                     &response.polished_text,
                     &post_process_options,
                 );
+                let post_process_ms = post_start.elapsed().as_millis();
+                let execute_start = std::time::Instant::now();
                 let execution = crate::voice_intent::executor::execute_voice_intent(
                     crate::voice_intent::executor::VoiceExecutionRequest {
                         intent: &voice_intent,
@@ -2780,6 +2825,22 @@ impl PipelineHandle {
                     &mut backend,
                 )
                 .await;
+                tracing::info!(
+                    "[Pipeline Timing] output: post-process {}ms, execute {}ms ({:?}){}",
+                    post_process_ms,
+                    execute_start.elapsed().as_millis(),
+                    execution.status,
+                    response
+                        .usage
+                        .as_ref()
+                        .map(|u| format!(
+                            ", cached {}, prediction accepted {} / rejected {}",
+                            u.cached_tokens.unwrap_or(0),
+                            u.accepted_prediction_tokens.unwrap_or(0),
+                            u.rejected_prediction_tokens.unwrap_or(0)
+                        ))
+                        .unwrap_or_default()
+                );
                 let _ = self.app_handle.emit("pipeline:voice_execution", &execution);
 
                 let (history_status, history_error) = match execution.status {
@@ -3095,11 +3156,11 @@ impl PipelineHandle {
         output: HistoryOutputMetadata,
         metrics: storage::HistoryRunMetrics,
         intent: HistoryIntentContext,
-    ) {
+    ) -> Option<i64> {
         let policy = config.history_retention_policy();
         if !policy.enabled {
             tracing::debug!("History save skipped because history is disabled");
-            return;
+            return None;
         }
 
         let now = chrono::Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
@@ -3126,16 +3187,77 @@ impl PipelineHandle {
             output_error: output.error,
             intent_kind: intent.intent_kind,
             selected_text: intent.selected_text,
+            shadow_model: None,
+            shadow_text: None,
+            shadow_ms: None,
             metrics,
         };
-        if let Err(e) = self
+        match self
             .app_handle
             .state::<storage::HistoryStore>()
             .add_with_policy(entry, &policy)
             .await
         {
-            tracing::error!("Failed to save history: {}", e);
+            Ok(id) => Some(id),
+            Err(e) => {
+                tracing::error!("Failed to save history: {}", e);
+                None
+            }
         }
+    }
+
+    /// Attach the shadow transcript of this run to its history row once the
+    /// second model answers, without holding up the dictation.
+    fn attach_shadow_transcript(&self, history_id: Option<i64>) {
+        let Some(sink) = self
+            .pending_shadow
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take()
+        else {
+            return;
+        };
+        let Some(receiver) = sink.lock().unwrap_or_else(|e| e.into_inner()).take() else {
+            return;
+        };
+        let app = self.app_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            let Ok(shadow) = receiver.await else {
+                return;
+            };
+            tracing::info!(
+                "[Pipeline Timing] shadow STT ({}): {}ms, {} chars{}",
+                shadow.model,
+                shadow.elapsed_ms,
+                shadow
+                    .text
+                    .as_deref()
+                    .map(|t| t.chars().count())
+                    .unwrap_or(0),
+                shadow
+                    .error
+                    .as_deref()
+                    .map(|e| format!(", error: {e}"))
+                    .unwrap_or_default()
+            );
+            let Some(id) = history_id else {
+                return;
+            };
+            let store = app.state::<storage::HistoryStore>();
+            if let Err(error) = store
+                .set_shadow(
+                    id,
+                    &shadow.model,
+                    shadow.text.as_deref(),
+                    shadow.elapsed_ms as i64,
+                )
+                .await
+            {
+                tracing::warn!("Failed to store shadow transcript: {error}");
+                return;
+            }
+            let _ = app.emit("history:updated", id);
+        });
     }
 
     fn emit_streaming_insert_result(&self, report: &StreamingInsertReport, app_name: &str) {

@@ -504,7 +504,7 @@ export interface UsageTotals {
 }
 
 export interface UsageByModel {
-  kind: 'stt' | 'llm'
+  kind: 'stt' | 'llm' | 'stt_shadow'
   provider: string
   model: string
   runs: number

@@ -563,6 +563,16 @@ export function LlmPane() {
           <div className="mt-3 space-y-3">
             <div>
               <Toggle
+                checked={config.llm_predicted_outputs}
+                onChange={(checked) => updateConfig({ llm_predicted_outputs: checked })}
+                label={t('settings.llmPredictedOutputs')}
+              />
+              <p className="mt-1 ml-[52px] text-[11px] leading-relaxed text-text-tertiary">
+                {t('settings.llmPredictedOutputsDesc')}
+              </p>
+            </div>
+            <div>
+              <Toggle
                 checked={config.selected_text_enabled}
                 onChange={(checked) => updateConfig({ selected_text_enabled: checked })}
                 label={t('settings.selectedTextContext')}

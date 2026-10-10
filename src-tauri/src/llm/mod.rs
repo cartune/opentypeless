@@ -90,6 +90,8 @@ pub struct PolishRequest {
     pub selected_text: Option<String>,
     pub operation_id: Option<String>,
     pub voice_intent: crate::voice_intent::VoiceIntent,
+    /// Send the transcript as an OpenAI predicted output (faster generation).
+    pub predicted_outputs: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -106,6 +108,14 @@ pub struct CorrectionRule {
 pub struct LlmUsage {
     pub prompt_tokens: Option<u64>,
     pub completion_tokens: Option<u64>,
+    /// Prompt tokens served from OpenAI's prompt cache (billed at half price).
+    #[serde(default)]
+    pub cached_tokens: Option<u64>,
+    /// Predicted-output tokens the model kept / threw away.
+    #[serde(default)]
+    pub accepted_prediction_tokens: Option<u64>,
+    #[serde(default)]
+    pub rejected_prediction_tokens: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

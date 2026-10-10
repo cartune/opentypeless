@@ -91,7 +91,7 @@ export function findPrice(pricing: readonly UsagePrice[], model: string): UsageP
 export function estimateRowCost(row: UsageByModel, pricing: readonly UsagePrice[]): number | null {
   const price = findPrice(pricing, row.model)
   if (!price) return null
-  if (row.kind === 'stt') {
+  if (row.kind === 'stt' || row.kind === 'stt_shadow') {
     if (price.usd_per_minute === null) return null
     return (row.audioSeconds / 60) * price.usd_per_minute
   }

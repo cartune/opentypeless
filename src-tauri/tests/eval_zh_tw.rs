@@ -122,6 +122,7 @@ async fn polish(raw: &str, key: &str) -> String {
     let provider = opentypeless_lib::llm::create_provider("openai", None);
     let req = PolishRequest {
         raw_text: raw.to_string(),
+        predicted_outputs: false,
         context: ContextProfileSummary {
             profile_id: "general.native".to_string(),
             family: ContextFamily::General,

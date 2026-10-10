@@ -84,6 +84,28 @@ impl LlmProvider for OpenAiProvider {
             on_chunk.is_some(),
         );
 
+        // Predicted Outputs: the polished text is mostly the transcript, so
+        // handing the transcript over as the prediction lets OpenAI emit the
+        // unchanged runs without generating them. Not allowed together with
+        // max_completion_tokens; only the 4o / 4.1 families support it.
+        let mut prediction_used = false;
+        if req.predicted_outputs
+            && protocol::supports_predicted_outputs(
+                &config.provider,
+                &config.base_url,
+                &config.model,
+            )
+        {
+            if let Some(obj) = body.as_object_mut() {
+                obj.remove("max_completion_tokens");
+                obj.insert(
+                    "prediction".to_string(),
+                    serde_json::json!({ "type": "content", "content": req.raw_text }),
+                );
+                prediction_used = true;
+            }
+        }
+
         // GLM-4.7/4.5/5 default to thinking mode, but without explicitly enabling it
         // the API may return content in reasoning_content only, leaving content empty.
         // Explicitly enable thinking so both fields are properly populated.
@@ -150,6 +172,20 @@ impl LlmProvider for OpenAiProvider {
                     } else {
                         let status = resp.status();
                         let text = resp.text().await.unwrap_or_default();
+                        // A model that stops accepting predictions must not break polishing.
+                        if prediction_used && status.as_u16() == 400 && text.contains("prediction")
+                        {
+                            tracing::warn!("LLM rejected predicted outputs; retrying without");
+                            if let Some(obj) = body.as_object_mut() {
+                                obj.remove("prediction");
+                                obj.insert(
+                                    "max_completion_tokens".to_string(),
+                                    serde_json::json!(config.max_tokens),
+                                );
+                            }
+                            prediction_used = false;
+                            continue;
+                        }
                         // Truncate at a valid UTF-8 char boundary to avoid panic on multi-byte chars
                         let truncate_at = text
                             .char_indices()

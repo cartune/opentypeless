@@ -418,6 +418,13 @@ pub struct AppConfig {
     /// Which cue set: dashla | chime | marimba | glass.
     #[serde(default = "default_capsule_sound_style")]
     pub capsule_sound_style: String,
+    /// Send the transcript to OpenAI as a predicted output (faster polish).
+    #[serde(default = "default_true")]
+    pub llm_predicted_outputs: bool,
+    /// Transcribe each dictation with the other OpenAI model too and keep the
+    /// result in History for an accuracy comparison (capped in cost).
+    #[serde(default = "default_true")]
+    pub stt_shadow_enabled: bool,
     /// Run RNNoise on microphone input before STT (off by default until
     /// verified on real hardware; see docs/m7-noise-notes.md).
     pub noise_suppression_enabled: bool,
@@ -467,7 +474,7 @@ pub struct UsageTotals {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UsageByModel {
-    /// "stt" or "llm".
+    /// "stt", "llm" or "stt_shadow" (the background comparison model).
     pub kind: String,
     pub provider: String,
     pub model: String,
@@ -555,6 +562,8 @@ impl Default for AppConfig {
             edit_learning_enabled: true,
             capsule_sound_enabled: true,
             capsule_sound_style: default_capsule_sound_style(),
+            llm_predicted_outputs: true,
+            stt_shadow_enabled: true,
             usage_pricing: Vec::new(),
             correction_rules_exact_apply: true,
         }
@@ -1444,6 +1453,13 @@ pub struct HistoryEntry {
     /// the privacy budget. `None` when nothing was selected.
     #[serde(default)]
     pub selected_text: Option<String>,
+    /// Background second transcription of the same audio (model, text, ms).
+    #[serde(default)]
+    pub shadow_model: Option<String>,
+    #[serde(default)]
+    pub shadow_text: Option<String>,
+    #[serde(default)]
+    pub shadow_ms: Option<i64>,
     /// Per-run latency, provider and usage metrics. Flattened into the entry
     /// so the frontend sees plain nullable fields. All optional: older rows and
     /// providers without usage reporting leave them `None`.
@@ -1563,22 +1579,49 @@ impl HistoryStore {
         })
     }
 
-    pub async fn add(&self, entry: HistoryEntry) -> Result<()> {
+    pub async fn add(&self, entry: HistoryEntry) -> Result<i64> {
         self.add_with_policy(entry, &HistoryRetentionPolicy::default())
             .await
+    }
+
+    /// Attach the shadow transcription to a saved row.
+    pub async fn set_shadow(
+        &self,
+        id: i64,
+        model: &str,
+        text: Option<&str>,
+        elapsed_ms: i64,
+    ) -> Result<()> {
+        let conn = self.conn.lock().unwrap_or_else(|e| e.into_inner());
+        conn.execute(
+            "UPDATE history SET shadow_model = ?2, shadow_text = ?3, shadow_ms = ?4 WHERE id = ?1",
+            rusqlite::params![id, model, text, elapsed_ms],
+        )?;
+        Ok(())
+    }
+
+    /// Audio seconds that have been sent to a shadow model so far (cost cap).
+    pub async fn shadow_audio_seconds(&self) -> f64 {
+        let conn = self.conn.lock().unwrap_or_else(|e| e.into_inner());
+        conn.query_row(
+            "SELECT COALESCE(SUM(audio_seconds), 0.0) FROM history WHERE shadow_model IS NOT NULL",
+            [],
+            |row| row.get::<_, f64>(0),
+        )
+        .unwrap_or(0.0)
     }
 
     pub async fn add_with_policy(
         &self,
         entry: HistoryEntry,
         policy: &HistoryRetentionPolicy,
-    ) -> Result<()> {
+    ) -> Result<i64> {
         if !policy.enabled {
-            return Ok(());
+            return Ok(0);
         }
 
         let now_iso = entry.created_at.clone();
-        {
+        let inserted_id = {
             let conn = self.conn.lock().unwrap_or_else(|e| e.into_inner());
             conn.execute(
                 "INSERT INTO history (
@@ -1613,9 +1656,12 @@ impl HistoryStore {
                     llm_prompt_tokens,
                     llm_completion_tokens,
                     intent_kind,
-                    selected_text
+                    selected_text,
+                    shadow_model,
+                    shadow_text,
+                    shadow_ms
                 )
-             VALUES (?1, '', '', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30)",
+             VALUES (?1, '', '', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?33)",
                 rusqlite::params![
                     entry.created_at,
                     entry.context_profile_id,
@@ -1647,12 +1693,16 @@ impl HistoryStore {
                     entry.metrics.llm_completion_tokens,
                     entry.intent_kind,
                     entry.selected_text,
+                    entry.shadow_model,
+                    entry.shadow_text,
+                    entry.shadow_ms,
                 ],
             )?;
-        }
+            conn.last_insert_rowid()
+        };
 
         self.prune_with_policy(policy, &now_iso).await?;
-        Ok(())
+        Ok(inserted_id)
     }
 
     pub async fn prune_with_policy(
@@ -1757,6 +1807,30 @@ impl HistoryStore {
             }
         }
 
+        {
+            let mut stmt = conn.prepare(
+                "SELECT shadow_model, COUNT(*), COALESCE(SUM(audio_seconds), 0.0)
+                 FROM history
+                 WHERE created_at >= ?1 AND shadow_model IS NOT NULL
+                 GROUP BY shadow_model
+                 ORDER BY 3 DESC",
+            )?;
+            let rows = stmt.query_map(rusqlite::params![since], |row| {
+                Ok(UsageByModel {
+                    kind: "stt_shadow".to_string(),
+                    provider: "openai-whisper".to_string(),
+                    model: row.get::<_, Option<String>>(0)?.unwrap_or_default(),
+                    runs: row.get(1)?,
+                    audio_seconds: row.get(2)?,
+                    prompt_tokens: 0,
+                    completion_tokens: 0,
+                })
+            })?;
+            for row in rows {
+                by_model.push(row?);
+            }
+        }
+
         let mut by_day = Vec::new();
         {
             let mut stmt = conn.prepare(
@@ -1825,7 +1899,10 @@ impl HistoryStore {
                 llm_prompt_tokens,
                 llm_completion_tokens,
                 intent_kind,
-                selected_text
+                selected_text,
+                shadow_model,
+                shadow_text,
+                shadow_ms
              FROM history ORDER BY id DESC LIMIT ?1 OFFSET ?2",
         )?;
         let rows = stmt.query_map(rusqlite::params![limit, offset], |row| {
@@ -1853,6 +1930,9 @@ impl HistoryStore {
                 output_error: row.get(18)?,
                 intent_kind: row.get(29)?,
                 selected_text: row.get(30)?,
+                shadow_model: row.get(31)?,
+                shadow_text: row.get(32)?,
+                shadow_ms: row.get(33)?,
                 metrics: HistoryRunMetrics {
                     stt_ms: row.get(19)?,
                     llm_ms: row.get(20)?,
@@ -1964,8 +2044,11 @@ impl HistoryStore {
                             llm_prompt_tokens,
                             llm_completion_tokens,
                             intent_kind,
-                            selected_text
-                        ) VALUES (?1, '', '', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30)",
+                            selected_text,
+                            shadow_model,
+                            shadow_text,
+                            shadow_ms
+                        ) VALUES (?1, '', '', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?33)",
                         rusqlite::params![
                             entry.created_at,
                             entry.context_profile_id,
@@ -1997,6 +2080,9 @@ impl HistoryStore {
                             entry.metrics.llm_completion_tokens,
                             entry.intent_kind,
                             entry.selected_text,
+                            entry.shadow_model,
+                            entry.shadow_text,
+                            entry.shadow_ms,
                         ],
                     )?;
                 }
@@ -2161,6 +2247,9 @@ fn ensure_history_optional_columns(conn: &Connection) -> Result<()> {
         ),
         ("intent_kind", "ALTER TABLE history ADD COLUMN intent_kind TEXT"),
         ("selected_text", "ALTER TABLE history ADD COLUMN selected_text TEXT"),
+        ("shadow_model", "ALTER TABLE history ADD COLUMN shadow_model TEXT"),
+        ("shadow_text", "ALTER TABLE history ADD COLUMN shadow_text TEXT"),
+        ("shadow_ms", "ALTER TABLE history ADD COLUMN shadow_ms INTEGER"),
     ] {
         if !columns.contains(name) {
             conn.execute(ddl, [])?;
@@ -3794,6 +3883,9 @@ mod tests {
             output_error: None,
             intent_kind: None,
             selected_text: None,
+            shadow_model: None,
+            shadow_text: None,
+            shadow_ms: None,
             metrics: HistoryRunMetrics::default(),
         }
     }

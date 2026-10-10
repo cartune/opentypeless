@@ -657,6 +657,19 @@ export function SttPane() {
         </FormField>
       )}
 
+      {isOpenAiWhisper && (
+        <div>
+          <Toggle
+            checked={config.stt_shadow_enabled}
+            onChange={(checked) => updateConfig({ stt_shadow_enabled: checked })}
+            label={t('settings.sttShadow')}
+          />
+          <p className="mt-1 ml-[52px] text-[11px] leading-relaxed text-text-tertiary">
+            {t('settings.sttShadowDesc')}
+          </p>
+        </div>
+      )}
+
       <FormField label={t('settings.sttLanguage')}>
         <select
           value={config.stt_language}

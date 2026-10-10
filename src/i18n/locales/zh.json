@@ -566,7 +566,11 @@
     "capsuleSoundStyle_bells": "铃声（Mixkit）",
     "capsuleSoundStyle_select": "选项点选（Mixkit）",
     "capsuleSoundStyle_pixel": "像素双音（Kenney）",
-    "capsuleSoundStyle_window": "开窗 / 关窗（Kenney）"
+    "capsuleSoundStyle_window": "开窗 / 关窗（Kenney）",
+    "llmPredictedOutputs": "预测输出加速",
+    "llmPredictedOutputsDesc": "把逐字稿当作预测结果送给 OpenAI，相同的部分不用重新生成。只影响速度与费用，不改变模型与提示词。",
+    "sttShadow": "影子识别（模型对照）",
+    "sttShadowDesc": "每次听写同时用另一个 OpenAI 模型（whisper-1 ↔ gpt-4o-transcribe）识别一次，结果只记在历史记录里供比较，不影响输出。实验总量有上限。"
   },
   "contextFamilies": {
     "email": "邮件",
@@ -770,7 +774,10 @@
     "commandLabel": "指令",
     "outputLabel": "输出",
     "modeAsk": "问答",
-    "modeCommand": "指令"
+    "modeCommand": "指令",
+    "shadowDiffCount": "影子识别：{{n}} / {{total}} 次结果不同",
+    "primaryLabel": "原始识别",
+    "shadowEmpty": "（无结果）"
   },
   "upgrade": {
     "title": "升级",
@@ -998,5 +1005,8 @@
       "openrouter": "OpenRouter",
       "cloud": "OpenTypeless 云服务"
     }
+  },
+  "usage": {
+    "shadowKind": "影子"
   }
 }

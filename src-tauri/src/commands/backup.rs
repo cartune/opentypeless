@@ -49,6 +49,12 @@ pub struct BackupHistoryEntry {
     intent_kind: Option<String>,
     #[serde(default)]
     selected_text: Option<String>,
+    #[serde(default)]
+    shadow_model: Option<String>,
+    #[serde(default)]
+    shadow_text: Option<String>,
+    #[serde(default)]
+    shadow_ms: Option<i64>,
     // Pre-context backups used app_name instead of a normalized context label.
     #[serde(default)]
     app_name: Option<String>,
@@ -141,6 +147,17 @@ impl BackupHistoryEntry {
                 MAX_HISTORY_TEXT_CHARS,
                 "backup_history_selected_text",
             )?,
+            shadow_model: optional_backup_string(
+                self.shadow_model,
+                100,
+                "backup_history_shadow_model",
+            )?,
+            shadow_text: optional_backup_string(
+                self.shadow_text,
+                MAX_HISTORY_TEXT_CHARS,
+                "backup_history_shadow_text",
+            )?,
+            shadow_ms: self.shadow_ms.filter(|value| *value >= 0),
             metrics: HistoryRunMetrics::default(),
         })
     }
