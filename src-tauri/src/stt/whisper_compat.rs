@@ -375,6 +375,12 @@ impl SttProvider for WhisperCompatProvider {
         if let (Some(shadow_model), Some(sink)) = (&config.shadow_model, &config.shadow_sink) {
             let mut shadow_config = config.clone();
             shadow_config.model_override = Some(shadow_model.clone());
+            if config.shadow_language.is_some() {
+                shadow_config.language = config.shadow_language.clone();
+            }
+            if config.shadow_prompt.is_some() {
+                shadow_config.prompt = config.shadow_prompt.clone();
+            }
             let shadow_fields = transcription_request_fields(
                 &self.provider_config,
                 &shadow_config,

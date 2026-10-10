@@ -719,7 +719,11 @@ fn build_ask_stt_config(
             model_override.as_deref().unwrap_or(""),
             &config.stt_language,
         ),
-        prompt: stt::prompt::build_stt_prompt(Some(config.stt_language.as_str()), dictionary),
+        prompt: stt::prompt::build_stt_prompt_for_model(
+            model_override.as_deref().unwrap_or("whisper-1"),
+            stt::prompt::effective_prompt_language(&config.stt_language, &config.ui_language),
+            dictionary,
+        ),
         model_override,
         upload_format: stt::UploadFormat::from_config_value(&config.stt_upload_format),
         smart_format: true,
@@ -737,6 +741,8 @@ fn build_ask_stt_config(
         provider_region: (config.stt_provider == stt::aliyun_qwen3_asr::ALIYUN_QWEN3_ASR_PROVIDER)
             .then(|| config.stt_aliyun_qwen_region.clone()),
         shadow_model: None,
+        shadow_language: None,
+        shadow_prompt: None,
         shadow_sink: None,
     }
 }

@@ -57,6 +57,91 @@ fn join_dictionary(dictionary: &[String], cjk: bool) -> String {
 
 /// Build the STT prompt from the configured language and dictionary words.
 /// Returns `None` when there is nothing useful to send.
+/// The language whose script hint the prompt should carry. `multi` (automatic
+/// detection) says nothing about the script, so the UI language stands in:
+/// a Traditional-Chinese user who leaves detection on still wants 繁體 output.
+pub fn effective_prompt_language<'a>(
+    stt_language: &'a str,
+    ui_language: &'a str,
+) -> Option<&'a str> {
+    let stt = stt_language.trim();
+    if !stt.is_empty() && !stt.eq_ignore_ascii_case("multi") && !stt.eq_ignore_ascii_case("auto") {
+        return Some(stt);
+    }
+    let ui = ui_language.trim().to_ascii_lowercase();
+    (ui.starts_with("zh") || ui.starts_with("ja")).then_some(ui_language.trim())
+}
+
+/// `language` parameter for the request: ISO 639-1 when the prompt language
+/// is known (whisper and the gpt-4o transcribers both take `zh`), else none.
+pub fn request_language_for(prompt_language: Option<&str>) -> Option<String> {
+    let language = prompt_language?.trim().to_ascii_lowercase();
+    if language.starts_with("zh") {
+        Some("zh".to_string())
+    } else if language.starts_with("ja") {
+        Some("ja".to_string())
+    } else if language.len() == 2 {
+        Some(language)
+    } else {
+        None
+    }
+}
+
+fn is_instruction_following_model(model: &str) -> bool {
+    let model = model.trim().to_ascii_lowercase();
+    model.starts_with("gpt-4o") || model.starts_with("gpt-transcribe")
+}
+
+fn instruction_hint(language: Option<&str>) -> Option<&'static str> {
+    let language = language?.trim().to_ascii_lowercase();
+    match language.as_str() {
+        "zh-tw" | "zh-hant" | "zh_hant" | "zh-hk" => Some(
+            "請逐字轉錄這段台灣國語語音，使用繁體中文與台灣用語。內容會中英夾雜，英文單字、縮寫與產品名稱保留英文原文，不要翻成中文。不要省略、合併或摘要任何句子，也不要加入沒有說出的內容。",
+        ),
+        "zh" | "zh-cn" | "zh-hans" | "zh_hans" => Some(
+            "请逐字转录这段中文语音。内容会中英夹杂，英文单词、缩写与产品名称保留英文原文。不要省略、合并或摘要任何句子，也不要加入没有说出的内容。",
+        ),
+        "ja" => Some("この日本語の音声を一字一句そのまま書き起こしてください。省略や要約はしないでください。"),
+        _ => None,
+    }
+}
+
+/// Like `build_stt_prompt`, but the gpt-4o transcribers read the prompt as
+/// an instruction rather than as sample text, and they tend to tidy speech
+/// up (dropping clauses, switching script), so they get told not to.
+pub fn build_stt_prompt_for_model(
+    model: &str,
+    language: Option<&str>,
+    dictionary: &[String],
+) -> Option<String> {
+    if !is_instruction_following_model(model) {
+        return build_stt_prompt(language, dictionary);
+    }
+    let hint = instruction_hint(language);
+    let cjk = hint.is_some_and(|h| h.chars().any(is_cjk))
+        || dictionary.iter().any(|w| w.chars().any(is_cjk));
+    let words = join_dictionary(dictionary, cjk);
+    let mut prompt = String::new();
+    if let Some(hint) = hint {
+        prompt.push_str(hint);
+    }
+    if !words.is_empty() {
+        if !prompt.is_empty() {
+            prompt.push(' ');
+        }
+        if cjk {
+            prompt.push_str("專有名詞與常用詞彙：");
+            prompt.push_str(&words);
+            prompt.push('。');
+        } else {
+            prompt.push_str("Proper nouns and vocabulary: ");
+            prompt.push_str(&words);
+            prompt.push('.');
+        }
+    }
+    (!prompt.is_empty()).then_some(prompt)
+}
+
 pub fn build_stt_prompt(language: Option<&str>, dictionary: &[String]) -> Option<String> {
     let hint = script_hint(language);
     let cjk = hint.is_some_and(|h| h.chars().any(is_cjk))
@@ -90,6 +175,31 @@ mod tests {
 
     fn words(list: &[&str]) -> Vec<String> {
         list.iter().map(|w| w.to_string()).collect()
+    }
+
+    #[test]
+    fn automatic_detection_falls_back_to_the_ui_language_for_the_script() {
+        assert_eq!(effective_prompt_language("multi", "zh-TW"), Some("zh-TW"));
+        assert_eq!(effective_prompt_language("multi", "en"), None);
+        assert_eq!(effective_prompt_language("zh-TW", "en"), Some("zh-TW"));
+        assert_eq!(request_language_for(Some("zh-TW")), Some("zh".to_string()));
+        assert_eq!(request_language_for(Some("en")), Some("en".to_string()));
+        assert_eq!(request_language_for(None), None);
+    }
+
+    #[test]
+    fn gpt_4o_transcribers_get_an_instruction_not_sample_text() {
+        let prompt =
+            build_stt_prompt_for_model("gpt-4o-transcribe", Some("zh-TW"), &words(&["Cartune"]))
+                .unwrap();
+        assert!(prompt.starts_with("請逐字轉錄"));
+        assert!(prompt.contains("不要省略"));
+        assert!(prompt.contains("Cartune"));
+        let whisper = build_stt_prompt_for_model("whisper-1", Some("zh-TW"), &words(&["Cartune"]));
+        assert_eq!(
+            whisper,
+            build_stt_prompt(Some("zh-TW"), &words(&["Cartune"]))
+        );
     }
 
     #[test]

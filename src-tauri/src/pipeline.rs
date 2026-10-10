@@ -1510,8 +1510,17 @@ impl PipelineHandle {
             stt_model_override.as_deref().unwrap_or(""),
             &config_data.stt_language,
         );
-        let stt_prompt =
-            stt::prompt::build_stt_prompt(Some(config_data.stt_language.as_str()), &dict_words);
+        // `multi` carries no script; the UI language says which Chinese the
+        // user reads, so the hint (and the shadow's language) follow it.
+        let prompt_language = stt::prompt::effective_prompt_language(
+            &config_data.stt_language,
+            &config_data.ui_language,
+        );
+        let stt_prompt = stt::prompt::build_stt_prompt_for_model(
+            stt_model_override.as_deref().unwrap_or("whisper-1"),
+            prompt_language,
+            &dict_words,
+        );
         let shadow_model =
             if config_data.stt_shadow_enabled && config_data.stt_provider == "openai-whisper" {
                 let used = self
@@ -1532,6 +1541,12 @@ impl PipelineHandle {
             } else {
                 None
             };
+        let shadow_language = shadow_model
+            .as_ref()
+            .and_then(|_| stt::prompt::request_language_for(prompt_language));
+        let shadow_prompt = shadow_model.as_ref().and_then(|model| {
+            stt::prompt::build_stt_prompt_for_model(model, prompt_language, &dict_words)
+        });
         let shadow_sink = shadow_model.as_ref().map(|_| stt::ShadowSink::default());
         *self
             .pending_shadow
@@ -1543,6 +1558,8 @@ impl PipelineHandle {
             prompt: stt_prompt,
             model_override: stt_model_override,
             shadow_model,
+            shadow_language,
+            shadow_prompt,
             shadow_sink,
             upload_format: stt::UploadFormat::from_config_value(&config_data.stt_upload_format),
             smart_format: true,

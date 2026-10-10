@@ -66,6 +66,12 @@ pub struct SttConfig {
     /// accuracy comparison in History. Dictation only.
     #[serde(default)]
     pub shadow_model: Option<String>,
+    /// Request language / prompt for the shadow model when they should differ
+    /// from the primary's (the gpt-4o transcribers take instructions).
+    #[serde(default)]
+    pub shadow_language: Option<String>,
+    #[serde(default)]
+    pub shadow_prompt: Option<String>,
     /// Where the provider leaves the receiver for the shadow transcript.
     #[serde(skip)]
     pub shadow_sink: Option<ShadowSink>,
@@ -110,6 +116,8 @@ impl Default for SttConfig {
             model_override: None,
             upload_format: UploadFormat::Auto,
             shadow_model: None,
+            shadow_language: None,
+            shadow_prompt: None,
             shadow_sink: None,
         }
     }

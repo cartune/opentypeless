@@ -45,6 +45,22 @@ Upload is already Ogg/Opus (~6 KB/s); the network is not the bottleneck.
   STT, so the experiment shows up in Settings → Usage.
 - `HistoryStore::add` / `add_with_policy` return the inserted row id.
 
+## m22: first seven shadow pairs, and what changed because of them
+
+Seven runs on 2026-10-10 evening: gpt-4o-transcribe was faster in six (mean 0.9 s vs 1.4 s, but
+both requests shared the uplink) and **dropped whole clauses in three** (#546, #549, #551) and
+emitted Simplified Chinese once (#551). Root cause of the script slip: `stt_language = multi`
+gave `script_hint` nothing, so neither model got a Traditional-Chinese hint.
+
+- `stt/prompt.rs::effective_prompt_language`: with `multi`/`auto`, the UI language (zh-TW) now
+  supplies the script hint; `request_language_for` maps it to `zh` for the `language` field.
+- `build_stt_prompt_for_model`: the gpt-4o transcribers read `prompt` as an instruction, so
+  they get 「請逐字轉錄…使用繁體中文與台灣用語…英文保留原文…不要省略、合併或摘要任何句子」 plus
+  the dictionary; whisper keeps the sample-text style prompt.
+- Shadow requests carry their own `language` (`zh`) and prompt (`SttConfig.shadow_language`,
+  `shadow_prompt`); the primary whisper request is unchanged except for the restored script hint.
+- Open question the experiment should answer: how each model handles 中英夾雜 with `language=zh`.
+
 ## How to evaluate (after a few days)
 
 1. History page: read the differing pairs; decide which model misreads Chinese names less.
