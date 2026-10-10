@@ -89,7 +89,10 @@ async fn post_transcription(
         return Err(format!("HTTP {}: {}", status, &body[..end]));
     }
     let v: serde_json::Value = serde_json::from_str(&body).map_err(|e| e.to_string())?;
-    Ok(v["text"].as_str().unwrap_or("").trim().to_string())
+    Ok(super::prompt::strip_prompt_echo(
+        v["text"].as_str().unwrap_or("").trim(),
+        fields.prompt.as_deref(),
+    ))
 }
 
 pub fn transcription_request_fields(
@@ -465,7 +468,17 @@ impl SttProvider for WhisperCompatProvider {
                     if status.is_success() {
                         let v: serde_json::Value = serde_json::from_str(&body)
                             .map_err(|e| AppError::Config(e.to_string()))?;
-                        let text = v["text"].as_str().unwrap_or("").trim().to_string();
+                        let raw_text = v["text"].as_str().unwrap_or("").trim();
+                        let text =
+                            super::prompt::strip_prompt_echo(raw_text, fields.prompt.as_deref());
+                        if text.len() != raw_text.len() {
+                            tracing::info!(
+                                "{}: dropped echoed prompt text from the transcript ({} -> {} chars)",
+                                self.provider_config.provider_name,
+                                raw_text.chars().count(),
+                                text.chars().count()
+                            );
+                        }
 
                         tracing::info!(
                             "{} transcription: {} chars",

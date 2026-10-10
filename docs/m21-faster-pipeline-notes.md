@@ -61,6 +61,15 @@ gave `script_hint` nothing, so neither model got a Traditional-Chinese hint.
   `shadow_prompt`); the primary whisper request is unchanged except for the restored script hint.
 - Open question the experiment should answer: how each model handles 中英夾雜 with `language=zh`.
 
+## m23: whisper echoed the new hint
+
+The restored script hint was an imperative sentence (「請使用台灣慣用的繁體字」) and whisper, on a
+short utterance, returned it twice instead of the speech. Whisper reads `prompt` as the preceding
+transcript, so the hint is now a neutral Traditional-Chinese sentence with English terms in it
+(「那我們接著講這個專案的進度，API 跟 GitHub 的部分也一起看一下…」), and
+`stt::prompt::strip_prompt_echo` removes any transcript sentence that equals a prompt sentence
+(primary and shadow). The gpt-4o instruction prompt is unaffected (those models do not echo).
+
 ## How to evaluate (after a few days)
 
 1. History page: read the differing pairs; decide which model misreads Chinese names less.

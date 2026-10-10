@@ -12,13 +12,16 @@ const DICTIONARY_LATIN_CHAR_BUDGET: usize = 400;
 fn script_hint(language: Option<&str>) -> Option<&'static str> {
     let language = language?.trim().to_ascii_lowercase();
     match language.as_str() {
-        "zh-tw" | "zh-hant" | "zh_hant" | "zh-hk" => {
-            Some("以下是繁體中文的語音內容，請使用台灣慣用的繁體字。內容會中英夾雜，英文單字、縮寫與產品名稱請保持英文原文，不要翻成中文。")
-        }
-        "zh" | "zh-cn" | "zh-hans" | "zh_hans" => {
-            Some("以下是中文的语音内容。内容会中英夹杂，英文单词、缩写与产品名称请保持英文原文。")
-        }
-        "ja" => Some("以下は日本語の音声です。"),
+        // Whisper treats the prompt as the transcript that came before, so it
+        // must read like speech in the wanted script, never like an order: an
+        // imperative ("請使用繁體字") gets echoed back on short or quiet audio.
+        "zh-tw" | "zh-hant" | "zh_hant" | "zh-hk" => Some(
+            "那我們接著講這個專案的進度，API 跟 GitHub 的部分也一起看一下，這樣應該就差不多了。",
+        ),
+        "zh" | "zh-cn" | "zh-hans" | "zh_hans" => Some(
+            "那我们接着讲这个项目的进度，API 跟 GitHub 的部分也一起看一下，这样应该就差不多了。",
+        ),
+        "ja" => Some("はい、それではこのプロジェクトの進捗について話しましょう。"),
         _ => None,
     }
 }
@@ -142,6 +145,47 @@ pub fn build_stt_prompt_for_model(
     (!prompt.is_empty()).then_some(prompt)
 }
 
+fn normalise_for_echo(text: &str) -> String {
+    text.chars()
+        .filter(|c| c.is_alphanumeric())
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+/// Whisper sometimes returns the prompt instead of (or in front of) what was
+/// said. Drop every sentence of the transcript that is a sentence of the
+/// prompt, and the dictionary list if it came back verbatim.
+pub fn strip_prompt_echo(text: &str, prompt: Option<&str>) -> String {
+    let Some(prompt) = prompt else {
+        return text.to_string();
+    };
+    let prompt_sentences: Vec<String> = prompt
+        .split(['。', '，', '.', ',', '！', '!', '？', '?', '：', ':', '\n'])
+        .map(normalise_for_echo)
+        .filter(|sentence| sentence.chars().count() >= 4)
+        .collect();
+    if prompt_sentences.is_empty() {
+        return text.to_string();
+    }
+    let mut out = String::new();
+    let mut sentence = String::new();
+    let flush = |sentence: &mut String, out: &mut String| {
+        let key = normalise_for_echo(sentence);
+        if !key.is_empty() && !prompt_sentences.contains(&key) {
+            out.push_str(sentence);
+        }
+        sentence.clear();
+    };
+    for c in text.chars() {
+        sentence.push(c);
+        if matches!(c, '。' | '，' | '.' | ',' | '！' | '!' | '？' | '?' | '\n') {
+            flush(&mut sentence, &mut out);
+        }
+    }
+    flush(&mut sentence, &mut out);
+    out.trim().to_string()
+}
+
 pub fn build_stt_prompt(language: Option<&str>, dictionary: &[String]) -> Option<String> {
     let hint = script_hint(language);
     let cjk = hint.is_some_and(|h| h.chars().any(is_cjk))
@@ -203,6 +247,27 @@ mod tests {
     }
 
     #[test]
+    fn echoed_prompt_sentences_are_removed_from_the_transcript() {
+        let prompt = build_stt_prompt(Some("zh-TW"), &words(&["Cartune", "Dashla"]));
+        let echoed = "那我們接著講這個專案的進度，API 跟 GitHub 的部分也一起看一下，這樣應該就差不多了。照這個報價給我。";
+        assert_eq!(
+            strip_prompt_echo(echoed, prompt.as_deref()),
+            "照這個報價給我。"
+        );
+        let twice = "請使用台灣慣用的繁體字，請使用台灣慣用的繁體字，";
+        assert_eq!(
+            strip_prompt_echo(
+                twice,
+                Some("以下是繁體中文的語音內容，請使用台灣慣用的繁體字。")
+            ),
+            ""
+        );
+        let clean = "今天的進度是把 API 接好。";
+        assert_eq!(strip_prompt_echo(clean, prompt.as_deref()), clean);
+        assert_eq!(strip_prompt_echo(clean, None), clean);
+    }
+
+    #[test]
     fn empty_inputs_give_no_prompt() {
         assert_eq!(build_stt_prompt(None, &[]), None);
         assert_eq!(build_stt_prompt(Some("en"), &[]), None);
@@ -212,7 +277,7 @@ mod tests {
     #[test]
     fn traditional_chinese_gets_a_script_hint_first() {
         let prompt = build_stt_prompt(Some("zh-TW"), &words(&["Cartune", "GIGAPRESS"])).unwrap();
-        assert!(prompt.starts_with("以下是繁體中文"));
+        assert!(prompt.starts_with("那我們接著講"));
         assert!(prompt.contains("Cartune、GIGAPRESS"));
     }
 
@@ -226,7 +291,7 @@ mod tests {
     fn dictionary_is_truncated_but_hint_is_kept() {
         let many: Vec<String> = (0..200).map(|i| format!("詞彙{i}")).collect();
         let prompt = build_stt_prompt(Some("zh-TW"), &many).unwrap();
-        assert!(prompt.starts_with("以下是繁體中文"));
+        assert!(prompt.starts_with("那我們接著講"));
         let dict_part = prompt.split("常用詞彙：").nth(1).unwrap();
         assert!(dict_part.chars().count() <= DICTIONARY_CJK_CHAR_BUDGET + 2);
         assert!(prompt.contains("詞彙0"));
